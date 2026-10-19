@@ -14,7 +14,8 @@ Integration branch: `integration/condos-v1`. Baseline main: `cfca225`.
 | #8      | Integrated | `b387f7d` — statuses and Bangkok viewing appointments                |
 | #9      | Integrated | `03b34e4` + `c01d075` — notes and focus-refresh draft preservation   |
 | #10     | Integrated | `0a3350b` — private photos, processing and durable cleanup           |
-| #11–#12 | Pending    | See native GitHub dependencies and tickets.md                        |
+| #11     | Integrated | `cc81f2f` — HEIC conversion and private uploads; verification below  |
+| #12     | Pending    | See native GitHub dependencies and tickets.md                        |
 | #13     | Integrated | `c780f55` — offer filters and comparison groups; verification below  |
 | #14     | Integrated | `72f60cb` — semantic map navigation and synchronized offers          |
 | #15     | Integrated | `68d7756` — recoverable Trash and restoration; verification below    |
@@ -103,6 +104,12 @@ Verified bounded private uploads, concurrent slot/order guarantees, actual image
 Merged `ticket/13-filters` cleanly in `c780f55`. Check/build passed with the existing chunk-size advisory. Both filter domain tests and all five focused filters/map-navigation browser journeys passed under the shared verification lock on port 5293. Verified unknown-value rules, facility AND grouping, type and rent semantics, matching counts/minimum known rent, pin/callout opacity, phone controls and unchanged semantic camera/navigation behavior.
 
 Photo covers and uploads remain composed. Matching station counts are separate from unfiltered active station occupancy; trashed offers remain excluded from normal lists/maps. No schema changes, resets or hosted mutations occurred.
+
+## Ticket #11 integration verification
+
+Merged `ticket/11-heic` cleanly in `cc81f2f`. Dependency install, check/build and all seven focused HEIC/baseline photo browser journeys passed under the shared verification lock on port 5293. Actual HEVC fixtures verify rotation/mirroring, metadata removal, JPEG conversion/private upload, mixed-success recovery, oversized/malformed rejection and actionable unsupported-worker behavior. Baseline JPEG/PNG/WebP processing and desktop/mobile upload recovery remain green.
+
+The codec is a separate lazy chunk (approximately 3.15 MB minified / 792 kB gzip); the build retains its chunk-size advisory. Formats, dependency license/source and browser scope are documented; physical mobile Safari has not been tested. Filters, navigation and Trash are preserved. No schema changes, resets or hosted mutations occurred.
 
 ## Ticket #7 implementation verification
 
