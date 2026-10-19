@@ -5,6 +5,8 @@ import { OfferForm } from "./OfferForm";
 import { offersRepository } from "./repository";
 import type { Offer } from "./repository";
 import "./offers.css";
+import { OfferNotes } from "../notes/OfferNotes";
+import { notesRepository } from "../notes/notesRepository";
 type Route =
   { kind: "list" } | { kind: "add" } | { kind: "detail" | "edit"; id: string };
 function routeFromHash(): Route {
@@ -22,6 +24,7 @@ function navigate(route: Route) {
         : `offer=${encodeURIComponent(route.id)}${route.kind === "edit" ? "&edit" : ""}`;
 }
 const repository = supabase ? offersRepository(supabase) : null;
+const noteRepository = supabase ? notesRepository(supabase) : null;
 export function OffersWorkspace() {
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -154,6 +157,13 @@ export function OffersWorkspace() {
             Edit offer
           </button>
           <a href={`#offer=${selected.id}`}>Direct link to offer</a>
+          {noteRepository && (
+            <OfferNotes
+              key={selected.id}
+              offerId={selected.id}
+              repository={noteRepository}
+            />
+          )}
         </>
       ) : (
         <>
