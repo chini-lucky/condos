@@ -1,7 +1,2 @@
-export function App() {
-  return (
-    <main>
-      <h1>Condos</h1>
-    </main>
-  );
-}
+import { RailBrowser } from './rail/RailBrowser';
+export function App() { return <RailBrowser />; }
