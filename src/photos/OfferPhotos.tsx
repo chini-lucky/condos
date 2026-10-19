@@ -63,6 +63,10 @@ export function OfferPhotos({
     };
   }, [refresh]);
   const current = photos[Math.min(index, Math.max(0, photos.length - 1))];
+  const nextPhoto =
+    photos[
+      (Math.min(index, Math.max(0, photos.length - 1)) + 1) % photos.length
+    ];
   async function uploadSelected() {
     if (!repository || busy) return;
     let entries = selected.filter((entry) => entry.status !== "saved");
@@ -179,26 +183,22 @@ export function OfferPhotos({
                   alt={`Offer photo ${Math.min(index, photos.length - 1) + 1} of ${photos.length}`}
                 />
               </div>
-              {photos.length > 1 && (
-                <button
-                  className="gallery-next"
-                  aria-label="Next photo"
-                  onClick={() =>
-                    setIndex(
-                      (Math.min(index, photos.length - 1) + 1) % photos.length,
-                    )
-                  }
-                >
-                  <PhotoImage
-                    objectKey={
-                      photos[
-                        (Math.min(index, photos.length - 1) + 1) % photos.length
-                      ]!.objectKey
+              {photos.length > 1 && nextPhoto && (
+                <div className="gallery-next">
+                  <PhotoImage objectKey={nextPhoto.objectKey} alt="" />
+                  <button
+                    className="gallery-advance"
+                    aria-label="Next photo"
+                    onClick={() =>
+                      setIndex(
+                        (Math.min(index, photos.length - 1) + 1) %
+                          photos.length,
+                      )
                     }
-                    alt=""
-                  />
-                  <span aria-hidden="true">›</span>
-                </button>
+                  >
+                    <span aria-hidden="true">›</span>
+                  </button>
+                </div>
               )}
             </div>
             <div className="photo-dots" aria-label="Photo navigation">
