@@ -1,0 +1,127 @@
+@media (max-width: 959px) {
+  .rail-stage {
+    left: 0;
+  }
+  .rail-panel,
+  .panel-collapsed .rail-panel {
+    inset: auto 0 0;
+    width: 100%;
+    border-radius: 22px 22px 0 0;
+    transform: none;
+  }
+  .rail-panel-content {
+    padding: 0 18px 24px;
+    height: calc(100% - 24px);
+  }
+  .rail-panel h1 {
+    font-size: 21px;
+    margin: 0 0 10px;
+  }
+  .rail-panel h1 span {
+    font-size: 9px;
+  }
+  .rail-panel-content > h1:not(:has(span)) {
+    font-size: 27px;
+  }
+  .station-open .rail-panel-content > .rail-back {
+    display: none;
+  }
+  .station-open .rail-panel-content > .rail-badges {
+    display: block;
+    margin: 0 0 6px;
+  }
+  .station-open .rail-panel-content > h1 {
+    display: block;
+  }
+  .station-summary-list {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    margin: 0 -18px;
+    padding: 0 0 8px;
+    scroll-snap-type: x proximity;
+  }
+  .station-summary-list > li {
+    flex: 0 0 148px;
+    scroll-snap-align: start;
+  }
+  .authenticated-app .station-summary-list button {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    min-height: 94px;
+    padding: 10px 12px;
+  }
+  .station-summary-list .rail-badges {
+    margin: 0;
+  }
+  .station-summary-list strong {
+    font-size: 15px;
+  }
+  .station-summary-list span {
+    font-size: 10px;
+  }
+  .overview-total {
+    font-size: 21px;
+    margin-bottom: 14px;
+  }
+  .map-chrome {
+    padding: 10px 12px 0;
+    gap: 6px;
+  }
+  .map-chrome .offer-filters {
+    margin: 0;
+  }
+  .account-actions {
+    padding-top: 5px;
+  }
+  .account-actions .sign-out {
+    min-height: 44px;
+    min-width: 44px;
+    font-size: 10px;
+    padding: 6px;
+  }
+  .panel-collapsed .rail-stage {
+    left: 0;
+  }
+  .rail-panel .rail-panel-toggle {
+    display: none;
+  }
+  .rail-map-surface > .rail-home {
+    top: 12px;
+    left: 14px;
+  }
+  .dossier-name {
+    font-size: 28px;
+  }
+  .dossier-bar {
+    padding-top: 4px;
+  }
+  .unassigned-section {
+    margin-top: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+@media (max-width: 959px) {
+  .gallery-frame {
+    margin-inline: -18px;
+    padding-inline: 18px;
+  }
+}
+
+@media (max-width: 959px) {
+  .filter-heading {
+    display: none;
+  }
+}

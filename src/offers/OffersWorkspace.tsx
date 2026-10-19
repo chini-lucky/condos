@@ -1,32 +1,26 @@
+import type { ReactNode } from "react";
+import { OffersOverview } from "./OffersOverview";
+import { OfferDossier } from "./OfferDossier";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { deletionsRepository } from "../deletions/repository";
 import { supabase } from "../auth";
-import { RailBrowser, LineBadges } from "../rail/RailBrowser";
-import { OfferTrashActions } from "./OfferTrashActions";
+import { RailBrowser } from "../rail/RailBrowser";
 import { TrashList, TrashedOffer } from "./TrashList";
-import { OfferAgentCard } from "./OfferAgentCard";
-import { OfferFactsSummary } from "./OfferFactsSummary";
 import { OfferForm } from "./OfferForm";
 import { getStation } from "../rail/network";
 import type { Station } from "../rail/network";
-import { StationOfferList, walkingDescription } from "./StationOfferList";
+import { StationOfferList } from "./StationOfferList";
 import { OfferMapOverlay } from "./OfferMapOverlay";
 import { stationSummaries } from "./location";
 import { OfferFiltersBar } from "./OfferFiltersBar";
-import { FilteredOfferList } from "./FilteredOfferList";
 import {
   defaultFilters,
-  filtersActive,
   matchingStationSummaries,
   offerFilterOpacity,
 } from "./filters";
 import { offersRepository } from "./repository";
 import type { Offer } from "./repository";
 import "./offers.css";
-import { OfferStatusDisplay } from "./OfferStatusDisplay";
-import { OfferStatusEditor } from "./OfferStatusEditor";
-import { OfferPhotos, OfferCover } from "../photos/OfferPhotos";
-import { OfferNotes } from "../notes/OfferNotes";
 import { notesRepository } from "../notes/notesRepository";
 import { parseRoute, parentRoute, navigate, routeHash } from "./navigation";
 import type { Route } from "./navigation";
@@ -38,7 +32,11 @@ function routeFromHash(): Route {
 const repository = supabase ? offersRepository(supabase) : null;
 const deletionRepository = supabase ? deletionsRepository(supabase) : null;
 const noteRepository = supabase ? notesRepository(supabase) : null;
-export function OffersWorkspace() {
+export function OffersWorkspace({
+  accountActions,
+}: {
+  accountActions?: ReactNode;
+}) {
   const [filters, setFilters] = useState(defaultFilters);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -129,7 +127,8 @@ export function OffersWorkspace() {
           stationId,
           key: "id" in next ? `offer:${next.id}:${stationId}` : routeHash(next),
         });
-      if (!document.activeElement?.closest("svg")) heading.current?.focus();
+      if (!document.activeElement?.closest("svg"))
+        heading.current?.focus({ preventScroll: true });
     };
     window.addEventListener("hashchange", change);
     return () => window.removeEventListener("hashchange", change);
@@ -208,13 +207,22 @@ export function OffersWorkspace() {
       labelSides.set(focusId, left < right ? "left" : "right");
     }
   }
-  const unassigned = activeOffers.filter((offer) => offer.stationId === null);
   const content = (
     <div className="offer-panel-content" ref={heading} tabIndex={-1}>
-      {route.kind !== "list" && <button onClick={back}>Back</button>}
+      {route.kind !== "list" &&
+        (route.kind !== "detail" || !selected || selected.trashedAt) && (
+          <button className="icon-button" onClick={back} aria-label="Back">
+            ‹
+          </button>
+        )}
       {notice && <p role="status">{notice}</p>}
-      {route.kind !== "trash" && (
-        <button onClick={() => navigate({ kind: "trash" })}>Trash</button>
+      {route.kind === "list" && (
+        <button
+          className="quiet-button panel-trash"
+          onClick={() => navigate({ kind: "trash" })}
+        >
+          Trash
+        </button>
       )}
       {error && (
         <div role="alert">
@@ -239,63 +247,14 @@ export function OffersWorkspace() {
           </button>
         </>
       ) : route.kind === "list" ? (
-        <>
-          {summaries.length > 0 && (
-            <section aria-label="Stations with offers">
-              <h2>Stations with offers</h2>
-              <ul className="station-summary-list">
-                {summaries.map((summary) => {
-                  const station = getStation(summary.stationId);
-                  return station ? (
-                    <li key={station.id}>
-                      <button
-                        data-zero-matches={summary.count === 0}
-                        aria-label={`Browse ${station.name}`}
-                        onClick={() => browseStation(station)}
-                      >
-                        <LineBadges station={station} />
-                        <strong>{station.name}</strong>
-                        <span>
-                          {filtersActive(filters)
-                            ? `${summary.count} of ${summary.total} matching`
-                            : `${summary.count} ${summary.count === 1 ? "offer" : "offers"}`}
-                          {summary.lowestRent === null
-                            ? ""
-                            : ` · from ฿${summary.lowestRent.toLocaleString("en-GB")}`}
-                        </span>
-                      </button>
-                    </li>
-                  ) : null;
-                })}
-              </ul>
-            </section>
-          )}
-          <h2>Unassigned</h2>
-          <button onClick={() => navigate({ kind: "add" })}>Add offer</button>
-          {unassigned.length === 0 ? (
-            <p>
-              {activeOffers.length === 0
-                ? "No offers yet. Add your first rental offer."
-                : "No unassigned offers."}
-            </p>
-          ) : (
-            <FilteredOfferList
-              offers={unassigned}
-              filters={filters}
-              className="offer-list"
-              highlightedOfferId={highlightedOfferId}
-              onHighlight={setHighlightedOfferId}
-              renderOffer={(offer) => (
-                <>
-                  <OfferCover offerId={offer.id} name={offer.name} />
-                  <a href={`#offer=${offer.id}`}>{offer.name}</a>
-                  <OfferStatusDisplay offer={offer} />
-                  <OfferFactsSummary offer={offer} />
-                </>
-              )}
-            />
-          )}
-        </>
+        <OffersOverview
+          offers={activeOffers}
+          filters={filters}
+          onStation={browseStation}
+          onAdd={() => navigate({ kind: "add" })}
+          highlightedOfferId={highlightedOfferId}
+          onHighlight={setHighlightedOfferId}
+        />
       ) : route.kind === "trash" && repository && deletionRepository ? (
         <TrashList
           offers={trashedOffers}
@@ -338,56 +297,19 @@ export function OffersWorkspace() {
             onCancel={back}
           />
         </>
-      ) : selected ? (
-        <>
-          <h2>{selected.name}</h2>
-          <OfferPhotos key={`photos-${selected.id}`} offerId={selected.id} />
-          <OfferStatusDisplay offer={selected} />
-          {repository && (
-            <OfferStatusEditor
-              offer={selected}
-              repository={repository}
-              onSaved={saved}
-            />
-          )}
-          <p>
-            {selected.stationId
-              ? `Station: ${getStation(selected.stationId)?.name ?? selected.stationId}`
-              : "Station not assigned"}
-          </p>
-          <p>{walkingDescription(selected)}</p>
-          <p>
-            {selected.bearing === null
-              ? "Direction unknown"
-              : `Direction: ${selected.bearing}° clockwise from north`}
-          </p>
-          <OfferFactsSummary offer={selected} />
-          <OfferAgentCard key={`agent-${selected.id}`} offer={selected} />
-
-          <p>Added {formatDate(selected.createdAt)}</p>
-          <p>Updated {formatDate(selected.updatedAt)}</p>
-          <button onClick={() => navigate({ kind: "edit", id: selected.id })}>
-            Edit offer
-          </button>
-          <a href={`#offer=${selected.id}`}>Direct link to offer</a>
-          {repository && (
-            <OfferTrashActions
-              offer={selected}
-              repository={repository}
-              onChanged={(offer) => {
-                saved(offer);
-                setNotice("Offer moved to Trash.");
-              }}
-            />
-          )}
-          {noteRepository && (
-            <OfferNotes
-              key={selected.id}
-              offerId={selected.id}
-              repository={noteRepository}
-            />
-          )}
-        </>
+      ) : selected && repository ? (
+        <OfferDossier
+          offer={selected}
+          repository={repository}
+          notes={noteRepository}
+          onSaved={saved}
+          onEdit={() => navigate({ kind: "edit", id: selected.id })}
+          onBack={back}
+          onTrashed={(offer) => {
+            saved(offer);
+            setNotice("Offer moved to Trash.");
+          }}
+        />
       ) : (
         <>
           <h2>Offer unavailable</h2>
@@ -401,7 +323,13 @@ export function OffersWorkspace() {
   );
   return (
     <RailBrowser
-      mapControls={<OfferFiltersBar value={filters} onChange={setFilters} />}
+      contentKey={routeHash(route)}
+      mapControls={
+        <div className="map-chrome">
+          <OfferFiltersBar value={filters} onChange={setFilters} />
+          <div className="account-actions">{accountActions}</div>
+        </div>
+      }
       overview={content}
       panelContent={
         route.kind === "list" && !invalidStation ? undefined : content
@@ -439,7 +367,12 @@ export function OffersWorkspace() {
       )}
       renderStation={(station) => (
         <>
-          <button onClick={() => navigate({ kind: "trash" })}>Trash</button>
+          <button
+            className="quiet-button panel-trash"
+            onClick={() => navigate({ kind: "trash" })}
+          >
+            Trash
+          </button>
           {error && (
             <div role="alert">
               <p>{error}</p>
@@ -469,11 +402,4 @@ export function OffersWorkspace() {
       )}
     />
   );
-}
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-GB", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "Asia/Bangkok",
-  }).format(new Date(value));
 }

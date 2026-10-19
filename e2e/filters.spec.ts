@@ -155,7 +155,7 @@ test("combined filters agree across station cards, matching counts and truthful 
   expect(toolbarBounds.x).toBeGreaterThanOrEqual(
     panelBounds.x + panelBounds.width - 1,
   );
-  expect(panelBounds.y).toBeCloseTo(browserBounds.y, 0);
+  expect(panelBounds.y).toBeCloseTo(browserBounds.y + 16, 0);
   await expect(
     page.getByRole("button", {
       name: "Details for Filters confirmed",

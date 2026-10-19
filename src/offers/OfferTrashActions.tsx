@@ -51,6 +51,7 @@ export function OfferTrashActions({
             kept until you restore or permanently delete it.
           </p>
           <button
+            className="danger"
             disabled={busy}
             onClick={() => {
               void change();
@@ -63,7 +64,12 @@ export function OfferTrashActions({
           </button>
         </div>
       ) : (
-        <button onClick={() => setConfirm(true)}>Move to Trash</button>
+        <button
+          className="quiet-button danger"
+          onClick={() => setConfirm(true)}
+        >
+          Move to Trash
+        </button>
       )}
     </section>
   );

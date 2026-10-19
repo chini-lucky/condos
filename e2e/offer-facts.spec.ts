@@ -15,7 +15,9 @@ test("create, inspect and clear optional facts and facilities without fabricatin
   await page.getByLabel("Walking distance (metres)").fill("800");
   await page.getByLabel("Direction (degrees clockwise from north)").fill("90");
   await page.getByLabel("Monthly rent (THB)").fill("25000");
-  await page.getByLabel("Property type").selectOption("condominium");
+  await details
+    .getByRole("radio", { name: "Condominium", exact: true })
+    .check();
   await page.getByLabel("Size (m²)").fill("31.5");
   await page.getByLabel("Beds (0 for studio)").fill("0");
   await page.getByLabel("Floor", { exact: true }).fill("-1");
@@ -41,13 +43,13 @@ test("create, inspect and clear optional facts and facilities without fabricatin
   ).toBeVisible();
   await expect(details.getByText(/Studio \(0 beds\)/)).toBeVisible();
   await expect(
-    details.getByText("✓ Washer: Present", { exact: true }),
+    details.getByRole("listitem", { name: "Washer: Present", exact: true }),
   ).toBeVisible();
   await expect(
-    details.getByText("✕ Garden: Absent", { exact: true }),
+    details.getByRole("listitem", { name: "Garden: Absent", exact: true }),
   ).toBeVisible();
   await expect(
-    details.getByText("? Pool: Unknown", { exact: true }),
+    details.getByRole("listitem", { name: "Pool: Unknown", exact: true }),
   ).toBeVisible();
   const detailLink = page.url();
   await page.getByRole("button", { name: "Back", exact: true }).click();
@@ -58,7 +60,7 @@ test("create, inspect and clear optional facts and facilities without fabricatin
     }),
   });
   await expect(
-    card.getByText("✓ Washer: Present", { exact: true }),
+    card.getByRole("listitem", { name: "Washer: Present", exact: true }),
   ).toBeVisible();
   await page.goto(detailLink);
   await page.reload();
@@ -72,7 +74,7 @@ test("create, inspect and clear optional facts and facilities without fabricatin
     "Floor",
   ])
     await page.getByLabel(label, { exact: true }).fill("");
-  await page.getByLabel("Property type").selectOption("");
+  await details.getByRole("radio", { name: "Unknown", exact: true }).check();
   await details
     .getByRole("combobox", { name: "Washer", exact: true })
     .selectOption("unknown");
@@ -87,13 +89,13 @@ test("create, inspect and clear optional facts and facilities without fabricatin
     details.getByText("Rent not recorded", { exact: true }),
   ).toBeVisible();
   await expect(
-    details.getByText("? Washer: Unknown", { exact: true }),
+    details.getByRole("listitem", { name: "Washer: Unknown", exact: true }),
   ).toBeVisible();
-  await expect(details.getByText(/Beds unknown/)).toBeVisible();
-  await expect(details.getByText("Balcony", { exact: true })).toHaveCount(0);
   await expect(
-    details.getByText("Station: Thong Lo", { exact: true }),
-  ).toBeVisible();
+    details.getByRole("definition").filter({ hasText: "Unknown" }),
+  ).toHaveCount(3);
+  await expect(details.getByText("Balcony", { exact: true })).toHaveCount(0);
+  await expect(details.getByText("Thong Lo", { exact: true })).toBeVisible();
   await expect(
     details.getByText("800 m · estimated 10 min walk", { exact: true }),
   ).toBeVisible();

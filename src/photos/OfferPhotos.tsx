@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { supabase } from "../auth";
 import { maximumPhotoBytes, processPhoto } from "./process";
 import { photosRepository } from "./repository";
@@ -14,7 +15,13 @@ type Selection = {
   error: string;
   photoId?: string;
 };
-export function OfferPhotos({ offerId }: { offerId: string }) {
+export function OfferPhotos({
+  offerId,
+  children,
+}: {
+  offerId: string;
+  children?: ReactNode;
+}) {
   const [collection, setCollection] = useState<PhotoCollection | null>(null);
   const photos = collection?.photos ?? [];
   const [index, setIndex] = useState(0);
@@ -155,178 +162,211 @@ export function OfferPhotos({ offerId }: { offerId: string }) {
     }
   }
   return (
-    <section className="offer-photos" aria-label="Offer photos">
-      <h3>
-        Photos <span>{photos.length}/20</span>
-      </h3>
-      {loading ? (
-        <p role="status">Loading photos…</p>
-      ) : current ? (
-        <div className="photo-carousel" aria-roledescription="carousel">
-          <PhotoImage
-            key={current.id}
-            objectKey={current.objectKey}
-            alt={`Offer photo ${Math.min(index, photos.length - 1) + 1} of ${photos.length}`}
-          />
-          <div className="photo-dots" aria-label="Photo navigation">
-            {photos.map((photo, position) => (
-              <button
-                key={photo.id}
-                aria-label={`Show photo ${position + 1}`}
-                aria-pressed={current.id === photo.id}
-                onClick={() => setIndex(position)}
-              >
-                <span aria-hidden="true">●</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div className="photo-placeholder">
-          {collection ? "No photos yet" : "Photos unavailable"}
-        </div>
-      )}
-      {collection && repository && (
-        <PhotoOrganizer
-          offerId={offerId}
-          collection={collection}
-          repository={repository}
-          uploading={busy}
-          onChanged={(next) => {
-            const selectedId = current?.id;
-            const found = next.photos.findIndex(
-              (photo) => photo.id === selectedId,
-            );
-            setIndex(
-              found >= 0
-                ? found
-                : Math.min(index, Math.max(0, next.photos.length - 1)),
-            );
-            setCollection(next);
-            void repository
-              .cleanupStatus()
-              .then(setCleanup)
-              .catch(() => {});
-          }}
-        />
-      )}
-      {error && (
-        <div role="alert">
-          <p>{error}</p>
-          <button
-            onClick={() => {
-              setError("");
-              void refresh();
-            }}
-          >
-            Retry loading photos
-          </button>
-        </div>
-      )}
-      <label>
-        Choose photos
-        <input
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
-          multiple
-          disabled={busy}
-          onChange={(event) => {
-            const files = Array.from(event.currentTarget.files ?? []);
-            setNotice("");
-            setSelected((current) => [
-              ...current.filter((entry) => entry.status !== "saved"),
-              ...files.map((file) => ({
-                id: crypto.randomUUID(),
-                file,
-                status: "selected" as const,
-                error:
-                  file.size > maximumPhotoBytes
-                    ? "Each source photo must be 10 MB or smaller."
-                    : "",
-              })),
-            ]);
-            event.currentTarget.value = "";
-          }}
-        />
-      </label>
-      <p className="photo-help">
-        Optional · JPEG, PNG, WebP or HEIC · up to 10 MB each · 20 photos per
-        offer
-      </p>
-      {selected.length > 0 && (
-        <ul className="photo-upload-list">
-          {selected.map((entry) => (
-            <li key={entry.id}>
-              <span>{entry.file.name}</span>{" "}
-              <span>
-                {entry.status === "uploading"
-                  ? "Converting and uploading…"
-                  : entry.status === "saved"
-                    ? "Saved"
-                    : entry.status === "failed"
-                      ? "Failed"
-                      : "Selected"}
-              </span>
-              {entry.error && <p role="alert">{entry.error}</p>}
-              {entry.status !== "saved" && !busy && (
+    <>
+      <section className="offer-photos" aria-label="Offer photos">
+        <h3 className="sr-only">
+          Photos <span>{photos.length}/20</span>
+        </h3>
+        {loading ? (
+          <p role="status">Loading photos…</p>
+        ) : current ? (
+          <div className="photo-carousel" aria-roledescription="carousel">
+            <div className="gallery-frame">
+              <div className="gallery-current">
+                <PhotoImage
+                  key={current.id}
+                  objectKey={current.objectKey}
+                  alt={`Offer photo ${Math.min(index, photos.length - 1) + 1} of ${photos.length}`}
+                />
+              </div>
+              {photos.length > 1 && (
                 <button
-                  aria-label={`Remove selected ${entry.file.name}`}
+                  className="gallery-next"
+                  aria-label="Next photo"
                   onClick={() =>
-                    setSelected((current) =>
-                      current.filter((item) => item.id !== entry.id),
+                    setIndex(
+                      (Math.min(index, photos.length - 1) + 1) % photos.length,
                     )
                   }
                 >
-                  Remove
+                  <PhotoImage
+                    objectKey={
+                      photos[
+                        (Math.min(index, photos.length - 1) + 1) % photos.length
+                      ]!.objectKey
+                    }
+                    alt=""
+                  />
+                  <span aria-hidden="true">›</span>
                 </button>
               )}
-            </li>
-          ))}
-        </ul>
-      )}
-      {selected.some((entry) => entry.status !== "saved") && (
-        <button
-          disabled={busy}
-          onClick={() => {
-            void uploadSelected();
-          }}
-        >
-          {busy
-            ? "Uploading photos…"
-            : selected.some((entry) => entry.status === "failed")
-              ? "Retry failed photos"
-              : "Upload selected photos"}
-        </button>
-      )}
-      {notice && <p role="status">{notice}</p>}
-      {cleanup && cleanup.pending > 0 && (
-        <div className="photo-cleanup" role="status">
-          <p>
-            {cleanup.pending} photo cleanup{" "}
-            {cleanup.pending === 1 ? "job" : "jobs"} pending
-            {cleanup.failed > 0 ? `; ${cleanup.failed} awaiting retry` : ""}.
+            </div>
+            <div className="photo-dots" aria-label="Photo navigation">
+              {photos.map((photo, position) => (
+                <button
+                  key={photo.id}
+                  aria-label={`Show photo ${position + 1}`}
+                  aria-pressed={current.id === photo.id}
+                  onClick={() => setIndex(position)}
+                >
+                  <span aria-hidden="true">●</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="photo-placeholder">
+            {collection ? "No photos yet" : "Photos unavailable"}
+          </div>
+        )}
+      </section>
+      {children}
+      <section className="photo-management" aria-label="Photo management">
+        {collection && repository && (
+          <PhotoOrganizer
+            offerId={offerId}
+            collection={collection}
+            repository={repository}
+            uploading={busy}
+            onChanged={(next) => {
+              const selectedId = current?.id;
+              const found = next.photos.findIndex(
+                (photo) => photo.id === selectedId,
+              );
+              setIndex(
+                found >= 0
+                  ? found
+                  : Math.min(index, Math.max(0, next.photos.length - 1)),
+              );
+              setCollection(next);
+              void repository
+                .cleanupStatus()
+                .then(setCleanup)
+                .catch(() => {});
+            }}
+          />
+        )}
+        {error && (
+          <div role="alert">
+            <p>{error}</p>
+            <button
+              onClick={() => {
+                setError("");
+                void refresh();
+              }}
+            >
+              Retry loading photos
+            </button>
+          </div>
+        )}
+        <details className="photo-upload-controls">
+          <summary>Add photos</summary>
+          <label>
+            Choose photos
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
+              multiple
+              disabled={busy}
+              onChange={(event) => {
+                const files = Array.from(event.currentTarget.files ?? []);
+                setNotice("");
+                setSelected((current) => [
+                  ...current.filter((entry) => entry.status !== "saved"),
+                  ...files.map((file) => ({
+                    id: crypto.randomUUID(),
+                    file,
+                    status: "selected" as const,
+                    error:
+                      file.size > maximumPhotoBytes
+                        ? "Each source photo must be 10 MB or smaller."
+                        : "",
+                  })),
+                ]);
+                event.currentTarget.value = "";
+              }}
+            />
+          </label>
+          <p className="photo-help">
+            Optional · JPEG, PNG, WebP or HEIC · up to 10 MB each · 20 photos
+            per offer
           </p>
+        </details>
+        {selected.length > 0 && (
+          <ul className="photo-upload-list">
+            {selected.map((entry) => (
+              <li key={entry.id}>
+                <span>{entry.file.name}</span>{" "}
+                <span>
+                  {entry.status === "uploading"
+                    ? "Converting and uploading…"
+                    : entry.status === "saved"
+                      ? "Saved"
+                      : entry.status === "failed"
+                        ? "Failed"
+                        : "Selected"}
+                </span>
+                {entry.error && <p role="alert">{entry.error}</p>}
+                {entry.status !== "saved" && !busy && (
+                  <button
+                    aria-label={`Remove selected ${entry.file.name}`}
+                    onClick={() =>
+                      setSelected((current) =>
+                        current.filter((item) => item.id !== entry.id),
+                      )
+                    }
+                  >
+                    Remove
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+        {selected.some((entry) => entry.status !== "saved") && (
           <button
             disabled={busy}
             onClick={() => {
-              if (repository)
-                void repository
-                  .retryCleanup()
-                  .then(refresh)
-                  .catch((error) =>
-                    setError(
-                      error instanceof Error
-                        ? error.message
-                        : "Cleanup retry failed",
-                    ),
-                  );
+              void uploadSelected();
             }}
           >
-            Retry photo cleanup
+            {busy
+              ? "Uploading photos…"
+              : selected.some((entry) => entry.status === "failed")
+                ? "Retry failed photos"
+                : "Upload selected photos"}
           </button>
-        </div>
-      )}
-    </section>
+        )}
+        {notice && <p role="status">{notice}</p>}
+        {cleanup && cleanup.pending > 0 && (
+          <div className="photo-cleanup" role="status">
+            <p>
+              {cleanup.pending} photo cleanup{" "}
+              {cleanup.pending === 1 ? "job" : "jobs"} pending
+              {cleanup.failed > 0 ? `; ${cleanup.failed} awaiting retry` : ""}.
+            </p>
+            <button
+              disabled={busy}
+              onClick={() => {
+                if (repository)
+                  void repository
+                    .retryCleanup()
+                    .then(refresh)
+                    .catch((error) =>
+                      setError(
+                        error instanceof Error
+                          ? error.message
+                          : "Cleanup retry failed",
+                      ),
+                    );
+              }}
+            >
+              Retry photo cleanup
+            </button>
+          </div>
+        )}
+      </section>
+    </>
   );
 }
 export function OfferCover({

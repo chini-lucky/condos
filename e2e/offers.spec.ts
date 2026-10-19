@@ -19,7 +19,9 @@ test("create a name-only offer, reopen its direct link, rename it, and navigate 
     page.getByRole("heading", { name: "Browser name-only offer", exact: true }),
   ).toBeVisible();
   await expect(page.getByText("Pending", { exact: true })).toBeVisible();
-  await expect(page.getByText("Station not assigned")).toBeVisible();
+  await expect(
+    page.getByText("Station not assigned", { exact: true }),
+  ).toBeVisible();
   const link = page.url();
   await page.reload();
   await expect(

@@ -1,0 +1,95 @@
+:root {
+  --ink: #161a17;
+  --muted: #5c6560;
+  --faint: #8b938c;
+  --line: #d6dad3;
+  --wash: #e9ece6;
+  --surface: #fff;
+  --background: #f3f4f0;
+  --panel-width: 392px;
+  --panel-edge: 16px;
+  --map-inset: 424px;
+}
+
+.authenticated-app {
+  color: var(--ink);
+  background: var(--background);
+  font-family: "Instrument Sans", sans-serif;
+}
+
+.authenticated-app button,
+.button {
+  border: 0;
+  border-radius: 22px;
+  padding: 10px 14px;
+  background: var(--wash);
+  color: var(--ink);
+  font:
+    600 13px "Instrument Sans",
+    sans-serif;
+  cursor: pointer;
+}
+
+.authenticated-app button[type="submit"],
+.authenticated-app .button.primary {
+  background: var(--ink);
+  color: white;
+}
+
+.authenticated-app button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.authenticated-app .quiet-button {
+  background: transparent;
+  padding: 5px 8px;
+  font-size: 12px;
+}
+
+.authenticated-app .danger {
+  color: #c4342a;
+  background: #fbedec;
+}
+
+.authenticated-app .icon-button {
+  display: inline-grid;
+  place-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  font-size: 27px;
+  flex: none;
+}
+
+.muted,
+.quiet-link {
+  color: var(--muted);
+}
+
+.quiet-link {
+  font-size: 11px;
+  text-decoration: none;
+}
+
+.offer-panel-content:focus {
+  outline: none;
+}
+
+.offer-panel-content > p[role="status"] {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.offer-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.authenticated-app .rail-sheet-handle {
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+}

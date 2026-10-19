@@ -19,7 +19,9 @@ test("assign, position, reassign and clear offers while station lists and pins a
   await page.getByLabel("Station", { exact: true }).selectOption("E6");
   await page.getByRole("button", { name: "Save offer" }).click();
   await expect(
-    page.getByText("Station: Thong Lo", { exact: true }),
+    page
+      .getByRole("complementary", { name: "Offer details" })
+      .getByText("Thong Lo", { exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("button", {
@@ -71,7 +73,11 @@ test("assign, position, reassign and clear offers while station lists and pins a
   await page.getByRole("button", { name: "Edit offer", exact: true }).click();
   await page.getByLabel("Station", { exact: true }).selectOption("N5");
   await page.getByRole("button", { name: "Save offer" }).click();
-  await expect(page.getByText("Station: Ari", { exact: true })).toBeVisible();
+  await expect(
+    page
+      .getByRole("complementary", { name: "Offer details" })
+      .getByText("Ari", { exact: true }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Back", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Ari", exact: true }),

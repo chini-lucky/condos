@@ -40,6 +40,7 @@ export function PermanentDeleteAction({
             be restored. Photo bytes may take time to finish cleaning up.
           </p>
           <button
+            className="danger"
             disabled={busy}
             onClick={() => {
               void remove();
@@ -52,7 +53,12 @@ export function PermanentDeleteAction({
           </button>
         </div>
       ) : (
-        <button onClick={() => setConfirm(true)}>Delete permanently</button>
+        <button
+          className="quiet-button danger"
+          onClick={() => setConfirm(true)}
+        >
+          Delete permanently
+        </button>
       )}
     </section>
   );

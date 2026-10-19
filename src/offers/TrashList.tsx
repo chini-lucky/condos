@@ -18,7 +18,7 @@ export function TrashList({
   onDeleted: (id: string) => void;
 }) {
   return (
-    <section>
+    <section className="trash-view">
       <h2>Trash</h2>
       <p>
         Offers stay here until you restore or permanently delete them. Rejected
@@ -64,7 +64,7 @@ export function TrashedOffer({
   onDeleted: (id: string) => void;
 }) {
   return (
-    <section>
+    <section className="trash-view">
       <h2>Offer is in Trash</h2>
       <h3>{offer.name}</h3>
       <p>

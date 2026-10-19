@@ -1,0 +1,174 @@
+.offer-card .offer-cover .photo-placeholder,
+.offer-card .offer-cover .offer-photo {
+  width: 64px;
+  height: 64px;
+  min-height: 64px;
+  padding: 0;
+  border-radius: 10px;
+  object-fit: cover;
+  font-size: 10px;
+}
+
+.offer-photos {
+  margin: 4px 0 16px;
+}
+
+.offer-photos > h3 {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  margin: 0 0 8px;
+}
+
+.gallery-frame {
+  display: flex;
+  gap: 10px;
+  overflow: hidden;
+  margin: 0 -20px;
+  padding: 0 20px;
+}
+
+.gallery-current {
+  flex: 0 0 92%;
+  min-width: 0;
+
+  flex-basis: 88%;
+}
+
+.gallery-current .offer-photo,
+.gallery-current > .photo-placeholder {
+  height: 188px;
+  min-height: 188px;
+  object-fit: cover;
+  border-radius: 15px;
+}
+
+.authenticated-app .gallery-next {
+  padding: 0;
+  position: relative;
+  flex: 0 0 92%;
+  background: none;
+  border-radius: 15px;
+  overflow: hidden;
+}
+
+.gallery-next .offer-photo {
+  height: 188px;
+  object-fit: cover;
+}
+
+.gallery-next > span {
+  position: absolute;
+  left: 4px;
+  top: calc(50% - 18px);
+  color: white;
+  background: #161a1755;
+  border-radius: 50%;
+  width: 30px;
+  height: 36px;
+  display: grid;
+  place-content: center;
+  font-size: 25px;
+}
+
+.authenticated-app .photo-dots button {
+  min-width: 20px;
+  min-height: 30px;
+  padding: 3px;
+  font-size: 10px;
+  background: transparent;
+  color: #b5bab3;
+}
+
+.authenticated-app .photo-dots button[aria-pressed="true"] {
+  color: var(--ink);
+}
+
+.photo-organizer,
+.photo-upload-controls {
+  margin: 4px 0;
+  border: 0;
+  padding: 0;
+  font-size: 11px;
+}
+
+.photo-organizer summary,
+.photo-upload-controls summary {
+  padding: 6px 0;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.photo-upload-controls > label {
+  display: block;
+  padding: 10px;
+  background: var(--wash);
+  border-radius: 12px;
+  font-size: 11px;
+}
+
+.photo-upload-controls input {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  font: inherit;
+}
+
+.photo-upload-controls input::file-selector-button {
+  border: 0;
+  padding: 8px 10px;
+  border-radius: 14px;
+  margin-right: 6px;
+  font: inherit;
+  background: white;
+}
+
+.photo-help {
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.offer-photos > .photo-placeholder {
+  min-height: 110px;
+  font-size: 12px;
+  border: 1px dashed var(--line);
+}
+
+.photo-order-list .offer-photo {
+  object-fit: cover;
+}
+
+.photo-management {
+  margin-top: 22px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.photo-management > p[role="status"] {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.photo-cleanup {
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.photo-cleanup button {
+  font-size: 11px;
+  padding: 8px 10px;
+}
+
+.gallery-current .offer-photo,
+.gallery-current > .photo-placeholder,
+.gallery-next .offer-photo {
+  height: 232px;
+  min-height: 232px;
+}
+
+.gallery-next {
+  flex-basis: 88%;
+}
