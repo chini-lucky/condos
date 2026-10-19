@@ -1,0 +1,35 @@
+.offer-notes {
+  margin-top: 1.5rem;
+  border-top: 1px solid #d9dfd4;
+  padding-top: 1rem;
+}
+.notes-timeline {
+  padding-left: 1rem;
+}
+.notes-timeline li {
+  border-left: 2px solid #d9dfd4;
+  padding: 0 0 1.2rem 1rem;
+  list-style: none;
+}
+.notes-timeline time,
+.notes-timeline small {
+  color: #56665a;
+  font-size: 0.8rem;
+}
+.note-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.offer-notes textarea {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 5rem;
+  margin: 0.5rem 0;
+  padding: 0.6rem;
+  font: inherit;
+}
+.note-actions {
+  display: flex;
+  gap: 0.5rem;
+}
