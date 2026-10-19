@@ -96,9 +96,11 @@ test("conflicting and failed status saves keep the draft until the admin reviews
     "Retained reason",
   );
   await second.getByRole("button", { name: "Review latest status" }).click();
-  await expect(second.getByRole("status")).toContainText(
-    "Latest saved status: Available",
-  );
+  await expect(
+    second
+      .getByRole("form", { name: "Status and viewing" })
+      .getByRole("status"),
+  ).toContainText("Latest saved status: Available");
   await second.getByRole("button", { name: "Save status and viewing" }).click();
   await expect(
     second.getByText("Retained reason", { exact: true }),
