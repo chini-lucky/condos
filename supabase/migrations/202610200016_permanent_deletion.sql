@@ -47,3 +47,16 @@ end $$;
 revoke all on function public.list_offer_deletions(), public.permanently_delete_offer(uuid,bigint) from public;
 grant execute on function public.list_offer_deletions(), public.permanently_delete_offer(uuid,bigint) to authenticated;
 notify pgrst, 'reload schema';
+
+create function public.retry_offer_deletion_cleanup(p_id uuid) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  if not public.is_admin() then raise insufficient_privilege; end if;
+  if not exists(select 1 from public.offer_deletions where offer_id = p_id) then raise exception 'Deletion receipt unavailable'; end if;
+  -- Preserve live leases. Only this receipt's unfinished jobs become immediately due.
+  update public.photo_cleanup set due_at = now()
+    where deletion_offer_id = p_id and completed_at is null;
+end $$;
+revoke all on function public.retry_offer_deletion_cleanup(uuid) from public;
+grant execute on function public.retry_offer_deletion_cleanup(uuid) to authenticated;
+notify pgrst, 'reload schema';
