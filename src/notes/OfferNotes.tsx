@@ -1,3 +1,4 @@
+import { CopyDraftButton } from "../offers/CopyDraftButton";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   NoteFailure,
@@ -13,9 +14,11 @@ const dateFormat = new Intl.DateTimeFormat("en-GB", {
 export function OfferNotes({
   offerId,
   repository,
+  unavailable = false,
 }: {
   offerId: string;
   repository: NotesRepository;
+  unavailable?: boolean;
 }) {
   const [notes, setNotes] = useState<OfferNote[]>([]);
   const [draft, setDraft] = useState("");
@@ -61,6 +64,7 @@ export function OfferNotes({
   }, [refresh]);
   async function add(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (unavailable) return;
     if (!draft.trim()) {
       setError("Enter a note.");
       return;
@@ -104,6 +108,7 @@ export function OfferNotes({
             key={note.id}
             note={note}
             missing={missingNotes.has(note.id)}
+            unavailable={unavailable}
             onActiveChange={(active) => {
               if (active) activeNotes.current.add(note.id);
               else activeNotes.current.delete(note.id);
@@ -136,16 +141,20 @@ export function OfferNotes({
             disabled={busy}
           />
         </label>
-        <button disabled={busy || loading} type="submit">
+        <button disabled={busy || loading || unavailable} type="submit">
           {busy ? "Adding note…" : "Add note"}
         </button>
       </form>
+      {unavailable && (
+        <CopyDraftButton label="Copy new note draft" text={draft} />
+      )}
     </section>
   );
 }
 function NoteEntry({
   note,
   missing,
+  unavailable,
   onActiveChange,
   repository,
   refresh,
@@ -154,6 +163,7 @@ function NoteEntry({
 }: {
   note: OfferNote;
   missing: boolean;
+  unavailable: boolean;
   onActiveChange: (active: boolean) => void;
   repository: NotesRepository;
   refresh: () => Promise<boolean>;
@@ -178,7 +188,7 @@ function NoteEntry({
     setReviewed(false);
   }
   async function mutate(remove = false) {
-    if (missing) return;
+    if (missing || unavailable) return;
     if (!remove && !draft.trim()) {
       setError("Enter a note.");
       return;
@@ -269,9 +279,15 @@ function NoteEntry({
               }}
             />
           </label>
-          <button disabled={busy || conflict || missing} type="submit">
+          <button
+            disabled={busy || conflict || missing || unavailable}
+            type="submit"
+          >
             Save note
           </button>
+          {unavailable && (
+            <CopyDraftButton label="Copy edited note draft" text={draft} />
+          )}
           <button type="button" disabled={busy} onClick={cancel}>
             Cancel edit
           </button>
@@ -316,6 +332,7 @@ function NoteEntry({
       {!editing && !deleting && (
         <div className="note-actions">
           <button
+            disabled={unavailable}
             onClick={() => {
               setDraft(note.body);
               setSnapshot(note);
@@ -326,6 +343,7 @@ function NoteEntry({
             Edit note
           </button>
           <button
+            disabled={unavailable}
             onClick={() => {
               setSnapshot(note);
               onActiveChange(true);
@@ -340,7 +358,7 @@ function NoteEntry({
         <div>
           <p>Delete this note?</p>
           <button
-            disabled={busy || conflict || missing}
+            disabled={busy || conflict || missing || unavailable}
             onClick={() => {
               void mutate(true);
             }}

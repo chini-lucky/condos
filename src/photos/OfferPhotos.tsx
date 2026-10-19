@@ -18,9 +18,11 @@ type Selection = {
 export function OfferPhotos({
   offerId,
   children,
+  readOnly = false,
 }: {
   offerId: string;
   children?: ReactNode;
+  readOnly?: boolean;
 }) {
   const [collection, setCollection] = useState<PhotoCollection | null>(null);
   const photos = collection?.photos ?? [];
@@ -68,7 +70,7 @@ export function OfferPhotos({
       (Math.min(index, Math.max(0, photos.length - 1)) + 1) % photos.length
     ];
   async function uploadSelected() {
-    if (!repository || busy) return;
+    if (!repository || busy || readOnly) return;
     let entries = selected.filter((entry) => entry.status !== "saved");
     if (entries.length === 0) return;
     setBusy(true);
@@ -227,7 +229,7 @@ export function OfferPhotos({
             offerId={offerId}
             collection={collection}
             repository={repository}
-            uploading={busy}
+            uploading={busy || readOnly}
             onChanged={(next) => {
               const selectedId = current?.id;
               const found = next.photos.findIndex(
@@ -267,7 +269,7 @@ export function OfferPhotos({
               type="file"
               accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
               multiple
-              disabled={busy}
+              disabled={busy || readOnly}
               onChange={(event) => {
                 const files = Array.from(event.currentTarget.files ?? []);
                 setNotice("");
@@ -325,7 +327,7 @@ export function OfferPhotos({
         )}
         {selected.some((entry) => entry.status !== "saved") && (
           <button
-            disabled={busy}
+            disabled={busy || readOnly}
             onClick={() => {
               void uploadSelected();
             }}
@@ -346,7 +348,7 @@ export function OfferPhotos({
               {cleanup.failed > 0 ? `; ${cleanup.failed} awaiting retry` : ""}.
             </p>
             <button
-              disabled={busy}
+              disabled={busy || readOnly}
               onClick={() => {
                 if (repository)
                   void repository

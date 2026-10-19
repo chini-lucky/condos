@@ -39,6 +39,7 @@ export function OffersWorkspace({
 }) {
   const [filters, setFilters] = useState(defaultFilters);
   const [offers, setOffers] = useState<Offer[]>([]);
+  const [retainedOffer, setRetainedOffer] = useState<Offer | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [route, setRoute] = useState<Route>(routeFromHash);
@@ -80,6 +81,13 @@ export function OffersWorkspace({
         const currentRoute = routeFromHash();
         if ("id" in currentRoute) {
           const target = found.find((offer) => offer.id === currentRoute.id);
+          setRetainedOffer((previous) =>
+            target && target.trashedAt === null
+              ? target
+              : previous?.id === currentRoute.id
+                ? previous
+                : null,
+          );
           if (target)
             setCameraTarget({
               stationId: target.stationId,
@@ -113,6 +121,12 @@ export function OffersWorkspace({
     const change = () => {
       const next = routeFromHash();
       setRoute(next);
+      setRetainedOffer((previous) => {
+        if (!("id" in next)) return null;
+        if (previous?.id === next.id) return previous;
+        const target = offers.find((offer) => offer.id === next.id);
+        return target?.trashedAt === null ? target : null;
+      });
       setNotice("");
       const stationId =
         "stationId" in next
@@ -153,6 +167,7 @@ export function OffersWorkspace({
     return () => window.removeEventListener("keydown", key);
   }, [back, route.kind]);
   function saved(offer: Offer) {
+    setRetainedOffer(offer);
     setFocusedStation(
       offer.stationId ? (getStation(offer.stationId) ?? null) : null,
     );
@@ -172,6 +187,13 @@ export function OffersWorkspace({
   }
   const selected =
     "id" in route ? offers.find((offer) => offer.id === route.id) : null;
+  const retained =
+    "id" in route && retainedOffer?.id === route.id ? retainedOffer : null;
+  const unavailable =
+    (retained?.trashedAt === null &&
+      (!selected || selected.trashedAt !== null)) ||
+    (route.kind === "edit" && Boolean(selected?.trashedAt));
+  const sessionOffer = selected ?? retained;
   const activeOffers = offers.filter((offer) => offer.trashedAt === null);
   const trashedOffers = offers.filter((offer) => offer.trashedAt !== null);
   const occupancy = stationSummaries(activeOffers);
@@ -210,12 +232,41 @@ export function OffersWorkspace({
   const content = (
     <div className="offer-panel-content" ref={heading} tabIndex={-1}>
       {route.kind !== "list" &&
-        (route.kind !== "detail" || !selected || selected.trashedAt) && (
+        (route.kind !== "detail" ||
+          !sessionOffer ||
+          (selected?.trashedAt && !unavailable)) && (
           <button className="icon-button" onClick={back} aria-label="Back">
             ‹
           </button>
         )}
       {notice && <p role="status">{notice}</p>}
+      {unavailable && (
+        <div role="alert" className="unavailable-drafts">
+          <p>
+            {selected?.trashedAt
+              ? "This offer is in Trash."
+              : "This offer was permanently deleted or is no longer accessible."}{" "}
+            Your drafts are kept. Saving is disabled; copy any unsaved text
+            before leaving.
+          </p>
+          {selected?.trashedAt && (
+            <a
+              href={`#offer=${selected.id}`}
+              onClick={() => setRetainedOffer(null)}
+            >
+              Open recovery options
+            </a>
+          )}
+          <button
+            onClick={() => {
+              setRetainedOffer(null);
+              navigate({ kind: "trash" });
+            }}
+          >
+            Exit unavailable offer
+          </button>
+        </div>
+      )}
       {route.kind === "list" && (
         <button
           className="quiet-button panel-trash"
@@ -264,6 +315,7 @@ export function OffersWorkspace({
           onDeleted={permanentlyDeleted}
         />
       ) : selected?.trashedAt &&
+        !unavailable &&
         repository &&
         deletionRepository &&
         route.kind !== "edit" ? (
@@ -275,18 +327,12 @@ export function OffersWorkspace({
           onDeleted={permanentlyDeleted}
         />
       ) : repository &&
-        (route.kind === "add" || (route.kind === "edit" && selected)) ? (
+        (route.kind === "add" || (route.kind === "edit" && sessionOffer)) ? (
         <>
-          {selected?.trashedAt && (
-            <p role="alert">
-              This offer is in Trash. Your draft is kept.{" "}
-              <a href={`#offer=${selected.id}`}>Open recovery options</a> to
-              restore it before saving.
-            </p>
-          )}
           <OfferForm
-            key={route.kind === "add" ? "new" : selected?.id}
-            offer={route.kind === "edit" ? (selected ?? null) : null}
+            key={route.kind === "add" ? "new" : sessionOffer?.id}
+            offer={route.kind === "edit" ? sessionOffer : null}
+            unavailable={Boolean(unavailable)}
             repository={repository}
             initialStationId={
               route.kind === "add"
@@ -297,13 +343,14 @@ export function OffersWorkspace({
             onCancel={back}
           />
         </>
-      ) : selected && repository ? (
+      ) : sessionOffer && repository ? (
         <OfferDossier
-          offer={selected}
+          offer={sessionOffer}
+          unavailable={Boolean(unavailable)}
           repository={repository}
           notes={noteRepository}
           onSaved={saved}
-          onEdit={() => navigate({ kind: "edit", id: selected.id })}
+          onEdit={() => navigate({ kind: "edit", id: sessionOffer.id })}
           onBack={back}
           onTrashed={(offer) => {
             saved(offer);

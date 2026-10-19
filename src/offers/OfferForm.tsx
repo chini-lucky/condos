@@ -1,3 +1,4 @@
+import { CopyDraftButton } from "./CopyDraftButton";
 import { OfferContactFields } from "./OfferContactFields";
 import { OfferAgentCard } from "./OfferAgentCard";
 import { contactsDraft, parseContacts } from "./contacts";
@@ -16,12 +17,14 @@ export function OfferForm({
   onSaved,
   onCancel,
   initialStationId,
+  unavailable = false,
 }: {
   offer: Offer | null;
   repository: OffersRepository;
   onSaved: (offer: Offer) => void;
   onCancel: () => void;
   initialStationId?: string | undefined;
+  unavailable?: boolean;
 }) {
   const [contacts, setContacts] = useState(() => contactsDraft(offer));
   const [facts, setFacts] = useState(() => factsDraft(offer));
@@ -36,6 +39,7 @@ export function OfferForm({
   const [busy, setBusy] = useState(false);
   async function save(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (unavailable) return;
     if (!name.trim()) {
       setError("Enter an offer name.");
       return;
@@ -136,8 +140,18 @@ export function OfferForm({
           <OfferAgentCard offer={latest} />
         </section>
       )}
+      {unavailable && (
+        <CopyDraftButton
+          label="Copy offer draft"
+          text={JSON.stringify(
+            { name, ...facts, ...location, ...contacts },
+            null,
+            2,
+          )}
+        />
+      )}
       <div className="offer-actions">
-        <button type="submit" disabled={busy}>
+        <button type="submit" disabled={busy || unavailable}>
           {busy ? "Saving…" : "Save offer"}
         </button>
         <button type="button" disabled={busy} onClick={onCancel}>
