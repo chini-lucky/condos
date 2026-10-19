@@ -5,7 +5,7 @@ import { offerPosition, walkingMinutes } from "./location";
 import { pinVisibility, placeCallouts } from "../rail/mapNavigation";
 import type { MapView } from "../rail/mapNavigation";
 import { OfferStatusDisplay } from "./OfferStatusDisplay";
-import { facilityNames } from "./facts";
+import { OfferPrice, FacilityIndicators } from "./OfferFactsSummary";
 export function OfferMapOverlay({
   offers,
   view,
@@ -33,7 +33,7 @@ export function OfferMapOverlay({
   const stationIds = new Set(
     offers.flatMap((offer) => (offer.stationId ? [offer.stationId] : [])),
   );
-  const box = { width: Math.min(220, view.size.width - 24), height: 160 };
+  const box = { width: Math.min(184, view.size.width - 24), height: 88 };
   const calloutOffers = positioned.filter(
     (item) => item.offer.stationId === focusId,
   );
@@ -221,23 +221,15 @@ export function OfferMapOverlay({
                 onBlur={() => onHighlight(null)}
               >
                 <strong>{offer.name}</strong>
-                <span>
+                <span className="callout-distance">
                   {offer.walkingMetres} m · estimated{" "}
                   {walkingMinutes(offer.walkingMetres)} min
                 </span>
-                {offer.rent !== null && (
-                  <span>฿{offer.rent.toLocaleString("en-GB")} / month</span>
-                )}
-                <OfferStatusDisplay offer={offer} compact />
-                <span className="callout-facilities">
-                  {facilityNames
-                    .filter((key) => offer[key] !== null)
-                    .map((key) => (
-                      <span key={key}>
-                        {offer[key] ? "✓" : "✕"} {key}
-                      </span>
-                    ))}
-                </span>
+                <OfferPrice rent={offer.rent} compact />
+                <div className="callout-bottom">
+                  <FacilityIndicators offer={offer} compact />
+                  <OfferStatusDisplay offer={offer} compact />
+                </div>
               </button>
             </foreignObject>
           </g>

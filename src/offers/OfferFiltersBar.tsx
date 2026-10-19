@@ -51,6 +51,9 @@ export function OfferFiltersBar({
       </button>
       <fieldset id="offer-filter-controls" aria-label="Offer filters">
         <legend>Filter offers</legend>
+        <span className="filter-heading" aria-hidden="true">
+          Filters
+        </span>
         <div className="filter-toggles">
           {facilityNames.map((name) => (
             <label key={name}>
@@ -76,7 +79,9 @@ export function OfferFiltersBar({
           ))}
         </div>
         <label className="filter-rent">
-          Maximum monthly rent{" "}
+          <span className="filter-rent-title" aria-hidden="true">
+            Max rent
+          </span>{" "}
           <output>
             {value.rentLimit === null
               ? "Any rent"
