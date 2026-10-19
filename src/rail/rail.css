@@ -34,6 +34,8 @@ svg:focus-visible,
   position: absolute;
   inset: 0 0 0 360px;
   transition: left 0.2s;
+  display: flex;
+  flex-direction: column;
 }
 .rail-map,
 .rail-map svg {
@@ -62,7 +64,7 @@ svg:focus-visible,
 .rail-dot {
   fill: white;
   stroke: #8b938c;
-  opacity: 0.6;
+  opacity: 0.32;
   pointer-events: none;
 }
 .rail-dot.selected {
@@ -377,11 +379,11 @@ svg:focus-visible,
   border: 2px solid #161a17;
   background: #f3f4f0;
 }
-.station-offer-list li {
+.station-offer-list > li {
   border-radius: 8px;
   padding: 12px;
 }
-.station-offer-list li.is-highlighted {
+.station-offer-list > li.is-highlighted {
   background: #e9ece6;
   box-shadow: inset 3px 0 #161a17;
 }
@@ -394,5 +396,24 @@ svg:focus-visible,
     display: inline;
     vertical-align: middle;
     margin: 0;
+  }
+}
+
+.rail-map-surface {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+.rail-map-surface > .rail-home {
+  left: 40px;
+  top: 25px;
+}
+.panel-collapsed .rail-map-surface > .rail-home {
+  left: 65px;
+}
+@media (max-width: 959px) {
+  .rail-map-surface > .rail-home,
+  .panel-collapsed .rail-map-surface > .rail-home {
+    left: 16px;
   }
 }

@@ -395,6 +395,7 @@ export function RailMap({
         {stations.map((station) => {
           const active = selectedStationId === station.id;
           const count = stationCounts?.get(station.id) ?? 0;
+          const emptyOfferStation = stationCounts !== undefined && count === 0;
           const label = labels.get(station.id);
           return (
             <g
@@ -437,9 +438,14 @@ export function RailMap({
               <circle
                 cx={station.x}
                 cy={station.y}
-                r={(count > 0 ? 11 : active ? 7 : 4) * scale}
+                r={
+                  (count > 0 ? 11 : active && !emptyOfferStation ? 7 : 4) *
+                  scale
+                }
                 className={
-                  active || count > 0 ? "rail-dot selected" : "rail-dot"
+                  (active && !emptyOfferStation) || count > 0
+                    ? "rail-dot selected"
+                    : "rail-dot"
                 }
                 strokeWidth={2 * scale}
               />
