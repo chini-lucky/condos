@@ -43,6 +43,7 @@ test("an admin creates distinct name-only offers, while unknown facts stay absen
     assert.equal(reread.error, null);
     assert.equal(reread.data?.length, 2);
     assert.ok((await db.rpc("create_offer", { p_name: "   " })).error);
+    assert.ok((await db.rpc("create_offer", { p_name: "\t\n\u00a0" })).error);
     assert.deepEqual((await client().from("offers").select("*")).data, []);
     assert.ok(
       (await client().rpc("create_offer", { p_name: "intrusion" })).error,

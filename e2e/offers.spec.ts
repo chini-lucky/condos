@@ -185,3 +185,24 @@ test("mobile offers reuse the draggable sheet and forms open fully with accessib
     page.getByRole("heading", { name: "Unassigned", exact: true }),
   ).toBeVisible();
 });
+
+test.afterAll(async () => {
+  const { createClient } = await import("@supabase/supabase-js");
+  const { localConfig } = await import("../scripts/local-config.ts");
+  const config = localConfig();
+  const service = createClient(config.url, config.serviceKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const result = await service
+    .from("offers")
+    .delete()
+    .in("name", [
+      "Browser name-only offer",
+      "Renamed browser offer",
+      "Conflict original",
+      "Newer saved name",
+      "My retained draft",
+      "Offline retained offer",
+    ]);
+  expect(result.error).toBeNull();
+});
