@@ -69,6 +69,58 @@ test("optional contacts round trip, expose safe actions and clear independently 
     page.getByRole("link", { name: "Open source listing" }),
   ).toHaveCount(0);
 });
+test("unsafe contact input is rejected and failed clipboard/offline saves keep useful details", async ({
+  page,
+  context,
+}) => {
+  await login(page);
+  await page.getByRole("button", { name: "Add offer", exact: true }).click();
+  await page.getByLabel("Offer name").fill("Contacts failure fixture");
+  await page.getByLabel("Source URL").fill("https://user:pass@example.com");
+  await page.getByRole("button", { name: "Save offer", exact: true }).click();
+  await expect(page.getByRole("alert")).toHaveText(
+    "Enter an HTTP or HTTPS source URL without login credentials.",
+  );
+  await page.getByLabel("Source URL").fill("");
+  await page.getByLabel("Agent phone").fill("123;456");
+  await page.getByRole("button", { name: "Save offer", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText("Enter a phone number");
+  await page.getByLabel("Agent phone").fill("081 234 5678");
+  await page.getByLabel("Agent LINE ID").fill("https://line.me/unsafe");
+  await page.getByRole("button", { name: "Save offer", exact: true }).click();
+  await expect(page.getByRole("alert")).toHaveText(
+    "Enter a LINE ID, not a URL.",
+  );
+  await page.getByLabel("Agent LINE ID").fill("");
+  await page.getByRole("button", { name: "Save offer", exact: true }).click();
+  const card = page.getByRole("group", { name: "Agent contact" });
+  await card.getByText("Agent details", { exact: true }).click();
+  // Simulate the browser's external Clipboard API denying access, not an application module.
+  await page.evaluate(() =>
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: async () => {
+          throw new DOMException("Clipboard denied", "NotAllowedError");
+        },
+      },
+    }),
+  );
+  await card.getByRole("button", { name: "Copy phone" }).click();
+  await expect(card.getByRole("alert")).toContainText("Unable to copy phone");
+  await expect(card.getByText("081 234 5678", { exact: true })).toBeVisible();
+  await expect(card.getByRole("status")).toHaveCount(0);
+  await expect(card.getByRole("link", { name: "Open LINE" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Edit offer", exact: true }).click();
+  await page.getByLabel("Agent company").fill("Retained company");
+  await context.setOffline(true);
+  await page.getByRole("button", { name: "Save offer", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText("not saved");
+  await expect(page.getByLabel("Agent company")).toHaveValue(
+    "Retained company",
+  );
+  await context.setOffline(false);
+});
 test.afterAll(async () => {
   const { createClient } = await import("@supabase/supabase-js");
   const { localConfig } = await import("../scripts/local-config.ts");
@@ -80,7 +132,7 @@ test.afterAll(async () => {
       })
         .from("offers")
         .delete()
-        .eq("name", "Contacts browser fixture")
+        .in("name", ["Contacts browser fixture", "Contacts failure fixture"])
     ).error,
   ).toBeNull();
 });
