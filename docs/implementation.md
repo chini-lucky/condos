@@ -24,6 +24,8 @@ Use one red → green behavior at a time. Test pure-domain behavior only when th
 
 Local stacks must use distinct project IDs/ports from Lola (its active base uses 554xx; Vite commonly 5173). Plan a Condos base in 564xx and separate Vite/e2e ports, with explicit per-worktree slot configuration when parallel database work begins. Keep one local Condos stack running at a time initially due to limited free disk; serialize DB/browser checks or stop a finished Condos stack before starting another. Never stop/reset Lola.
 
+When agents share the local Condos stack, hold `flock /tmp/condos-verification.lock` around the entire database/auth/browser verification block. Dedicated browser ports alone do not isolate account changes or shared fixture cleanup. Coordinate migrations separately; never reset the shared stack while other agents use it. CI runs its own isolated stack.
+
 Production: dedicated Condos project, Chini Lucky organization, Singapore as the existing Lola-region default. Only deployment work provisions/links or mutates the hosted project. Keep service keys, database passwords and access tokens outside files tracked by Git and frontend bundles. Publish only browser-safe Supabase configuration.
 
 The orchestrator owns the final PR and release decision. Implementers report evidence; they do not merge main, change account permissions or claim checks they have not run. Use the PR skill template, accurate authorship and `Closes #N` references. Do not copy Lola-specific Claude attribution.
