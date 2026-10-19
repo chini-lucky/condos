@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { signIn, supabase } from "./auth";
 import "./app.css";
 import { OffersWorkspace } from "./offers/OffersWorkspace";
+import "./design.css";
 export function App() {
   const [state, setState] = useState<"loading" | "signed-out" | "signed-in">(
     "loading",
@@ -81,19 +82,22 @@ export function App() {
   if (state === "signed-in")
     return (
       <div className="authenticated-app">
-        <header className="app-header">
-          <h1>Condos</h1>
-          <button
-            disabled={busy}
-            onClick={() => {
-              void logout();
-            }}
-          >
-            Sign out
-          </button>
-        </header>
-        {error && <p role="alert">{error}</p>}
-        <OffersWorkspace />
+        <OffersWorkspace
+          accountActions={
+            <>
+              <button
+                className="quiet-button sign-out"
+                disabled={busy}
+                onClick={() => {
+                  void logout();
+                }}
+              >
+                Sign out
+              </button>
+              {error && <p role="alert">{error}</p>}
+            </>
+          }
+        />
       </div>
     );
   return (

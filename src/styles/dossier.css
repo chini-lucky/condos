@@ -1,0 +1,196 @@
+.offer-dossier {
+  clear: both;
+}
+
+.dossier-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 14px;
+}
+
+.dossier-crumb {
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 650;
+  flex: 1;
+}
+
+.dossier-crumb small {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 400;
+  margin-top: 2px;
+}
+
+.dossier-name {
+  margin: 18px 0 4px;
+  font-size: 28px;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+}
+
+.dossier-type {
+  margin: 0 0 9px;
+  font-size: 13px;
+}
+
+.dossier-location {
+  font-size: 12px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.dossier-location p {
+  margin: 0;
+}
+
+.dossier-location .rail-badges {
+  margin: 0;
+}
+
+.dossier-status {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.dossier-status .offer-status-display:empty {
+  display: none;
+}
+
+.dossier-status > button {
+  background: none;
+  padding: 0;
+  color: var(--muted);
+  font-size: 11px;
+  margin: 3px 0 5px;
+}
+
+.viewing-box {
+  padding: 12px;
+  border-radius: 12px;
+  background: #f4e9e2;
+}
+
+.dossier-section {
+  margin-top: 22px;
+}
+
+.dossier-section h3,
+.offer-notes h3 {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.dossier-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid var(--line);
+  margin-top: 24px;
+  padding-top: 16px;
+}
+
+.dossier-footer section {
+  margin: 0;
+}
+
+.dossier-footer small {
+  display: block;
+  flex-basis: 100%;
+  color: var(--faint);
+  font-size: 10px;
+}
+
+.agent-card {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+}
+
+.agent-card summary {
+  padding: 12px;
+  font-size: 13px;
+}
+
+.agent-card summary > span:last-child {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.agent-card summary::after {
+  content: "⌄";
+  margin-left: auto;
+  color: var(--muted);
+}
+
+.agent-card[open] summary::after {
+  content: "⌃";
+}
+
+.agent-contact-body {
+  font-size: 12px;
+}
+
+.agent-contact-body button,
+.agent-contact-body a {
+  position: relative;
+  z-index: 1;
+  font-size: 11px;
+  text-decoration: none;
+}
+
+.offer-notes {
+  margin-top: 24px;
+  padding-top: 0;
+  border: 0;
+}
+
+.notes-timeline {
+  padding-left: 0;
+}
+
+.notes-timeline li {
+  position: relative;
+  padding: 0 0 18px 20px;
+  border-left: 1px solid var(--line);
+  margin-left: 4px;
+}
+
+.notes-timeline li::before {
+  content: "";
+  position: absolute;
+  left: -4px;
+  top: 5px;
+  width: 6px;
+  height: 6px;
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+  background: white;
+}
+
+.notes-timeline time {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.note-body {
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 8px 0;
+}
+
+.note-actions button {
+  font-size: 10px;
+  padding: 3px 7px;
+  background: transparent;
+}

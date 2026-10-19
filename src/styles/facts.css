@@ -1,0 +1,212 @@
+.property-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+}
+
+.property-label svg {
+  width: 13px;
+  height: 13px;
+  flex: none;
+}
+
+.offer-card > .offer-price {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  margin: 0;
+  text-align: right;
+  pointer-events: none;
+}
+
+.offer-price {
+  margin: 14px 0 18px;
+  font-size: 38px;
+  font-weight: 650;
+  letter-spacing: -0.055em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.offer-price small {
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+
+.offer-price.compact {
+  font-size: 14px;
+  letter-spacing: -0.025em;
+}
+
+.offer-price.compact small {
+  display: block;
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+.facility-indicators {
+  list-style: none;
+  display: flex;
+  gap: 3px;
+  padding: 0;
+  margin: 0;
+}
+
+.facility-indicators li {
+  width: 20px;
+  height: 21px;
+  display: inline-grid;
+  place-content: center;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--faint);
+  position: relative;
+}
+
+.facility-indicators svg {
+  width: 13px;
+  height: 13px;
+}
+
+.facility-indicators .facility-mark {
+  position: absolute;
+  right: -2px;
+  bottom: -3px;
+  font-size: 9px;
+  line-height: 1;
+  background: white;
+  border-radius: 50%;
+}
+
+.facility-indicators .facility-present {
+  background: #e3f0e7;
+  border-color: #e3f0e7;
+  color: #0c7a3e;
+}
+
+.facility-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  padding: 0;
+  list-style: none;
+  margin: 10px 0;
+}
+
+.facility-grid li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--wash);
+  border-radius: 18px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.facility-grid svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+.facility-grid .facility-mark {
+  margin-left: auto;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.facility-grid .facility-absent,
+.facility-grid .facility-unknown {
+  color: var(--faint);
+}
+
+.offer-specs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-radius: 15px;
+  overflow: hidden;
+  background: var(--wash);
+  margin: 18px 0 24px;
+}
+
+.offer-specs > div {
+  padding: 11px 12px;
+  border-right: 1px solid white;
+  display: flex;
+  flex-direction: column;
+}
+
+.offer-specs dt {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  order: 2;
+  margin-top: 3px;
+}
+
+.offer-specs dd {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.facility-chips {
+  display: flex;
+  gap: 6px;
+  list-style: none;
+  padding: 0;
+  margin: 10px 0;
+  flex-wrap: wrap;
+}
+
+.facility-chips li {
+  padding: 4px 10px;
+  border-radius: 16px;
+  background: var(--wash);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.offer-status-label {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 15px;
+  white-space: nowrap;
+}
+
+.offer-status-label::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  vertical-align: middle;
+}
+
+.offer-status-pending {
+  color: #6a655f;
+  background: #eeece8;
+}
+
+.offer-status-viewing {
+  color: #8e4b2a;
+  background: #f4e9e2;
+}
+
+.offer-status-available {
+  color: #0c7a3e;
+  background: #e3f0e7;
+}
+
+.offer-status-rejected {
+  color: #c4342a;
+  background: #fbedec;
+}

@@ -36,6 +36,7 @@ export interface RailBrowserProps {
   renderStation?: (station: Station) => ReactNode;
   overview?: ReactNode;
   panelContent?: ReactNode;
+  contentKey?: string;
   panelMode?: "full" | undefined;
   onStationChange?: (station: Station | null) => void;
   selectedStationId?: string | null | undefined;
@@ -52,6 +53,7 @@ export function RailBrowser({
   renderStation,
   overview,
   panelContent,
+  contentKey,
   panelMode,
   onStationChange,
   selectedStationId,
@@ -75,6 +77,10 @@ export function RailBrowser({
   });
   const [collapsed, setCollapsed] = useState(false);
   const [sheet, setSheet] = useState<"peek" | "half" | "full">("peek");
+  const panelScroll = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    panelScroll.current?.scrollTo({ top: 0 });
+  }, [contentKey, station?.id]);
   const dragStart = useRef<number | null>(null);
   const dragged = useRef(false);
   useEffect(() => {
@@ -223,7 +229,7 @@ export function RailBrowser({
         >
           {collapsed ? "›" : "‹"}
         </button>
-        <div className="rail-panel-content">
+        <div className="rail-panel-content" ref={panelScroll}>
           {panelContent ??
             (station ? (
               <>
@@ -244,7 +250,7 @@ export function RailBrowser({
             ) : (
               <>
                 <h1>
-                  Condos <span>· Bangkok</span>
+                  Condos <span>Bangkok</span>
                 </h1>
                 {overview ?? (
                   <p className="rail-muted">No offers on file yet.</p>

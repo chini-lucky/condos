@@ -1,4 +1,4 @@
-import { OfferCover } from "../photos/OfferPhotos";
+import { OfferCard } from "./OfferCard";
 import { FilteredOfferList } from "./FilteredOfferList";
 import {
   classifyOffer,
@@ -6,9 +6,7 @@ import {
   filtersActive,
   type OfferFilters,
 } from "./filters";
-import { OfferStatusDisplay } from "./OfferStatusDisplay";
 import type { Station } from "../rail/network";
-import { OfferFactsSummary } from "./OfferFactsSummary";
 import type { Offer } from "./repository";
 import {
   nearestStationWithOffers,
@@ -58,7 +56,9 @@ export function StationOfferList({
           ? `${matching.length} of ${assigned.length} matching`
           : `${assigned.length} ${assigned.length === 1 ? "offer" : "offers"}`}
       </p>
-      <button onClick={onAdd}>Add offer</button>
+      <button className="button secondary" onClick={onAdd}>
+        Add offer
+      </button>
       {assigned.length === 0 ? (
         <div className="rail-empty">
           <p>Nothing on file here yet.</p>
@@ -75,15 +75,7 @@ export function StationOfferList({
           className="station-offer-list"
           highlightedOfferId={highlightedOfferId}
           onHighlight={onHighlight}
-          renderOffer={(offer) => (
-            <>
-              <OfferCover offerId={offer.id} name={offer.name} />
-              <a href={`#offer=${offer.id}`}>{offer.name}</a>
-              <p>{walkingDescription(offer)}</p>
-              <OfferFactsSummary offer={offer} />
-              <OfferStatusDisplay offer={offer} />
-            </>
-          )}
+          renderOffer={(offer) => <OfferCard offer={offer} />}
         />
       )}
     </section>

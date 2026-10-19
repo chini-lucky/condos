@@ -95,9 +95,7 @@ test("create, inspect and clear optional facts and facilities without fabricatin
     details.getByRole("definition").filter({ hasText: "Unknown" }),
   ).toHaveCount(3);
   await expect(details.getByText("Balcony", { exact: true })).toHaveCount(0);
-  await expect(
-    details.getByText("Station: Thong Lo", { exact: true }),
-  ).toBeVisible();
+  await expect(details.getByText("Thong Lo", { exact: true })).toBeVisible();
   await expect(
     details.getByText("800 m · estimated 10 min walk", { exact: true }),
   ).toBeVisible();

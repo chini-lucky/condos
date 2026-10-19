@@ -1,0 +1,65 @@
+.rail-panel section[aria-label="Permanent deletion cleanup"] {
+  margin-top: 20px;
+  font-size: 12px;
+}
+
+.rail-panel section[aria-label="Permanent deletion cleanup"] h3 {
+  font-size: 13px;
+}
+
+.trash-view > h2 {
+  font-size: 26px;
+  letter-spacing: -0.04em;
+}
+
+.trash-view > p {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.trash-view .offer-list > li {
+  border: 1px solid var(--line);
+  padding: 14px;
+  border-radius: 15px;
+}
+
+.trash-view .offer-list > li > a {
+  display: block;
+  margin-bottom: 10px;
+  text-decoration: none;
+  color: var(--ink);
+}
+
+.trash-view section[aria-label^="Permanent deletion of"] {
+  margin-top: 10px;
+}
+
+.trash-view section[aria-label="Offer recovery"] {
+  margin-top: 10px;
+}
+
+.trash-view button {
+  font-size: 11px;
+}
+
+.trash-view [role="group"] {
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+section[aria-label="Permanent deletion cleanup"] article {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+section[aria-label="Permanent deletion cleanup"] h4 {
+  margin: 0 0 6px;
+}
+
+section[aria-label="Permanent deletion cleanup"] p {
+  font-size: 11px;
+  line-height: 1.5;
+}
