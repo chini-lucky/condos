@@ -117,6 +117,10 @@ Merged `ticket/12-photo-management` cleanly in `c50ab62`. Check/build passed wit
 
 Permanent deletion must lock the parent first and check its expected offer version plus Trash state; the active-only photo lock helper is unsuitable. Preserve immutable asset tombstones and durable cleanup jobs after parent removal. Fresh migration order is `202610200010` → `202610200012` → `202610200015`. No Edge remount, resets or hosted mutations occurred.
 
+## Ticket #13 integrated browser follow-up
+
+Merged selector-only follow-up in `59044da` after CI exposed ambiguous global assertions against always-visible filters and simultaneous map callouts. Facts assertions now target their dossier controls, status review its named form and restored status its detail panel. Application behavior and assertion meaning are unchanged. Check passed; all five journeys across the three affected browser files passed together under the shared verification lock on port 5293. No application/schema changes, resets or hosted mutations occurred.
+
 ## Ticket #7 implementation verification
 
 The implementation branch is based on integration `1605a5c`. Offers store optional agent name, company, phone, LINE ID and source URL independently, with nullable/clearable values and no invented contact details. Separate shared form fields and a collapsed agent card provide safe Call, LINE and Copy actions. Source links accept HTTP(S) and reject embedded credentials or unsafe schemes. Missing data hides actions; copy denial shows manual-copy guidance; offline failures retain drafts. Contact fields extend the existing atomic name/location/facts save rather than a second request.
