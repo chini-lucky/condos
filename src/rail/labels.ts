@@ -43,7 +43,7 @@ export function stationLabels(
       ? preferredSides.get(station.id) === "left"
       : station.label.includes("l");
     const label: Label = {
-      x: station.x + (left ? -10 : 10) * scale,
+      x: station.x + (left ? -1 : 1) * (focused ? 16 : 10) * scale,
       y:
         station.y +
         (station.label.includes("t")

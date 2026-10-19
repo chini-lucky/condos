@@ -13,6 +13,7 @@ export function OfferMapOverlay({
   highlightedOfferId,
   selectedOfferId,
   onHighlight,
+  opacityByOffer,
 }: {
   offers: readonly Offer[];
   view: MapView;
@@ -20,6 +21,7 @@ export function OfferMapOverlay({
   highlightedOfferId: string | null;
   selectedOfferId: string | null;
   onHighlight: (id: string | null) => void;
+  opacityByOffer?: ReadonlyMap<string, { pin: number; callout: number }>;
 }) {
   const { scale, viewport } = view;
   const opacity = pinVisibility(view.zoom);
@@ -44,7 +46,15 @@ export function OfferMapOverlay({
             y: (item.position.y - viewport.y) / scale,
           })),
           view.size,
-          view.blocked,
+          [
+            ...view.blocked,
+            ...positioned.map((item) => ({
+              x: (item.position.x - viewport.x) / scale - 17,
+              y: (item.position.y - viewport.y) / scale - 17,
+              width: 34,
+              height: 34,
+            })),
+          ],
           box,
         )
       : [];
@@ -101,7 +111,7 @@ export function OfferMapOverlay({
           const highlighted =
             offer.id === highlightedOfferId || offer.id === selectedOfferId;
           return (
-            <g key={offer.id}>
+            <g key={offer.id} opacity={opacityByOffer?.get(offer.id)?.pin ?? 1}>
               <line
                 pointerEvents="none"
                 opacity=".5"
@@ -178,6 +188,7 @@ export function OfferMapOverlay({
         return (
           <g
             key={offer.id}
+            opacity={opacityByOffer?.get(offer.id)?.callout ?? 1}
             className={
               active ? "offer-map-callout is-highlighted" : "offer-map-callout"
             }

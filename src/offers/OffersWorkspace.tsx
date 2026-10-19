@@ -334,6 +334,9 @@ export function OffersWorkspace() {
       cameraTarget={cameraTarget}
       labelSides={labelSides}
       selectedStationId={selected?.stationId ?? focusedStation?.id ?? null}
+      stationOccupancy={
+        new Map(summaries.map((summary) => [summary.stationId, summary.count]))
+      }
       stationCounts={
         new Map(summaries.map((summary) => [summary.stationId, summary.count]))
       }

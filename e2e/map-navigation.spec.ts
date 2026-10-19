@@ -56,7 +56,7 @@ async function login(page: import("@playwright/test").Page) {
 }
 test("station deep links show rings and clear callouts, hover joins pins/cards, and Escape follows navigation parents", async ({
   page,
-}) => {
+}, testInfo) => {
   await login(page);
   await page.goto("./#station=E6");
   await expect(
@@ -89,6 +89,7 @@ test("station deep links show rings and clear callouts, hover joins pins/cards, 
         box.y + box.height <= back.y ||
         box.y >= back.y + back.height,
     ).toBeTruthy();
+  await page.screenshot({ path: testInfo.outputPath("map-desktop.png") });
   await callout.click();
   await expect(
     page.getByRole("heading", {
@@ -170,6 +171,46 @@ test("free zoom selects nearest offers without snapping the camera, pans switch 
   await expect(
     page.getByRole("heading", { name: "Unassigned", exact: true }),
   ).toBeVisible();
+});
+test("collapsing the desktop panel preserves the free camera scale and mobile station forms keep their parent", async ({
+  page,
+}) => {
+  await login(page);
+  const map = page.getByRole("group", { name: "Bangkok rail map" });
+  const marker = await page
+    .getByRole("button", { name: "Select Thong Lo", exact: true })
+    .boundingBox();
+  if (!marker) throw new Error("Station missing");
+  await page.mouse.move(
+    marker.x + marker.width / 2,
+    marker.y + marker.height / 2,
+  );
+  await page.mouse.wheel(0, -550);
+  await expect(
+    page.getByRole("heading", { name: "Thong Lo", exact: true }),
+  ).toBeVisible();
+  async function scale() {
+    const box = await map.boundingBox();
+    const width = Number((await map.getAttribute("viewBox"))?.split(" ")[2]);
+    if (!box) throw new Error("Map missing");
+    return width / box.width;
+  }
+  const before = await scale();
+  await page.getByRole("button", { name: "Collapse station panel" }).click();
+  await expect.poll(scale).toBeCloseTo(before, 2);
+  await page.getByRole("button", { name: "Expand station panel" }).click();
+  await expect.poll(scale).toBeCloseTo(before, 2);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("./#add-offer&station=E6");
+  await expect(page.getByLabel("Station", { exact: true })).toHaveValue("E6");
+  await page.getByLabel("Offer name").fill("Mobile retained draft");
+  const panel = page.getByRole("complementary");
+  expect((await panel.boundingBox())?.height).toBeCloseTo(836, 0);
+  await page.keyboard.press("Escape");
+  await expect(
+    page.getByRole("heading", { name: "Thong Lo", exact: true }),
+  ).toBeVisible();
+  expect((await panel.boundingBox())?.height).toBeCloseTo(132, 0);
 });
 test.afterAll(async () => {
   const config = localConfig();

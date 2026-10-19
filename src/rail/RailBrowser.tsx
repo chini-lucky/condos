@@ -45,6 +45,7 @@ export interface RailBrowserProps {
   navigationLocked?: boolean;
   labelSides?: ReadonlyMap<string, "left" | "right">;
   stationCounts?: ReadonlyMap<string, number>;
+  stationOccupancy?: ReadonlyMap<string, number>;
 }
 export function RailBrowser({
   renderStation,
@@ -55,6 +56,7 @@ export function RailBrowser({
   selectedStationId,
   mapOverlay,
   stationCounts,
+  stationOccupancy,
   cameraTarget,
   onAutomaticStationChange,
   navigationLocked = false,
@@ -102,7 +104,7 @@ export function RailBrowser({
     (view: MapView, reason: "manual" | "focus") => {
       if (reason !== "manual" || navigationLocked || panelContent) return;
       const candidates = stations.filter(
-        (item) => (stationCounts?.get(item.id) ?? 0) > 0,
+        (item) => ((stationOccupancy ?? stationCounts)?.get(item.id) ?? 0) > 0,
       );
       const id = semanticStation(
         view.zoom,
@@ -123,6 +125,7 @@ export function RailBrowser({
       navigationLocked,
       panelContent,
       stationCounts,
+      stationOccupancy,
       station?.id,
       onAutomaticStationChange,
       onStationChange,
@@ -138,6 +141,7 @@ export function RailBrowser({
           selectedStationId={station?.id ?? null}
           onSelectStation={select}
           stationCounts={stationCounts}
+          stationOccupancy={stationOccupancy}
           cameraTarget={cameraTarget ?? internalCamera}
           onCameraChange={cameraChanged}
           labelSides={labelSides}

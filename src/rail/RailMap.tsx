@@ -25,6 +25,7 @@ export interface RailMapProps {
     ((view: MapView, reason: "manual" | "focus") => void) | undefined;
   labelSides?: ReadonlyMap<string, "left" | "right"> | undefined;
   stationCounts?: ReadonlyMap<string, number> | undefined;
+  stationOccupancy?: ReadonlyMap<string, number> | undefined;
 }
 
 export function RailMap({
@@ -32,6 +33,7 @@ export function RailMap({
   onSelectStation,
   children,
   stationCounts,
+  stationOccupancy,
   cameraTarget,
   onCameraChange,
   labelSides,
@@ -68,6 +70,7 @@ export function RailMap({
   useEffect(() => {
     const element = svg.current;
     if (!element) return;
+    let previousSize: { width: number; height: number } | null = null;
     const observer = new ResizeObserver(([entry]) => {
       if (!entry) return;
       const nextSize = {
@@ -75,15 +78,31 @@ export function RailMap({
         height: entry.contentRect.height,
       };
       setSize(nextSize);
-      const destination = targetStation
+      const resizing = previousSize !== null;
+      let destination = targetStation
         ? focusViewport(targetStation, nextSize)
         : fitNetwork(nextSize);
+      if (previousSize) {
+        const current = currentView.current;
+        const scale = current.width / previousSize.width;
+        const width = nextSize.width * scale;
+        const height = nextSize.height * scale;
+        destination = {
+          x: current.x + (current.width - width) / 2,
+          y: current.y + (current.height - height) / 2,
+          width,
+          height,
+        };
+      }
+      previousSize = nextSize;
       source.current = "focus";
       if (frame.current !== null) cancelAnimationFrame(frame.current);
       if (
+        resizing ||
         matchMedia("(prefers-reduced-motion: reduce)").matches ||
         currentView.current === homeViewport
       ) {
+        currentView.current = destination;
         setView(destination);
         return;
       }
@@ -110,7 +129,8 @@ export function RailMap({
   }, [targetStation, cameraTarget.key]);
 
   const candidates = stations.filter(
-    (station) => (stationCounts?.get(station.id) ?? 0) > 0,
+    (station) =>
+      ((stationOccupancy ?? stationCounts)?.get(station.id) ?? 0) > 0,
   );
   const nearestStationId =
     semanticStation(
@@ -153,7 +173,8 @@ export function RailMap({
   useEffect(() => {
     const timer = setTimeout(() => {
       const candidates = stations.filter(
-        (station) => (stationCounts?.get(station.id) ?? 0) > 0,
+        (station) =>
+          ((stationOccupancy ?? stationCounts)?.get(station.id) ?? 0) > 0,
       );
       const scale = view.width / size.width;
       const snapshot: MapView = {
@@ -173,7 +194,14 @@ export function RailMap({
       onCameraChange?.(snapshot, source.current);
     }, 160);
     return () => clearTimeout(timer);
-  }, [view, size, selectedStationId, stationCounts, onCameraChange]);
+  }, [
+    view,
+    size,
+    selectedStationId,
+    stationCounts,
+    stationOccupancy,
+    onCameraChange,
+  ]);
 
   function point(clientX: number, clientY: number): Point {
     const rect = svg.current?.getBoundingClientRect();
@@ -430,6 +458,7 @@ export function RailMap({
                   y={label.y}
                   textAnchor={label.anchor}
                   fontSize={label.fontSize}
+                  strokeWidth={3 * scale}
                   className={active ? "rail-label selected" : "rail-label"}
                 >
                   {station.name}
