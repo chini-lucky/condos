@@ -1,10 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-export const cors = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, apikey, content-type, x-reservation-id, x-cleanup-secret",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { cors } from "./cors.ts";
 export function response(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
