@@ -1,17 +1,32 @@
-import { useEffect, useRef, useState } from 'react';
-import type { ReactNode } from 'react';
-import { RailMap } from './RailMap';
-import { getStation, interchanges, lineIds, lines, stations } from './network';
-import type { Station } from './network';
-import './rail.css';
+import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import { RailMap } from "./RailMap";
+import { getStation, interchanges, lineIds, lines, stations } from "./network";
+import type { Station } from "./network";
+import "./rail.css";
 
 export function LineBadges({ station }: { station: Station }) {
   const memberships = new Set(station.lines);
   for (const pair of interchanges) {
     if (!pair.includes(station.id)) continue;
-    for (const id of pair) for (const line of getStation(id)?.lines ?? []) memberships.add(line);
+    for (const id of pair)
+      for (const line of getStation(id)?.lines ?? []) memberships.add(line);
   }
-  return <span className="rail-badges">{lineIds.filter(id => memberships.has(id)).map(id => <span key={id} style={{ background: lines[id].color }} aria-label={lines[id].name}>{lines[id].badge}</span>)}</span>;
+  return (
+    <span className="rail-badges">
+      {lineIds
+        .filter((id) => memberships.has(id))
+        .map((id) => (
+          <span
+            key={id}
+            style={{ background: lines[id].color }}
+            aria-label={lines[id].name}
+          >
+            {lines[id].badge}
+          </span>
+        ))}
+    </span>
+  );
 }
 
 export interface RailBrowserProps {
@@ -22,41 +37,155 @@ export interface RailBrowserProps {
 export function RailBrowser({ renderStation, overview }: RailBrowserProps) {
   const [station, setStation] = useState<Station | null>(null);
   const [collapsed, setCollapsed] = useState(false);
-  const [sheet, setSheet] = useState<'peek' | 'half' | 'full'>('peek');
+  const [sheet, setSheet] = useState<"peek" | "half" | "full">("peek");
   const dragStart = useRef<number | null>(null);
   const dragged = useRef(false);
   useEffect(() => {
-    function escape(event: globalThis.KeyboardEvent) { if (event.key === 'Escape') { setStation(null); setSheet('peek'); } }
-    window.addEventListener('keydown', escape);
-    return () => window.removeEventListener('keydown', escape);
+    function escape(event: globalThis.KeyboardEvent) {
+      if (event.key === "Escape") {
+        setStation(null);
+        setSheet("peek");
+      }
+    }
+    window.addEventListener("keydown", escape);
+    return () => window.removeEventListener("keydown", escape);
   }, []);
-  function select(next: Station | null) { setStation(next); setCollapsed(false); setSheet('peek'); }
-  return <main className={`rail-browser ${station ? 'station-open' : 'overview-open'} ${collapsed ? 'panel-collapsed' : ''}`}>
-    <div className="rail-stage"><RailMap selectedStationId={station?.id ?? null} onSelectStation={select} /></div>
-    {(station || collapsed) && <button className="rail-home" onClick={() => { select(null); }}>All stations</button>}
-    <aside className={`rail-panel sheet-${sheet}`} aria-label={station ? 'Station details' : 'Stations'}>
-      <button className="rail-sheet-handle" aria-label={sheet === 'full' ? 'Collapse station sheet' : 'Expand station sheet'}
-        onPointerDown={event => { dragged.current = false; dragStart.current = event.clientY; event.currentTarget.setPointerCapture(event.pointerId); }}
-        onPointerUp={event => { if (dragStart.current === null) return; const delta = event.clientY - dragStart.current; dragStart.current = null; if (Math.abs(delta) > 30) { dragged.current = true; setSheet(delta < 0 ? sheet === 'peek' ? 'half' : 'full' : sheet === 'full' ? 'half' : 'peek'); } }}
-        onClick={() => { if (dragged.current) { dragged.current = false; return; } setSheet(sheet === 'peek' ? 'half' : sheet === 'half' ? 'full' : 'peek'); }}><span /></button>
-      <button className="rail-panel-toggle" aria-label={collapsed ? 'Expand station panel' : 'Collapse station panel'} onClick={() => setCollapsed(!collapsed)}>{collapsed ? '›' : '‹'}</button>
-      <div className="rail-panel-content">
-        {station ? <>
-          <button className="rail-back" onClick={() => select(null)}>‹ All stations</button>
-          <LineBadges station={station} /><h1>{station.name}</h1>
-          {renderStation ? renderStation(station) : <><p className="rail-muted">0 offers</p><div className="rail-empty">Nothing on file here yet.</div></>}
-        </> : <><h1>Condos <span>· Bangkok</span></h1>{overview ?? <p className="rail-muted">No offers on file yet.</p>}</>}
-        <div className="rail-station-picker"><label htmlFor="station-picker">Choose a station</label>
-          <select id="station-picker" value={station?.id ?? ''} onChange={event => select(getStation(event.target.value) ?? null)}>
-            <option value="">All stations</option>
-            {Object.entries(lines).map(([id, line]) => <optgroup key={id} label={line.name}>{line.stations.map(key => {
-              const stop = stations.find(item => item.id === key);
-              return stop ? <option key={key} value={key}>{stop.name}</option> : null;
-            })}</optgroup>)}
-          </select>
-        </div>
-        <ul className="rail-legend" aria-label="Rail lines">{Object.entries(lines).map(([id, line]) => <li key={id}><span style={{ background: line.color }}>{line.badge}</span>{line.name.replace(/^(BTS|MRT) /, '')}</li>)}</ul>
+  function select(next: Station | null) {
+    setStation(next);
+    setCollapsed(false);
+    setSheet("peek");
+  }
+  return (
+    <main
+      className={`rail-browser ${station ? "station-open" : "overview-open"} ${collapsed ? "panel-collapsed" : ""}`}
+    >
+      <div className="rail-stage">
+        <RailMap
+          selectedStationId={station?.id ?? null}
+          onSelectStation={select}
+        />
       </div>
-    </aside>
-  </main>;
+      {(station || collapsed) && (
+        <button
+          className="rail-home"
+          onClick={() => {
+            select(null);
+          }}
+        >
+          All stations
+        </button>
+      )}
+      <aside
+        className={`rail-panel sheet-${sheet}`}
+        aria-label={station ? "Station details" : "Stations"}
+      >
+        <button
+          className="rail-sheet-handle"
+          aria-label={
+            sheet === "full" ? "Collapse station sheet" : "Expand station sheet"
+          }
+          onPointerDown={(event) => {
+            dragged.current = false;
+            dragStart.current = event.clientY;
+            event.currentTarget.setPointerCapture(event.pointerId);
+          }}
+          onPointerUp={(event) => {
+            if (dragStart.current === null) return;
+            const delta = event.clientY - dragStart.current;
+            dragStart.current = null;
+            if (Math.abs(delta) > 30) {
+              dragged.current = true;
+              setSheet(
+                delta < 0
+                  ? sheet === "peek"
+                    ? "half"
+                    : "full"
+                  : sheet === "full"
+                    ? "half"
+                    : "peek",
+              );
+            }
+          }}
+          onClick={() => {
+            if (dragged.current) {
+              dragged.current = false;
+              return;
+            }
+            setSheet(
+              sheet === "peek" ? "half" : sheet === "half" ? "full" : "peek",
+            );
+          }}
+        >
+          <span />
+        </button>
+        <button
+          className="rail-panel-toggle"
+          aria-label={
+            collapsed ? "Expand station panel" : "Collapse station panel"
+          }
+          onClick={() => setCollapsed(!collapsed)}
+        >
+          {collapsed ? "›" : "‹"}
+        </button>
+        <div className="rail-panel-content">
+          {station ? (
+            <>
+              <button className="rail-back" onClick={() => select(null)}>
+                ‹ All stations
+              </button>
+              <LineBadges station={station} />
+              <h1>{station.name}</h1>
+              {renderStation ? (
+                renderStation(station)
+              ) : (
+                <>
+                  <p className="rail-muted">0 offers</p>
+                  <div className="rail-empty">Nothing on file here yet.</div>
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              <h1>
+                Condos <span>· Bangkok</span>
+              </h1>
+              {overview ?? <p className="rail-muted">No offers on file yet.</p>}
+            </>
+          )}
+          <div className="rail-station-picker">
+            <label htmlFor="station-picker">Choose a station</label>
+            <select
+              id="station-picker"
+              value={station?.id ?? ""}
+              onChange={(event) =>
+                select(getStation(event.target.value) ?? null)
+              }
+            >
+              <option value="">All stations</option>
+              {Object.entries(lines).map(([id, line]) => (
+                <optgroup key={id} label={line.name}>
+                  {line.stations.map((key) => {
+                    const stop = stations.find((item) => item.id === key);
+                    return stop ? (
+                      <option key={key} value={key}>
+                        {stop.name}
+                      </option>
+                    ) : null;
+                  })}
+                </optgroup>
+              ))}
+            </select>
+          </div>
+          <ul className="rail-legend" aria-label="Rail lines">
+            {Object.entries(lines).map(([id, line]) => (
+              <li key={id}>
+                <span style={{ background: line.color }}>{line.badge}</span>
+                {line.name.replace(/^(BTS|MRT) /, "")}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </aside>
+    </main>
+  );
 }
