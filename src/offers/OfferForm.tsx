@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { OfferFactsSummary } from "./OfferFactsSummary";
 import { OfferFactsFields } from "./OfferFactsFields";
 import { OfferFacilities } from "./OfferFacilities";
 import { factsDraft, parseFacts } from "./facts";
@@ -19,7 +20,7 @@ export function OfferForm({
   const [name, setName] = useState(offer?.name ?? "");
   const [version, setVersion] = useState(offer?.version);
   const [conflict, setConflict] = useState(false);
-  const [latest, setLatest] = useState<string | null>(null);
+  const [latest, setLatest] = useState<Offer | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   async function save(event: React.SubmitEvent<HTMLFormElement>) {
@@ -66,7 +67,7 @@ export function OfferForm({
         return;
       }
       setVersion(current.version);
-      setLatest(current.name);
+      setLatest(current);
       setConflict(false);
       setError(null);
     } catch {
@@ -110,9 +111,12 @@ export function OfferForm({
         </button>
       )}
       {latest && (
-        <p role="status">
-          Latest saved name: {latest}. Your draft is unchanged.
-        </p>
+        <section aria-label="Latest saved facts">
+          <p role="status">
+            Latest saved name: {latest.name}. Your draft is unchanged.
+          </p>
+          <OfferFactsSummary offer={latest} />
+        </section>
       )}
       <div className="offer-actions">
         <button type="submit" disabled={busy}>
