@@ -35,7 +35,10 @@ export interface RailBrowserProps {
   overview?: ReactNode;
   panelContent?: ReactNode;
   panelMode?: "full" | undefined;
-  onStationChange?: () => void;
+  onStationChange?: (station: Station | null) => void;
+  selectedStationId?: string | null | undefined;
+  mapOverlay?: ReactNode | ((scale: number) => ReactNode);
+  stationCounts?: ReadonlyMap<string, number>;
 }
 export function RailBrowser({
   renderStation,
@@ -43,8 +46,15 @@ export function RailBrowser({
   panelContent,
   panelMode,
   onStationChange,
+  selectedStationId,
+  mapOverlay,
+  stationCounts,
 }: RailBrowserProps) {
-  const [station, setStation] = useState<Station | null>(null);
+  const [internalStation, setStation] = useState<Station | null>(null);
+  const station =
+    selectedStationId === undefined
+      ? internalStation
+      : (getStation(selectedStationId ?? "") ?? null);
   const [collapsed, setCollapsed] = useState(false);
   const [sheet, setSheet] = useState<"peek" | "half" | "full">("peek");
   const dragStart = useRef<number | null>(null);
@@ -53,14 +63,15 @@ export function RailBrowser({
     function escape(event: globalThis.KeyboardEvent) {
       if (event.key === "Escape" && !event.defaultPrevented && !panelContent) {
         setStation(null);
+        onStationChange?.(null);
         setSheet("peek");
       }
     }
     window.addEventListener("keydown", escape);
     return () => window.removeEventListener("keydown", escape);
-  }, [panelContent]);
+  }, [panelContent, onStationChange]);
   function select(next: Station | null) {
-    onStationChange?.();
+    onStationChange?.(next);
     setStation(next);
     setCollapsed(false);
     setSheet("peek");
@@ -73,7 +84,10 @@ export function RailBrowser({
         <RailMap
           selectedStationId={station?.id ?? null}
           onSelectStation={select}
-        />
+          stationCounts={stationCounts}
+        >
+          {mapOverlay}
+        </RailMap>
       </div>
       {(station || collapsed) && (
         <button

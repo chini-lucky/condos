@@ -1,18 +1,28 @@
 import { useState } from "react";
 import type { Offer, OffersRepository } from "./repository";
 import { OfferFailure } from "./repository";
+import {
+  OfferLocationFields,
+  locationDraft,
+  parseLocation,
+} from "./OfferLocationFields";
 export function OfferForm({
   offer,
   repository,
   onSaved,
   onCancel,
+  initialStationId,
 }: {
   offer: Offer | null;
   repository: OffersRepository;
   onSaved: (offer: Offer) => void;
   onCancel: () => void;
+  initialStationId?: string | undefined;
 }) {
   const [name, setName] = useState(offer?.name ?? "");
+  const [location, setLocation] = useState(() =>
+    locationDraft(offer, initialStationId),
+  );
   const [version, setVersion] = useState(offer?.version);
   const [conflict, setConflict] = useState(false);
   const [latest, setLatest] = useState<string | null>(null);
@@ -29,10 +39,11 @@ export function OfferForm({
     setConflict(false);
     setBusy(true);
     try {
+      const details = parseLocation(location);
       const saved =
         offer && version !== undefined
-          ? await repository.rename(offer.id, name, version)
-          : await repository.create(name);
+          ? await repository.rename(offer.id, name, version, details)
+          : await repository.create(name, details);
       onSaved(saved);
     } catch (failure) {
       setConflict(
@@ -41,7 +52,9 @@ export function OfferForm({
       setError(
         failure instanceof OfferFailure
           ? failure.message
-          : "Offer was not saved. Please try again.",
+          : failure instanceof Error
+            ? failure.message
+            : "Offer was not saved. Please try again.",
       );
     } finally {
       setBusy(false);
@@ -87,6 +100,7 @@ export function OfferForm({
           onChange={(event) => setName(event.target.value)}
         />
       </label>
+      <OfferLocationFields value={location} onChange={setLocation} />
       <p>Only the name is required. You can add more information later.</p>
       {error && <p role="alert">{error}</p>}
       {conflict && (
