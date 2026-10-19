@@ -13,7 +13,8 @@ Integration branch: `integration/condos-v1`. Baseline main: `cfca225`.
 | #7      | Integrated | `9575dce` — agent contacts and source links; verification below      |
 | #8      | Integrated | `b387f7d` — statuses and Bangkok viewing appointments                |
 | #9      | Integrated | `03b34e4` + `c01d075` — notes and focus-refresh draft preservation   |
-| #10–#14 | Pending    | See native GitHub dependencies and tickets.md                        |
+| #10–#13 | Pending    | See native GitHub dependencies and tickets.md                        |
+| #14     | Integrated | `72f60cb` — semantic map navigation and synchronized offers          |
 | #15     | Integrated | `68d7756` — recoverable Trash and restoration; verification below    |
 | #16–#17 | Pending    | See native GitHub dependencies and tickets.md                        |
 
@@ -82,6 +83,12 @@ Merged `ticket/07-agent-contacts` cleanly in `9575dce`, preserving atomic name/f
 Merged `ticket/15-trash` cleanly in `68d7756`. Check/build passed, followed by the Trash database boundary test and both browser journeys under the shared verification lock on port 5293. Confirmed indefinite retention, admin/version guards, active-map/list exclusion, persisted direct-link recovery, notes/status/facts retention, restore, and inability of stale forms or child mutations to edit/resurrect a trashed offer.
 
 The photo implementer independently exercised actual Edge/Storage retention and cancelled-upload cleanup against migration `202610200015`; those photo components are not yet integrated here. Final ordered replay must install photo migration `202610200010` before Trash `202610200015`. Ticket #14's navigation extraction must preserve Trash routes and use active offers for normal map/list rendering. No resets, hosted changes or issue closure occurred.
+
+## Ticket #14 integration verification
+
+Merged `ticket/14-map-navigation` cleanly in `72f60cb`. Check/build passed (Vite reports the existing 500 kB chunk advisory). Four semantic/geometry/navigation domain tests and all three targeted browser journeys passed under the shared verification lock on port 5293. Verified rings/callouts, card/pin synchronization, semantic zoom hysteresis, nearest station selection, free camera preservation, navigation parents and mobile forms.
+
+Trash routes and active-only normal map/list rendering are preserved. Filter integration must keep unfiltered active `stationOccupancy` separate from matching `stationCounts`, and use the additive `opacityByOffer` map adapter. Contacts/status/notes remain composed in offer detail. No schema changes, resets or hosted deployment occurred.
 
 ## Ticket #7 implementation verification
 
