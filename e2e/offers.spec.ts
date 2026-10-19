@@ -110,7 +110,7 @@ test("whitespace is rejected and offline saves keep the draft until confirmed pe
   const held = new Promise<void>((resolve) => {
     release = resolve;
   });
-  await page.route("**/rest/v1/rpc/create_offer", async (route) => {
+  await page.route("**/rest/v1/rpc/create_offer_details", async (route) => {
     await held;
     await route.continue();
   });

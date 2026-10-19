@@ -17,13 +17,15 @@ export interface RailMapProps {
   selectedStationId: string | null;
   onSelectStation: (station: Station | null) => void;
   /** Map-coordinate overlays, such as persisted offer pins. */
-  children?: ReactNode;
+  children?: ReactNode | ((scale: number) => ReactNode);
+  stationCounts?: ReadonlyMap<string, number> | undefined;
 }
 
 export function RailMap({
   selectedStationId,
   onSelectStation,
   children,
+  stationCounts,
 }: RailMapProps) {
   const svg = useRef<SVGSVGElement>(null);
   const pointers = useRef(new Map<number, Point>());
@@ -256,9 +258,10 @@ export function RailMap({
             />
           ) : null;
         })}
-        {children}
+        {typeof children === "function" ? children(scale) : children}
         {stations.map((station) => {
           const active = selectedStationId === station.id;
+          const count = stationCounts?.get(station.id) ?? 0;
           const label = labels.get(station.id);
           return (
             <g
@@ -301,10 +304,24 @@ export function RailMap({
               <circle
                 cx={station.x}
                 cy={station.y}
-                r={(active ? 7 : 4) * scale}
-                className={active ? "rail-dot selected" : "rail-dot"}
+                r={(count > 0 ? 11 : active ? 7 : 4) * scale}
+                className={
+                  active || count > 0 ? "rail-dot selected" : "rail-dot"
+                }
                 strokeWidth={2 * scale}
               />
+              {count > 0 && (
+                <text
+                  x={station.x}
+                  y={station.y + 3.5 * scale}
+                  textAnchor="middle"
+                  fill="white"
+                  fontSize={10 * scale}
+                  pointerEvents="none"
+                >
+                  {count}
+                </text>
+              )}
               {label && (
                 <text
                   x={label.x}
