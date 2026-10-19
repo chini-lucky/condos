@@ -187,6 +187,7 @@ export function OfferPhotos({ offerId }: { offerId: string }) {
           <p>{error}</p>
           <button
             onClick={() => {
+              setError("");
               void refresh();
             }}
           >
@@ -306,31 +307,52 @@ export function OfferCover({
   offerId: string;
   name: string;
 }) {
-  const [photo, setPhoto] = useState<Photo>();
+  const [state, setState] = useState<
+    | { kind: "loading" }
+    | { kind: "ready"; photo: Photo | null }
+    | { kind: "error" }
+  >({ kind: "loading" });
+  const [retry, setRetry] = useState(0);
   useEffect(() => {
     let active = true;
     if (repository)
       void repository
         .list(offerId)
         .then((photos) => {
-          if (active) setPhoto(photos[0]);
+          if (active) setState({ kind: "ready", photo: photos[0] ?? null });
         })
-        .catch(() => {});
+        .catch(() => {
+          if (active) setState({ kind: "error" });
+        });
     return () => {
       active = false;
     };
-  }, [offerId]);
+  }, [offerId, retry]);
   return (
     <div className="offer-cover">
-      {photo ? (
+      {state.kind === "ready" && state.photo ? (
         <PhotoImage
-          key={photo.id}
-          objectKey={photo.objectKey}
+          key={state.photo.id}
+          objectKey={state.photo.objectKey}
           alt={`${name} cover photo`}
         />
       ) : (
-        <div className="photo-placeholder" aria-label={`${name}: no photo`}>
-          No photo
+        <div
+          className="photo-placeholder"
+          aria-label={`${name}: ${state.kind === "loading" ? "loading photo" : state.kind === "error" ? "photo unavailable" : "no photo"}`}
+        >
+          {state.kind === "loading" ? (
+            "Loading photo…"
+          ) : state.kind === "error" ? (
+            <>
+              <p>Photo unavailable</p>
+              <button onClick={() => setRetry((value) => value + 1)}>
+                Retry cover photo
+              </button>
+            </>
+          ) : (
+            "No photo"
+          )}
         </div>
       )}
     </div>

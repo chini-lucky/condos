@@ -57,7 +57,9 @@ export function photosRepository(client: SupabaseClient) {
             ? "An offer can have at most 20 photos, including uploads in progress."
             : "Photos could not be reserved. Check your connection and retry.",
         );
-      return decodeList(result.data);
+      return decodeList(result.data).sort(
+        (first, second) => first.position - second.position,
+      );
     },
     async upload(photo: Photo, jpeg: Blob) {
       const result = await client.functions.invoke("upload-photo", {
