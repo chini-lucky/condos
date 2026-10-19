@@ -89,3 +89,25 @@ begin
 end $$;
 
 notify pgrst, 'reload schema';
+
+create function public.remove_photo(p_offer_id uuid, p_expected_revision bigint, p_photo_id uuid) returns jsonb
+language plpgsql security definer set search_path = '' as $$
+declare offer public.offers; removed public.photo_assets; replacement uuid;
+begin
+  offer := public.lock_photo_offer(p_offer_id, p_expected_revision);
+  update public.photo_assets set state = 'deleting'
+    where id = p_photo_id and offer_id = p_offer_id and state = 'ready' returning * into removed;
+  if not found then raise exception 'Choose a current photo from this offer'; end if;
+  insert into public.photo_cleanup(object_key) values(removed.object_key)
+    on conflict(object_key) do update set completed_at = null, due_at = now();
+  if offer.cover_photo_id = p_photo_id then
+    select id into replacement from public.photo_assets where offer_id = p_offer_id and state = 'ready' order by position, id limit 1;
+  else replacement := offer.cover_photo_id; end if;
+  update public.offers set cover_photo_id = replacement,
+    photo_cover_explicit = case when replacement is null then false else photo_cover_explicit end,
+    photo_revision = photo_revision + 1 where id = p_offer_id;
+  return public.get_offer_photos(p_offer_id);
+end $$;
+revoke all on function public.remove_photo(uuid,bigint,uuid) from public;
+grant execute on function public.remove_photo(uuid,bigint,uuid) to authenticated;
+notify pgrst, 'reload schema';

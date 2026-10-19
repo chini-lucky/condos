@@ -172,3 +172,139 @@ test("an explicitly chosen cover survives reorder and new uploads, including a p
     await service.from("offers").delete().eq("id", id);
   }
 });
+
+test("deleting a cover selects the first surviving photo, queues cleanup atomically and leaves a placeholder after the last removal", async () => {
+  const db = await admin(),
+    id = await createPhotos(db, 3);
+  try {
+    let snapshot = (await db.rpc("get_offer_photos", { p_offer_id: id })).data;
+    const [first, second, third] = snapshot.photos;
+    snapshot = (
+      await db.rpc("choose_photo_cover", {
+        p_offer_id: id,
+        p_expected_revision: snapshot.revision,
+        p_photo_id: third.id,
+      })
+    ).data;
+    snapshot = (
+      await db.rpc("reorder_photos", {
+        p_offer_id: id,
+        p_expected_revision: snapshot.revision,
+        p_ids: [second.id, third.id, first.id],
+      })
+    ).data;
+    const signed = await db.storage
+      .from("offer-photos")
+      .createSignedUrl(third.object_key, 300);
+    assert.equal(signed.error, null);
+    assert.ok(signed.data);
+    const removed = await db.rpc("remove_photo", {
+      p_offer_id: id,
+      p_expected_revision: snapshot.revision,
+      p_photo_id: third.id,
+    });
+    assert.equal(removed.error, null);
+    assert.equal(removed.data.cover_id, second.id);
+    assert.deepEqual(
+      removed.data.photos.map((photo: { id: string }) => photo.id),
+      [second.id, first.id],
+    );
+    assert.equal(
+      (
+        await db
+          .from("photo_assets")
+          .select("state")
+          .eq("id", third.id)
+          .single()
+      ).data?.state,
+      "deleting",
+    );
+    assert.ok(
+      (
+        await db.storage
+          .from("offer-photos")
+          .createSignedUrl(third.object_key, 60)
+      ).error,
+    );
+    const job = await db
+      .from("photo_cleanup")
+      .select("completed_at")
+      .eq("object_key", third.object_key)
+      .single();
+    assert.equal(job.error, null);
+    assert.equal(job.data?.completed_at, null);
+    // A real external Storage transport interruption cannot revive the removed reference.
+    const { runPhotoCleanup } =
+      await import("../supabase/functions/_shared/cleanup.ts");
+    await service
+      .from("photo_cleanup")
+      .update({ due_at: new Date(0).toISOString() })
+      .eq("object_key", third.object_key);
+    const interrupted = createClient(config.url, config.serviceKey, {
+      ...options,
+      global: {
+        fetch: async (input, init) => {
+          if (String(input).includes("/storage/v1/"))
+            throw new TypeError("Temporary Storage transport failure");
+          return fetch(input, init);
+        },
+      },
+    });
+    await runPhotoCleanup(interrupted);
+    const failed = await db
+      .from("photo_cleanup")
+      .select("last_error,completed_at")
+      .eq("object_key", third.object_key)
+      .single();
+    assert.ok(failed.data?.last_error);
+    assert.equal(failed.data?.completed_at, null);
+    assert.equal(
+      (await service.storage.from("offer-photos").download(third.object_key))
+        .error,
+      null,
+    );
+    assert.equal(
+      (await db.rpc("get_offer_photos", { p_offer_id: id })).data.photos.length,
+      2,
+    );
+    await service
+      .from("photo_cleanup")
+      .update({ due_at: new Date(0).toISOString() })
+      .eq("object_key", third.object_key);
+    await runPhotoCleanup(service);
+    assert.ok(
+      (await service.storage.from("offer-photos").download(third.object_key))
+        .error,
+    );
+    assert.notEqual((await fetch(signed.data.signedUrl)).status, 200);
+    assert.equal(
+      (await service.storage.from("offer-photos").download(first.object_key))
+        .error,
+      null,
+    );
+    snapshot = removed.data;
+    for (const photo of [...snapshot.photos]) {
+      const next = await db.rpc("remove_photo", {
+        p_offer_id: id,
+        p_expected_revision: snapshot.revision,
+        p_photo_id: photo.id,
+      });
+      assert.equal(next.error, null);
+      snapshot = next.data;
+    }
+    assert.deepEqual(snapshot.photos, []);
+    assert.equal(snapshot.cover_id, null);
+    assert.equal(
+      (
+        await db
+          .from("offers")
+          .select("photo_cover_explicit")
+          .eq("id", id)
+          .single()
+      ).data?.photo_cover_explicit,
+      false,
+    );
+  } finally {
+    await service.from("offers").delete().eq("id", id);
+  }
+});
