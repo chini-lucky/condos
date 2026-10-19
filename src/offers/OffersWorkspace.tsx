@@ -1,14 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../auth";
 import { RailBrowser, LineBadges } from "../rail/RailBrowser";
+import { OfferAgentCard } from "./OfferAgentCard";
+import { OfferFactsSummary } from "./OfferFactsSummary";
 import { OfferForm } from "./OfferForm";
 import { getStation } from "../rail/network";
 import type { Station } from "../rail/network";
-import {
-  StationOfferList,
-  walkingDescription,
-  rentDescription,
-} from "./StationOfferList";
+import { StationOfferList, walkingDescription } from "./StationOfferList";
 import { OfferMapOverlay } from "./OfferMapOverlay";
 import { stationSummaries } from "./location";
 import { offersRepository } from "./repository";
@@ -17,6 +15,8 @@ import "./offers.css";
 import { OfferStatusDisplay } from "./OfferStatusDisplay";
 import { OfferStatusEditor } from "./OfferStatusEditor";
 import { OfferPhotos, OfferCover } from "../photos/OfferPhotos";
+import { OfferNotes } from "../notes/OfferNotes";
+import { notesRepository } from "../notes/notesRepository";
 type Route =
   { kind: "list" } | { kind: "add" } | { kind: "detail" | "edit"; id: string };
 function routeFromHash(): Route {
@@ -34,6 +34,7 @@ function navigate(route: Route) {
         : `offer=${encodeURIComponent(route.id)}${route.kind === "edit" ? "&edit" : ""}`;
 }
 const repository = supabase ? offersRepository(supabase) : null;
+const noteRepository = supabase ? notesRepository(supabase) : null;
 export function OffersWorkspace() {
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -183,6 +184,7 @@ export function OffersWorkspace() {
                   <OfferCover offerId={offer.id} name={offer.name} />
                   <a href={`#offer=${offer.id}`}>{offer.name}</a>
                   <OfferStatusDisplay offer={offer} />
+                  <OfferFactsSummary offer={offer} />
                 </li>
               ))}
             </ul>
@@ -201,7 +203,7 @@ export function OffersWorkspace() {
       ) : selected ? (
         <>
           <h2>{selected.name}</h2>
-          <OfferPhotos key={selected.id} offerId={selected.id} />
+          <OfferPhotos key={`photos-${selected.id}`} offerId={selected.id} />
           <OfferStatusDisplay offer={selected} />
           {repository && (
             <OfferStatusEditor
@@ -221,13 +223,22 @@ export function OffersWorkspace() {
               ? "Direction unknown"
               : `Direction: ${selected.bearing}° clockwise from north`}
           </p>
-          <p>{rentDescription(selected)}</p>
+          <OfferFactsSummary offer={selected} />
+          <OfferAgentCard key={`agent-${selected.id}`} offer={selected} />
+
           <p>Added {formatDate(selected.createdAt)}</p>
           <p>Updated {formatDate(selected.updatedAt)}</p>
           <button onClick={() => navigate({ kind: "edit", id: selected.id })}>
             Edit offer
           </button>
           <a href={`#offer=${selected.id}`}>Direct link to offer</a>
+          {noteRepository && (
+            <OfferNotes
+              key={selected.id}
+              offerId={selected.id}
+              repository={noteRepository}
+            />
+          )}
         </>
       ) : (
         <>
