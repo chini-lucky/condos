@@ -50,6 +50,12 @@ The existing offer suite creates fixed-name fixtures and deletes those names dur
 
 Location persistence/reassignment/clearing, real pin activation, station lists/counts, unknown positioning and nearest-station browsing are verified. Shared APIs use explicit typed patches through `create_offer_details` and `save_offer`, with additive RailBrowser station/count/overlay controls. No reset, hosted migration push or deployment occurred. Ticket #6 must reconcile its form/repository extensions against this integration tip; deeper map behavior remains #14.
 
+## Ticket #6 implementation verification
+
+The implementation branch merges integration through `03b34e4`, including station assignment, status management and notes. Optional rental facts preserve unknown values, studio zero and basement floors; facilities distinguish unknown/present/absent, and named extra facilities are trimmed, deduplicated and removable. Shared add/edit controls and summaries are composed as separate components. Saving name, location and facts uses one expected-version backend mutation; stale-edit review shows the latest saved facts without discarding the draft.
+
+Observed red/green database and browser tests cover numeric validation, nullable round trips and clearing, all facility states, duplicate extras, card/detail summaries and concurrent draft preservation. An additional integration regression creates location and rental facts together and verifies that clearing rental facts preserves station/distance/direction. `npm run check`, `npm run build`, all 20 Node boundary/domain tests and 12 affected Chromium journeys (location, facts, offers, status and notes) pass. Local verification used the shared lock and browser port 5289; no stack reset or hosted changes occurred. Migration `202610200006` extends the typed mutations introduced by `202610200005`; both must execute in order on a fresh environment. GitHub closure remains the final PR's responsibility.
+
 ## Ticket #8 integration verification
 
 Merged `ticket/08-status-viewings` cleanly in `b387f7d`. Check/build passed, followed by two date/status database tests and two status browser journeys under the shared verification lock. Verified Bangkok conversion, booking/rescheduling/clearing, optional explanations, freely changed statuses, rejected-offer visibility, stale-write review and offline draft retention. Location RPC/form behavior is preserved. Future Trash must guard status mutations on trashed offers.

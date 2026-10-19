@@ -1,14 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../auth";
 import { RailBrowser, LineBadges } from "../rail/RailBrowser";
+import { OfferFactsSummary } from "./OfferFactsSummary";
 import { OfferForm } from "./OfferForm";
 import { getStation } from "../rail/network";
 import type { Station } from "../rail/network";
-import {
-  StationOfferList,
-  walkingDescription,
-  rentDescription,
-} from "./StationOfferList";
+import { StationOfferList, walkingDescription } from "./StationOfferList";
 import { OfferMapOverlay } from "./OfferMapOverlay";
 import { stationSummaries } from "./location";
 import { offersRepository } from "./repository";
@@ -184,6 +181,7 @@ export function OffersWorkspace() {
                 <li key={offer.id}>
                   <a href={`#offer=${offer.id}`}>{offer.name}</a>
                   <OfferStatusDisplay offer={offer} />
+                  <OfferFactsSummary offer={offer} />
                 </li>
               ))}
             </ul>
@@ -221,7 +219,8 @@ export function OffersWorkspace() {
               ? "Direction unknown"
               : `Direction: ${selected.bearing}° clockwise from north`}
           </p>
-          <p>{rentDescription(selected)}</p>
+          <OfferFactsSummary offer={selected} />
+
           <p>Added {formatDate(selected.createdAt)}</p>
           <p>Updated {formatDate(selected.updatedAt)}</p>
           <button onClick={() => navigate({ kind: "edit", id: selected.id })}>
