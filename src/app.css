@@ -11,10 +11,11 @@ body {
   margin: 0;
 }
 button,
-input {
+.auth-shell input {
   font: inherit;
 }
-button {
+.auth-shell button,
+.app-header button {
   background: #274f40;
   color: white;
   border: 0;
@@ -26,7 +27,7 @@ button:disabled {
   opacity: 0.6;
   cursor: wait;
 }
-input {
+.auth-shell input {
   display: block;
   width: 100%;
   padding: 0.8rem;
@@ -34,7 +35,7 @@ input {
   border: 1px solid #a5b2a8;
   border-radius: 6px;
 }
-label {
+.auth-shell label {
   display: block;
   margin-block: 1.2rem;
 }
