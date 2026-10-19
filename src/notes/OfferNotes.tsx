@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   NoteFailure,
   type NotesRepository,
@@ -19,12 +19,24 @@ export function OfferNotes({
 }) {
   const [notes, setNotes] = useState<OfferNote[]>([]);
   const [draft, setDraft] = useState("");
+  const activeNotes = useRef(new Set<string>());
+  const [missingNotes, setMissingNotes] = useState(new Set<string>());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const refresh = useCallback(async () => {
     try {
-      setNotes(await repository.list(offerId));
+      const latest = await repository.list(offerId);
+      const found = new Set(latest.map((note) => note.id));
+      setMissingNotes(
+        new Set([...activeNotes.current].filter((id) => !found.has(id))),
+      );
+      setNotes((current) => [
+        ...latest,
+        ...current.filter(
+          (note) => activeNotes.current.has(note.id) && !found.has(note.id),
+        ),
+      ]);
       setError("");
       return true;
     } catch {
@@ -69,7 +81,9 @@ export function OfferNotes({
   }
   return (
     <section className="offer-notes" aria-label="Offer notes">
-      <h3>Notes ({notes.length})</h3>
+      <h3>
+        Notes ({notes.filter((note) => !missingNotes.has(note.id)).length})
+      </h3>
       {loading && <p role="status">Loading notes…</p>}
       {error && (
         <div role="alert">
@@ -89,6 +103,11 @@ export function OfferNotes({
           <NoteEntry
             key={note.id}
             note={note}
+            missing={missingNotes.has(note.id)}
+            onActiveChange={(active) => {
+              if (active) activeNotes.current.add(note.id);
+              else activeNotes.current.delete(note.id);
+            }}
             repository={repository}
             refresh={refresh}
             onSaved={(saved) =>
@@ -126,12 +145,16 @@ export function OfferNotes({
 }
 function NoteEntry({
   note,
+  missing,
+  onActiveChange,
   repository,
   refresh,
   onSaved,
   onRemoved,
 }: {
   note: OfferNote;
+  missing: boolean;
+  onActiveChange: (active: boolean) => void;
   repository: NotesRepository;
   refresh: () => Promise<boolean>;
   onSaved: (note: OfferNote) => void;
@@ -146,6 +169,8 @@ function NoteEntry({
   const [conflict, setConflict] = useState(false),
     [reviewed, setReviewed] = useState(false);
   function cancel() {
+    onActiveChange(false);
+    if (missing) onRemoved();
     setEditing(false);
     setDeleting(false);
     setError("");
@@ -153,6 +178,7 @@ function NoteEntry({
     setReviewed(false);
   }
   async function mutate(remove = false) {
+    if (missing) return;
     if (!remove && !draft.trim()) {
       setError("Enter a note.");
       return;
@@ -162,6 +188,7 @@ function NoteEntry({
     try {
       if (remove) {
         await repository.remove(snapshot);
+        onActiveChange(false);
         onRemoved();
       } else {
         onSaved(await repository.edit(snapshot, draft));
@@ -237,12 +264,12 @@ function NoteEntry({
                   !event.nativeEvent.isComposing
                 ) {
                   event.preventDefault();
-                  if (!busy && !conflict) void mutate();
+                  if (!busy && !conflict && !missing) void mutate();
                 }
               }}
             />
           </label>
-          <button disabled={busy || conflict} type="submit">
+          <button disabled={busy || conflict || missing} type="submit">
             Save note
           </button>
           <button type="button" disabled={busy} onClick={cancel}>
@@ -252,8 +279,15 @@ function NoteEntry({
       ) : (
         <p className="note-body">{note.body}</p>
       )}
-      {error && <p role="alert">{error}</p>}
-      {conflict && (
+      {missing ? (
+        <p role="alert">
+          This note was deleted on another device. Your draft is kept; copy it
+          before cancelling.
+        </p>
+      ) : (
+        error && <p role="alert">{error}</p>
+      )}
+      {conflict && !missing && (
         <button
           disabled={busy}
           onClick={() => {
@@ -263,7 +297,7 @@ function NoteEntry({
           Review latest notes
         </button>
       )}
-      {reviewed && (
+      {reviewed && !missing && (
         <div>
           <p>Latest saved note: {note.body}. Your draft is unchanged.</p>
           <button
@@ -285,6 +319,7 @@ function NoteEntry({
             onClick={() => {
               setDraft(note.body);
               setSnapshot(note);
+              onActiveChange(true);
               setEditing(true);
             }}
           >
@@ -293,6 +328,7 @@ function NoteEntry({
           <button
             onClick={() => {
               setSnapshot(note);
+              onActiveChange(true);
               setDeleting(true);
             }}
           >
@@ -304,7 +340,7 @@ function NoteEntry({
         <div>
           <p>Delete this note?</p>
           <button
-            disabled={busy || conflict}
+            disabled={busy || conflict || missing}
             onClick={() => {
               void mutate(true);
             }}
