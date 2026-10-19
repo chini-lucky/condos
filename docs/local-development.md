@@ -2,19 +2,17 @@
 
 Use Node 24+, npm, Docker and Supabase CLI (2.121.0 was verified). This project uses an independent `condos-local` stack on 564xx, separate from Lola. Keep only one Condos stack running at a time. Run all commands from your assigned Condos worktree. Never link or reset production during development.
 
-1. `npm ci`
-2. `supabase start > /tmp/condos-start.log 2>&1` (the CLI prints disposable local keys; do not publish the log).
-3. `npm run local:env` writes only the browser-safe URL/anon key to ignored `.env.local`.
-4. `npm test` provisions **disposable local test** accounts and verifies admin-only database access. It resets the local admin password to the disposable password in the browser tests; never run against production.
-5. `npx playwright install chromium`
-6. `npm run test:e2e` starts Vite on 5283 and tests against real local Supabase.
-7. `npm run dev -- --port 5183 --strictPort` for interactive development.
+Follow the complete [setup and verification commands in the README](../README.md#local-development), including starting the photo Edge functions before running tests. The CLI prints disposable local keys during startup; keep its output private. `npm run local:env` writes only the browser-safe URL/anon key to ignored `.env.local`.
 
-`npm run check` runs TypeScript, ESLint and Prettier. `npm run build` verifies the production bundle. `npm test` runs Node behavior/database integration tests; later tickets add domain tests here. CI runs these and browser tests. `supabase stop` stops only this configured stack. `supabase db reset` destroys/recreates this local project's data and reapplies migrations; rerun the setup afterward.
+`npm test` provisions disposable local test accounts and resets the local admin password to the test password. It exercises domain, database, authorization, real Storage and Edge behavior. Never run it against production. `npm run test:e2e` starts Vite on 5283, or `CONDOS_E2E_PORT`, and tests against real local Supabase.
+
+`npm run check` runs TypeScript, ESLint and Prettier; `npm run build` verifies the production bundle. CI starts a fresh isolated stack and runs backend, automatic cleanup and browser checks. Hold `flock /tmp/condos-verification.lock` across each local database/authentication/Storage/browser verification block. Coordinate migration changes and function-server restarts with other users of the stack.
+
+`supabase stop` stops only this configured stack. `supabase db reset --local` destroys this local project's data and reapplies migrations; do this only when nobody else uses the stack, then rerun setup. Keep production and Lola independent.
 
 ## Admin provisioning
 
-Registration is disabled globally, while the email/password provider remains enabled. There are no roles or registration UI. The visible username maps to `chini-lucky@condos.invalid`. The `admin_identity` singleton is written only by trusted service-role tooling; RLS and the `is_admin()` helper identify the specific provisioned UUID. Later private tables and Storage policies must use that helper, not merely permit all authenticated accounts.
+Registration is disabled globally, while the email/password provider remains enabled. There are no roles or registration UI. The visible username maps to `chini-lucky@condos.invalid`. The `admin_identity` singleton is written only by trusted service-role tooling; RLS and the `is_admin()` helper identify the specific provisioned UUID. Private tables and Storage policies use that identity rather than permitting every authenticated account.
 
 For a real local admin password instead of disposable tests:
 
