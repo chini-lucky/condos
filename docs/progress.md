@@ -2,24 +2,25 @@
 
 Integration branch: `integration/condos-v1`. Baseline main: `cfca225`.
 
-| Issue   | State      | Evidence                                                                   |
-| ------- | ---------- | -------------------------------------------------------------------------- |
-| #1      | Integrated | `dffaeca` — admin sign-in; integration verification below                  |
-| #2      | Integrated | `6084d44` — complete Bangkok rail map; verification below                  |
-| #3      | Integrated | `732ee8e` — persistent offer management; verification below                |
-| #4      | Integrated | `fe249f7` + run `39305725116` — hosted browser acceptance passed           |
-| #5      | Integrated | `2622721` — station assignment and offer pins; verification below          |
-| #6      | Integrated | `231f633` — optional rental facts and facilities; verification below       |
-| #7      | Integrated | `9575dce` — agent contacts and source links; verification below            |
-| #8      | Integrated | `b387f7d` — statuses and Bangkok viewing appointments                      |
-| #9      | Integrated | `03b34e4` + `c01d075` — notes and focus-refresh draft preservation         |
-| #10     | Integrated | `0a3350b` — private photos, processing and durable cleanup                 |
-| #11     | Integrated | `cc81f2f` — HEIC conversion and private uploads; verification below        |
-| #12     | Integrated | `c50ab62` — photo order, cover and individual deletion; verification below |
-| #13     | Integrated | `c780f55` — offer filters and comparison groups; verification below        |
-| #14     | Integrated | `72f60cb` — semantic map navigation and synchronized offers                |
-| #15     | Integrated | `68d7756` — recoverable Trash and restoration; verification below          |
-| #16–#17 | Pending    | See native GitHub dependencies and tickets.md                              |
+| Issue | State      | Evidence                                                                   |
+| ----- | ---------- | -------------------------------------------------------------------------- |
+| #1    | Integrated | `dffaeca` — admin sign-in; integration verification below                  |
+| #2    | Integrated | `6084d44` — complete Bangkok rail map; verification below                  |
+| #3    | Integrated | `732ee8e` — persistent offer management; verification below                |
+| #4    | Integrated | `fe249f7` + run `39305725116` — hosted browser acceptance passed           |
+| #5    | Integrated | `2622721` — station assignment and offer pins; verification below          |
+| #6    | Integrated | `231f633` — optional rental facts and facilities; verification below       |
+| #7    | Integrated | `9575dce` — agent contacts and source links; verification below            |
+| #8    | Integrated | `b387f7d` — statuses and Bangkok viewing appointments                      |
+| #9    | Integrated | `03b34e4` + `c01d075` — notes and focus-refresh draft preservation         |
+| #10   | Integrated | `0a3350b` — private photos, processing and durable cleanup                 |
+| #11   | Integrated | `cc81f2f` — HEIC conversion and private uploads; verification below        |
+| #12   | Integrated | `c50ab62` — photo order, cover and individual deletion; verification below |
+| #13   | Integrated | `c780f55` — offer filters and comparison groups; verification below        |
+| #14   | Integrated | `72f60cb` — semantic map navigation and synchronized offers                |
+| #15   | Integrated | `68d7756` — recoverable Trash and restoration; verification below          |
+| #16   | Integrated | `682e33a` — permanent deletion and durable cleanup receipts                |
+| #17   | Pending    | See native GitHub dependencies and tickets.md                              |
 
 Planning documents and implementation instructions are committed before ticket work begins. Issue completion will be recorded with merge commits and validation evidence; GitHub closes the work through the final PR.
 
@@ -120,6 +121,12 @@ Permanent deletion must lock the parent first and check its expected offer versi
 ## Ticket #13 integrated browser follow-up
 
 Merged selector-only follow-up in `59044da` after CI exposed ambiguous global assertions against always-visible filters and simultaneous map callouts. Facts assertions now target their dossier controls, status review its named form and restored status its detail panel. Application behavior and assertion meaning are unchanged. Check passed; all five journeys across the three affected browser files passed together under the shared verification lock on port 5293. No application/schema changes, resets or hosted mutations occurred.
+
+## Ticket #16 integration verification
+
+Merged `ticket/16-permanent-deletion` cleanly in `682e33a`. Check/build passed with existing chunk-size advisories. All three permanent-deletion backend tests and both corresponding browser journeys passed under the shared verification lock on port 5293. Verified current-version Trash-only deletion, note cascade, restore/delete races, receipt authorization/idempotence, lost-response retry, exact Storage cleanup after failures/leases/late writes, unrelated photo retention, confirmation/cancellation and persisted cleanup visibility.
+
+Immutable asset tombstones and durable cleanup rows survive parent deletion. Receipt-scoped retry uses the existing worker; no Edge changes or second cleanup engine were introduced. No resets, hosted mutations, main merge or issue closure occurred.
 
 ## Ticket #7 implementation verification
 
