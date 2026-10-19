@@ -2,25 +2,25 @@
 
 Integration branch: `integration/condos-v1`. Baseline main: `cfca225`.
 
-| Issue | State      | Evidence                                                                         |
-| ----- | ---------- | -------------------------------------------------------------------------------- |
-| #1    | Integrated | `dffaeca` — admin sign-in; integration verification below                        |
-| #2    | Integrated | `6084d44` — complete Bangkok rail map; verification below                        |
-| #3    | Integrated | `732ee8e` — persistent offer management; verification below                      |
-| #4    | Integrated | `fe249f7` + run `39305725116` — hosted browser acceptance passed                 |
-| #5    | Integrated | `2622721` — station assignment and offer pins; verification below                |
-| #6    | Integrated | `231f633` — optional rental facts and facilities; verification below             |
-| #7    | Integrated | `9575dce` — agent contacts and source links; verification below                  |
-| #8    | Integrated | `b387f7d` — statuses and Bangkok viewing appointments                            |
-| #9    | Integrated | `03b34e4` + `c01d075` — notes and focus-refresh draft preservation               |
-| #10   | Integrated | `0a3350b` — private photos, processing and durable cleanup                       |
-| #11   | Integrated | `cc81f2f` — HEIC conversion and private uploads; verification below              |
-| #12   | Integrated | `c50ab62` — photo order, cover and individual deletion; verification below       |
-| #13   | Integrated | `c780f55` — offer filters and comparison groups; verification below              |
-| #14   | Integrated | `72f60cb` — semantic map navigation and synchronized offers                      |
-| #15   | Integrated | `68d7756` — recoverable Trash and restoration; verification below                |
-| #16   | Integrated | `682e33a` — permanent deletion and durable cleanup receipts                      |
-| #17   | Partial    | `9af6917` + `02e536b` — UI/review fixes integrated; final hosted release pending |
+| Issue | State      | Evidence                                                                   |
+| ----- | ---------- | -------------------------------------------------------------------------- |
+| #1    | Integrated | `dffaeca` — admin sign-in; integration verification below                  |
+| #2    | Integrated | `6084d44` — complete Bangkok rail map; verification below                  |
+| #3    | Integrated | `732ee8e` — persistent offer management; verification below                |
+| #4    | Integrated | `fe249f7` + run `39305725116` — hosted browser acceptance passed           |
+| #5    | Integrated | `2622721` — station assignment and offer pins; verification below          |
+| #6    | Integrated | `231f633` — optional rental facts and facilities; verification below       |
+| #7    | Integrated | `9575dce` — agent contacts and source links; verification below            |
+| #8    | Integrated | `b387f7d` — statuses and Bangkok viewing appointments                      |
+| #9    | Integrated | `03b34e4` + `c01d075` — notes and focus-refresh draft preservation         |
+| #10   | Integrated | `0a3350b` — private photos, processing and durable cleanup                 |
+| #11   | Integrated | `cc81f2f` — HEIC conversion and private uploads; verification below        |
+| #12   | Integrated | `c50ab62` — photo order, cover and individual deletion; verification below |
+| #13   | Integrated | `c780f55` — offer filters and comparison groups; verification below        |
+| #14   | Integrated | `72f60cb` — semantic map navigation and synchronized offers                |
+| #15   | Integrated | `68d7756` — recoverable Trash and restoration; verification below          |
+| #16   | Integrated | `682e33a` — permanent deletion and durable cleanup receipts                |
+| #17   | Integrated | `258c77e` + run `39322247642` — full release and hosted acceptance passed  |
 
 Planning documents and implementation instructions are committed before ticket work begins. Issue completion will be recorded with merge commits and validation evidence; GitHub closes the work through the final PR.
 
@@ -179,3 +179,9 @@ React provides native drag and accessible Earlier/Later buttons, separate cover 
 A reproduced late-duplicate-finalizer race after Trash was fixed: an already attached photo returns idempotently under the existing parent lock without being detached; unfinished uploads still cannot attach to Trash. Five management database tests pass. Latest integrated verification passes all 41 Node tests and all 10 affected photo Chromium journeys (management, baseline JPEG/PNG/WebP and HEIC), plus check/build/formatting. Build emits the existing non-fatal chunk-size warning. Tests use the shared verification lock, local 564xx stack and browser port 5300; no reset, hosted mutation or issue closure occurred.
 
 Migration `202610200012` was applied additively and explicitly recorded in local history. Fresh environments must apply 10 → 12 → 15; lifecycle checks in 12 deliberately tolerate the not-yet-created Trash column. `docs/photos.md` records the exact permanent-delete contract: lock the trashed parent separately, retain immutable photo tombstones/cleanup rows and let FK detachment enqueue all paths. Ticket 16 must not call the active-offer management lock helper for permanent deletion. Existing Edge source/API is unchanged; the locally served functions call the replaced SQL finalizer automatically. Hosted verification remains the controlled release owner's work.
+
+## Final release and ticket #17 completion
+
+Exact integration commit `258c77eb5caa6590663f0b84b99bca25e57391f7` passed [controlled deployment run 39322247642](https://github.com/chini-lucky/condos/actions/runs/39322247642): fresh migrations through 16, 45 backend/domain tests, scheduled local cleanup, 52 browser journeys, check/build, Supabase and Pages. The four independent review findings are resolved. Both reviewers also accepted the narrow hosted CORS correction, whose SDK-header regression went red then green.
+
+Hosted acceptance passed the real Pages HEIC chooser/carousel/reload, JPEG ingestion and private access, photo organization, Trash/restore, notes, public permanent deletion and idempotent receipts. Automatic scheduled cleanup removed all four test objects with zero pending/failed jobs; completed synthetic receipts were removed with exact UUID/name guards and technical tombstones preserved. The final basic hosted sign-in/create/reload/edit/logout smoke also passed. Full evidence and limits are in [release.md](release.md). All 17 tickets are implemented; GitHub issues close when the final integration PR merges. Earlier pending checkpoints above are superseded by this result. No main merge is required for this already published integration release.

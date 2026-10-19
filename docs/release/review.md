@@ -23,3 +23,9 @@ All four findings were corrected in one implementation branch and integrated in 
 The corrected candidate passed all 44 backend/domain tests, all 52 browser journeys, type/lint/format checks and production build. The merger independently passed three domain tests and all seven focused review regressions after integration. Regressions use actual failed signed-photo requests, keyboard navigation, two-client Trash/permanent deletion, real clipboard copies, disabled persistence and persisted status context with visible callout bounds.
 
 The original reviewed snapshot independently passed [full fresh-database CI](https://github.com/chini-lucky/condos/actions/runs/39316921376). The controlled release reruns exact-commit fresh-database CI before backend deployment and frontend publication.
+
+## Hosted preflight correction
+
+The first full hosted feature smoke exposed a browser-only photo upload failure: the installed Supabase SDK sends `x-client-info`, but the Edge preflight allowlist omitted it. Direct Node uploads bypass browser CORS and the local gateway masked the omission. A credential-free hosted OPTIONS probe confirmed the missing header.
+
+Commit `e9fc23d` adds that header and extracts the existing preflight response into a small shared function used by both photo endpoints. A regression captures the installed SDK's actual upload/cleanup request headers at the external fetch boundary and checks the actual shared response without gateway rewriting. It failed with exactly `x-client-info` missing before the fix, then passed. Both original reviewers independently checked this narrow change: **Standards: zero findings; Spec: zero findings.** Focused verification passed 16 backend tests, six photo/HEIC browser journeys, check and build. Final hosted acceptance is recorded in [the release record](../release.md).
