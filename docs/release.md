@@ -27,7 +27,11 @@ Access tests use anonymous, admin and another authenticated identity. Photo and 
 
 ## Final verification status
 
-Feature slices #1–#16 are integrated. Final visual alignment, independent Standards/Spec review, complete fresh-database CI and final hosted release verification are still in progress. Individual passing slice checks do not establish final release completion.
+Feature slices #1–#16 are integrated. [CI run 39314510146](https://github.com/chini-lucky/condos/actions/runs/39314510146) passed for integration commit `2f837c6d028c37b0e6eb72559ee8e3b0ac441b89`: type/lint/format checks, fresh database startup and ordered migrations through `202610200016`, all 44 backend/domain tests, real scheduled physical photo removal, all 43 Chromium journeys and production build.
+
+The dedicated hosted photo-cleanup secret has been configured in Edge and Vault using trusted operator tooling, with an owner-only private local copy. Hosted feature migrations and final frontend publication remain pending the final release. No secret values are stored in this repository.
+
+Final visual alignment, independent Standards/Spec review and final hosted release verification are still in progress. The final combined UI will receive a new exact-commit CI run; this passing feature baseline does not establish final release completion.
 
 The final record will identify the tested integration commit, full check counts, fresh migration run, desktop/phone captures, review disposition, exact deployment run and hosted cleanup proof. Physical iPhone/Safari testing is not available; HEIC processing has passed Chromium, Firefox and Playwright WebKit engine checks as documented separately.
 
