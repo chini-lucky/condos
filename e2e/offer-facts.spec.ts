@@ -9,6 +9,7 @@ test("create, inspect and clear optional facts and facilities without fabricatin
     .fill("Disposable-local-test-password-9!");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await page.getByRole("button", { name: "Add offer", exact: true }).click();
+  const details = page.getByRole("complementary", { name: "Offer details" });
   await page.getByLabel("Offer name").fill("Facts browser fixture");
   await page.getByLabel("Station", { exact: true }).selectOption("E6");
   await page.getByLabel("Walking distance (metres)").fill("800");
@@ -18,8 +19,12 @@ test("create, inspect and clear optional facts and facilities without fabricatin
   await page.getByLabel("Size (m²)").fill("31.5");
   await page.getByLabel("Beds (0 for studio)").fill("0");
   await page.getByLabel("Floor", { exact: true }).fill("-1");
-  await page.getByLabel("Washer", { exact: true }).selectOption("present");
-  await page.getByLabel("Garden", { exact: true }).selectOption("absent");
+  await details
+    .getByRole("combobox", { name: "Washer", exact: true })
+    .selectOption("present");
+  await details
+    .getByRole("combobox", { name: "Garden", exact: true })
+    .selectOption("absent");
   await page.getByLabel("Extra facility").fill(" Balcony ");
   await page.getByRole("button", { name: "Add facility", exact: true }).click();
   await page.getByLabel("Extra facility").fill("balcony");
@@ -32,17 +37,17 @@ test("create, inspect and clear optional facts and facilities without fabricatin
     page.getByRole("heading", { name: "Facts browser fixture", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByText("฿25,000 / month", { exact: true }),
+    details.getByText("฿25,000 / month", { exact: true }),
   ).toBeVisible();
-  await expect(page.getByText(/Studio \(0 beds\)/)).toBeVisible();
+  await expect(details.getByText(/Studio \(0 beds\)/)).toBeVisible();
   await expect(
-    page.getByText("✓ Washer: Present", { exact: true }),
-  ).toBeVisible();
-  await expect(
-    page.getByText("✕ Garden: Absent", { exact: true }),
+    details.getByText("✓ Washer: Present", { exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByText("? Pool: Unknown", { exact: true }),
+    details.getByText("✕ Garden: Absent", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    details.getByText("? Pool: Unknown", { exact: true }),
   ).toBeVisible();
   const detailLink = page.url();
   await page.getByRole("button", { name: "Back", exact: true }).click();
@@ -68,25 +73,29 @@ test("create, inspect and clear optional facts and facilities without fabricatin
   ])
     await page.getByLabel(label, { exact: true }).fill("");
   await page.getByLabel("Property type").selectOption("");
-  await page.getByLabel("Washer", { exact: true }).selectOption("unknown");
-  await page.getByLabel("Garden", { exact: true }).selectOption("unknown");
+  await details
+    .getByRole("combobox", { name: "Washer", exact: true })
+    .selectOption("unknown");
+  await details
+    .getByRole("combobox", { name: "Garden", exact: true })
+    .selectOption("unknown");
   await page
     .getByRole("button", { name: "Remove Balcony", exact: true })
     .click();
   await page.getByRole("button", { name: "Save offer", exact: true }).click();
   await expect(
-    page.getByText("Rent not recorded", { exact: true }),
+    details.getByText("Rent not recorded", { exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByText("? Washer: Unknown", { exact: true }),
+    details.getByText("? Washer: Unknown", { exact: true }),
   ).toBeVisible();
-  await expect(page.getByText(/Beds unknown/)).toBeVisible();
-  await expect(page.getByText("Balcony", { exact: true })).toHaveCount(0);
+  await expect(details.getByText(/Beds unknown/)).toBeVisible();
+  await expect(details.getByText("Balcony", { exact: true })).toHaveCount(0);
   await expect(
-    page.getByText("Station: Thong Lo", { exact: true }),
+    details.getByText("Station: Thong Lo", { exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByText("800 m · estimated 10 min walk", { exact: true }),
+    details.getByText("800 m · estimated 10 min walk", { exact: true }),
   ).toBeVisible();
 });
 test.afterAll(async () => {
