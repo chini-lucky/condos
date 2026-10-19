@@ -33,3 +33,11 @@ test("station, offer, add and edit deep links round-trip and Escape has a define
     stationId: "missing",
   });
 });
+test("Trash retains its deep link and returns to overview", () => {
+  assert.deepEqual(parseRoute("#trash"), { kind: "trash" });
+  assert.equal(routeHash({ kind: "trash" }), "#trash");
+  assert.deepEqual(parentRoute({ kind: "trash" }, "E6"), {
+    kind: "list",
+    stationId: null,
+  });
+});

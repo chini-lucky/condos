@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../auth";
 import { RailBrowser, LineBadges } from "../rail/RailBrowser";
+import { OfferTrashActions } from "./OfferTrashActions";
+import { TrashList, TrashedOffer } from "./TrashList";
 import { OfferAgentCard } from "./OfferAgentCard";
 import { OfferFactsSummary } from "./OfferFactsSummary";
 import { OfferForm } from "./OfferForm";
@@ -61,7 +63,7 @@ export function OffersWorkspace() {
     if (!repository) return;
     const current = ++revision.current;
     try {
-      const found = await repository.list();
+      const found = await repository.list("all");
       if (current === revision.current) {
         setOffers(found);
         setError(null);
@@ -124,7 +126,9 @@ export function OffersWorkspace() {
     const stationId =
       "id" in route
         ? (offers.find((offer) => offer.id === route.id)?.stationId ?? null)
-        : (route.stationId ?? focusedStation?.id ?? null);
+        : "stationId" in route
+          ? (route.stationId ?? focusedStation?.id ?? null)
+          : null;
     navigate(parentRoute(route, stationId));
   }, [route, offers, focusedStation]);
   useEffect(() => {
@@ -150,7 +154,9 @@ export function OffersWorkspace() {
   }
   const selected =
     "id" in route ? offers.find((offer) => offer.id === route.id) : null;
-  const summaries = stationSummaries(offers);
+  const activeOffers = offers.filter((offer) => offer.trashedAt === null);
+  const trashedOffers = offers.filter((offer) => offer.trashedAt !== null);
+  const summaries = stationSummaries(activeOffers);
   const invalidStation =
     (route.kind === "list" || route.kind === "add") &&
     route.stationId &&
@@ -171,7 +177,7 @@ export function OffersWorkspace() {
   if (focusId) {
     const station = getStation(focusId);
     if (station) {
-      const positions = offers
+      const positions = activeOffers
         .filter((offer) => offer.stationId === focusId)
         .flatMap((offer) => {
           const point = offerPosition(offer);
@@ -182,11 +188,14 @@ export function OffersWorkspace() {
       labelSides.set(focusId, left < right ? "left" : "right");
     }
   }
-  const unassigned = offers.filter((offer) => offer.stationId === null);
+  const unassigned = activeOffers.filter((offer) => offer.stationId === null);
   const content = (
     <div className="offer-panel-content" ref={heading} tabIndex={-1}>
       {route.kind !== "list" && <button onClick={back}>Back</button>}
       {notice && <p role="status">{notice}</p>}
+      {route.kind !== "trash" && (
+        <button onClick={() => navigate({ kind: "trash" })}>Trash</button>
+      )}
       {error && (
         <div role="alert">
           <p>{error}</p>
@@ -243,7 +252,7 @@ export function OffersWorkspace() {
           <button onClick={() => navigate({ kind: "add" })}>Add offer</button>
           {unassigned.length === 0 ? (
             <p>
-              {offers.length === 0
+              {activeOffers.length === 0
                 ? "No offers yet. Add your first rental offer."
                 : "No unassigned offers."}
             </p>
@@ -259,20 +268,41 @@ export function OffersWorkspace() {
             </ul>
           )}
         </>
+      ) : route.kind === "trash" && repository ? (
+        <TrashList
+          offers={trashedOffers}
+          repository={repository}
+          onRestored={saved}
+        />
+      ) : selected?.trashedAt && repository && route.kind !== "edit" ? (
+        <TrashedOffer
+          offer={selected}
+          repository={repository}
+          onRestored={saved}
+        />
       ) : repository &&
         (route.kind === "add" || (route.kind === "edit" && selected)) ? (
-        <OfferForm
-          key={route.kind === "add" ? "new" : selected?.id}
-          offer={route.kind === "edit" ? (selected ?? null) : null}
-          repository={repository}
-          initialStationId={
-            route.kind === "add"
-              ? (route.stationId ?? focusedStation?.id)
-              : focusedStation?.id
-          }
-          onSaved={saved}
-          onCancel={back}
-        />
+        <>
+          {selected?.trashedAt && (
+            <p role="alert">
+              This offer is in Trash. Your draft is kept.{" "}
+              <a href={`#offer=${selected.id}`}>Open recovery options</a> to
+              restore it before saving.
+            </p>
+          )}
+          <OfferForm
+            key={route.kind === "add" ? "new" : selected?.id}
+            offer={route.kind === "edit" ? (selected ?? null) : null}
+            repository={repository}
+            initialStationId={
+              route.kind === "add"
+                ? (route.stationId ?? focusedStation?.id)
+                : focusedStation?.id
+            }
+            onSaved={saved}
+            onCancel={back}
+          />
+        </>
       ) : selected ? (
         <>
           <h2>{selected.name}</h2>
@@ -304,6 +334,16 @@ export function OffersWorkspace() {
             Edit offer
           </button>
           <a href={`#offer=${selected.id}`}>Direct link to offer</a>
+          {repository && (
+            <OfferTrashActions
+              offer={selected}
+              repository={repository}
+              onChanged={(offer) => {
+                saved(offer);
+                setNotice("Offer moved to Trash.");
+              }}
+            />
+          )}
           {noteRepository && (
             <OfferNotes
               key={selected.id}
@@ -344,7 +384,7 @@ export function OffersWorkspace() {
       }
       mapOverlay={(view) => (
         <OfferMapOverlay
-          offers={offers}
+          offers={activeOffers}
           view={view}
           highlightedOfferId={highlightedOfferId}
           selectedOfferId={selected?.id ?? null}
@@ -354,6 +394,7 @@ export function OffersWorkspace() {
       )}
       renderStation={(station) => (
         <>
+          <button onClick={() => navigate({ kind: "trash" })}>Trash</button>
           {error && (
             <div role="alert">
               <p>{error}</p>
@@ -371,7 +412,7 @@ export function OffersWorkspace() {
           ) : (
             <StationOfferList
               station={station}
-              offers={offers}
+              offers={activeOffers}
               onAdd={() => navigate({ kind: "add", stationId: station.id })}
               highlightedOfferId={highlightedOfferId}
               onHighlight={setHighlightedOfferId}

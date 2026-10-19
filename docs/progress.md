@@ -13,7 +13,9 @@ Integration branch: `integration/condos-v1`. Baseline main: `cfca225`.
 | #7      | Integrated | `9575dce` — agent contacts and source links; verification below      |
 | #8      | Integrated | `b387f7d` — statuses and Bangkok viewing appointments                |
 | #9      | Integrated | `03b34e4` + `c01d075` — notes and focus-refresh draft preservation   |
-| #10–#17 | Pending    | See native GitHub dependencies and tickets.md                        |
+| #10–#14 | Pending    | See native GitHub dependencies and tickets.md                        |
+| #15     | Integrated | `68d7756` — recoverable Trash and restoration; verification below    |
+| #16–#17 | Pending    | See native GitHub dependencies and tickets.md                        |
 
 Planning documents and implementation instructions are committed before ticket work begins. Issue completion will be recorded with merge commits and validation evidence; GitHub closes the work through the final PR.
 
@@ -74,6 +76,12 @@ Hosted acceptance documentation for #4 was merged in `2e4ed33`; no deployment or
 ## Ticket #7 integration verification
 
 Merged `ticket/07-agent-contacts` cleanly in `9575dce`, preserving atomic name/facts/location/contact saves and existing status/notes composition. Check/build, the contacts database boundary test and both contacts browser journeys passed under the shared verification lock on port 5293. Coverage includes per-offer persistence, trim/clear, protected concurrency, safe source/phone/LINE actions, real clipboard readback, clipboard denial and offline draft retention. No local reset or hosted changes occurred; migration `202610200007` must be included in the ordered fresh replay before release.
+
+## Ticket #15 integration verification
+
+Merged `ticket/15-trash` cleanly in `68d7756`. Check/build passed, followed by the Trash database boundary test and both browser journeys under the shared verification lock on port 5293. Confirmed indefinite retention, admin/version guards, active-map/list exclusion, persisted direct-link recovery, notes/status/facts retention, restore, and inability of stale forms or child mutations to edit/resurrect a trashed offer.
+
+The photo implementer independently exercised actual Edge/Storage retention and cancelled-upload cleanup against migration `202610200015`; those photo components are not yet integrated here. Final ordered replay must install photo migration `202610200010` before Trash `202610200015`. Ticket #14's navigation extraction must preserve Trash routes and use active offers for normal map/list rendering. No resets, hosted changes or issue closure occurred.
 
 ## Ticket #7 implementation verification
 

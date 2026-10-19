@@ -1,11 +1,13 @@
 import { stations } from "../rail/network.ts";
 export type Route =
+  | { kind: "trash" }
   | { kind: "list"; stationId?: string | null }
   | { kind: "add"; stationId?: string | null }
   | { kind: "detail" | "edit"; id: string };
 export function parseRoute(hash: string): Route {
   const text = hash.replace(/^#/, "");
   const params = new URLSearchParams(text);
+  if (params.has("trash")) return { kind: "trash" };
   const id = params.get("offer");
   if (id) return { kind: params.has("edit") ? "edit" : "detail", id };
   if (params.has("add-offer"))
@@ -23,6 +25,7 @@ export function parseRoute(hash: string): Route {
   return { kind: "list", stationId: station?.id ?? null };
 }
 export function routeHash(route: Route): string {
+  if (route.kind === "trash") return "#trash";
   if (route.kind === "list")
     return route.stationId
       ? `#station=${encodeURIComponent(route.stationId)}`
@@ -34,7 +37,11 @@ export function routeHash(route: Route): string {
 export function parentRoute(route: Route, stationId: string | null): Route {
   return route.kind === "edit"
     ? { kind: "detail", id: route.id }
-    : { kind: "list", stationId: route.kind === "list" ? null : stationId };
+    : {
+        kind: "list",
+        stationId:
+          route.kind === "list" || route.kind === "trash" ? null : stationId,
+      };
 }
 export function navigate(route: Route, replace = false): void {
   const hash = routeHash(route);
