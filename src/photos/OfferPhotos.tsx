@@ -199,7 +199,7 @@ export function OfferPhotos({ offerId }: { offerId: string }) {
         Choose photos
         <input
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
           multiple
           disabled={busy}
           onChange={(event) => {
@@ -222,7 +222,8 @@ export function OfferPhotos({ offerId }: { offerId: string }) {
         />
       </label>
       <p className="photo-help">
-        Optional · JPEG, PNG or WebP · up to 10 MB each · 20 photos per offer
+        Optional · JPEG, PNG, WebP or HEIC · up to 10 MB each · 20 photos per
+        offer
       </p>
       {selected.length > 0 && (
         <ul className="photo-upload-list">
