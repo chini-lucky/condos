@@ -420,3 +420,10 @@ project_id = "sthwmiesffowystewspf"
 [remotes.production.auth]
 site_url = "https://chini-lucky.github.io/condos/"
 additional_redirect_urls = ["https://chini-lucky.github.io/condos/"]
+
+# Both endpoints validate identity themselves; the scheduled worker uses its own secret.
+[functions.upload-photo]
+verify_jwt = false
+
+[functions.photo-cleanup]
+verify_jwt = false

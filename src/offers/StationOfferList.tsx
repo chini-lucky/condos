@@ -1,3 +1,4 @@
+import { OfferCover } from "../photos/OfferPhotos";
 import { OfferStatusDisplay } from "./OfferStatusDisplay";
 import type { Station } from "../rail/network";
 import { OfferFactsSummary } from "./OfferFactsSummary";
@@ -67,6 +68,7 @@ export function StationOfferList({
               onFocus={() => onHighlight?.(offer.id)}
               onBlur={() => onHighlight?.(null)}
             >
+              <OfferCover offerId={offer.id} name={offer.name} />
               <a href={`#offer=${offer.id}`}>{offer.name}</a>
               <p>{walkingDescription(offer)}</p>
               <OfferFactsSummary offer={offer} />

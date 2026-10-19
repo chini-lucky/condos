@@ -16,6 +16,7 @@ import type { Offer } from "./repository";
 import "./offers.css";
 import { OfferStatusDisplay } from "./OfferStatusDisplay";
 import { OfferStatusEditor } from "./OfferStatusEditor";
+import { OfferPhotos, OfferCover } from "../photos/OfferPhotos";
 import { OfferNotes } from "../notes/OfferNotes";
 import { notesRepository } from "../notes/notesRepository";
 import { parseRoute, parentRoute, navigate, routeHash } from "./navigation";
@@ -260,6 +261,7 @@ export function OffersWorkspace() {
             <ul className="offer-list">
               {unassigned.map((offer) => (
                 <li key={offer.id}>
+                  <OfferCover offerId={offer.id} name={offer.name} />
                   <a href={`#offer=${offer.id}`}>{offer.name}</a>
                   <OfferStatusDisplay offer={offer} />
                   <OfferFactsSummary offer={offer} />
@@ -306,6 +308,7 @@ export function OffersWorkspace() {
       ) : selected ? (
         <>
           <h2>{selected.name}</h2>
+          <OfferPhotos key={`photos-${selected.id}`} offerId={selected.id} />
           <OfferStatusDisplay offer={selected} />
           {repository && (
             <OfferStatusEditor
