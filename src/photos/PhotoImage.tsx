@@ -5,9 +5,11 @@ const repository = supabase ? photosRepository(supabase) : null;
 export function PhotoImage({
   objectKey,
   alt,
+  loading = "eager",
 }: {
   objectKey: string;
   alt: string;
+  loading?: "eager" | "lazy";
 }) {
   const [source, setSource] = useState<{ url: string; generation: number }>();
   const [error, setError] = useState("");
@@ -56,6 +58,7 @@ export function PhotoImage({
   return source ? (
     <img
       className="offer-photo"
+      loading={loading}
       key={source.generation}
       src={source.url}
       onLoad={() => setImageRetries(0)}
