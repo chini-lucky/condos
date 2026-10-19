@@ -33,8 +33,17 @@ export interface RailBrowserProps {
   /** Later offer tickets compose their station content here without coupling reference data to persistence. */
   renderStation?: (station: Station) => ReactNode;
   overview?: ReactNode;
+  panelContent?: ReactNode;
+  panelMode?: "full" | undefined;
+  onStationChange?: () => void;
 }
-export function RailBrowser({ renderStation, overview }: RailBrowserProps) {
+export function RailBrowser({
+  renderStation,
+  overview,
+  panelContent,
+  panelMode,
+  onStationChange,
+}: RailBrowserProps) {
   const [station, setStation] = useState<Station | null>(null);
   const [collapsed, setCollapsed] = useState(false);
   const [sheet, setSheet] = useState<"peek" | "half" | "full">("peek");
@@ -42,15 +51,16 @@ export function RailBrowser({ renderStation, overview }: RailBrowserProps) {
   const dragged = useRef(false);
   useEffect(() => {
     function escape(event: globalThis.KeyboardEvent) {
-      if (event.key === "Escape") {
+      if (event.key === "Escape" && !event.defaultPrevented && !panelContent) {
         setStation(null);
         setSheet("peek");
       }
     }
     window.addEventListener("keydown", escape);
     return () => window.removeEventListener("keydown", escape);
-  }, []);
+  }, [panelContent]);
   function select(next: Station | null) {
+    onStationChange?.();
     setStation(next);
     setCollapsed(false);
     setSheet("peek");
@@ -76,8 +86,14 @@ export function RailBrowser({ renderStation, overview }: RailBrowserProps) {
         </button>
       )}
       <aside
-        className={`rail-panel sheet-${sheet}`}
-        aria-label={station ? "Station details" : "Stations"}
+        className={`rail-panel sheet-${panelMode ?? sheet}`}
+        aria-label={
+          panelContent
+            ? "Offer details"
+            : station
+              ? "Station details"
+              : "Stations"
+        }
       >
         <button
           className="rail-sheet-handle"
@@ -128,62 +144,69 @@ export function RailBrowser({ renderStation, overview }: RailBrowserProps) {
           {collapsed ? "›" : "‹"}
         </button>
         <div className="rail-panel-content">
-          {station ? (
+          {panelContent ??
+            (station ? (
+              <>
+                <button className="rail-back" onClick={() => select(null)}>
+                  ‹ All stations
+                </button>
+                <LineBadges station={station} />
+                <h1>{station.name}</h1>
+                {renderStation ? (
+                  renderStation(station)
+                ) : (
+                  <>
+                    <p className="rail-muted">0 offers</p>
+                    <div className="rail-empty">Nothing on file here yet.</div>
+                  </>
+                )}
+              </>
+            ) : (
+              <>
+                <h1>
+                  Condos <span>· Bangkok</span>
+                </h1>
+                {overview ?? (
+                  <p className="rail-muted">No offers on file yet.</p>
+                )}
+              </>
+            ))}
+          {!panelContent && (
             <>
-              <button className="rail-back" onClick={() => select(null)}>
-                ‹ All stations
-              </button>
-              <LineBadges station={station} />
-              <h1>{station.name}</h1>
-              {renderStation ? (
-                renderStation(station)
-              ) : (
-                <>
-                  <p className="rail-muted">0 offers</p>
-                  <div className="rail-empty">Nothing on file here yet.</div>
-                </>
-              )}
-            </>
-          ) : (
-            <>
-              <h1>
-                Condos <span>· Bangkok</span>
-              </h1>
-              {overview ?? <p className="rail-muted">No offers on file yet.</p>}
+              <div className="rail-station-picker">
+                <label htmlFor="station-picker">Choose a station</label>
+                <select
+                  id="station-picker"
+                  value={station?.id ?? ""}
+                  onChange={(event) =>
+                    select(getStation(event.target.value) ?? null)
+                  }
+                >
+                  <option value="">All stations</option>
+                  {Object.entries(lines).map(([id, line]) => (
+                    <optgroup key={id} label={line.name}>
+                      {line.stations.map((key) => {
+                        const stop = stations.find((item) => item.id === key);
+                        return stop ? (
+                          <option key={key} value={key}>
+                            {stop.name}
+                          </option>
+                        ) : null;
+                      })}
+                    </optgroup>
+                  ))}
+                </select>
+              </div>
+              <ul className="rail-legend" aria-label="Rail lines">
+                {Object.entries(lines).map(([id, line]) => (
+                  <li key={id}>
+                    <span style={{ background: line.color }}>{line.badge}</span>
+                    {line.name.replace(/^(BTS|MRT) /, "")}
+                  </li>
+                ))}
+              </ul>
             </>
           )}
-          <div className="rail-station-picker">
-            <label htmlFor="station-picker">Choose a station</label>
-            <select
-              id="station-picker"
-              value={station?.id ?? ""}
-              onChange={(event) =>
-                select(getStation(event.target.value) ?? null)
-              }
-            >
-              <option value="">All stations</option>
-              {Object.entries(lines).map(([id, line]) => (
-                <optgroup key={id} label={line.name}>
-                  {line.stations.map((key) => {
-                    const stop = stations.find((item) => item.id === key);
-                    return stop ? (
-                      <option key={key} value={key}>
-                        {stop.name}
-                      </option>
-                    ) : null;
-                  })}
-                </optgroup>
-              ))}
-            </select>
-          </div>
-          <ul className="rail-legend" aria-label="Rail lines">
-            {Object.entries(lines).map(([id, line]) => (
-              <li key={id}>
-                <span style={{ background: line.color }}>{line.badge}</span>
-                {line.name.replace(/^(BTS|MRT) /, "")}
-              </li>
-            ))}
-          </ul>
         </div>
       </aside>
     </main>

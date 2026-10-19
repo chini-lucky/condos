@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { signIn, supabase } from "./auth";
 import "./app.css";
-import { RailBrowser } from "./rail/RailBrowser";
+import { OffersWorkspace } from "./offers/OffersWorkspace";
 export function App() {
   const [state, setState] = useState<"loading" | "signed-out" | "signed-in">(
     "loading",
@@ -80,23 +80,21 @@ export function App() {
     );
   if (state === "signed-in")
     return (
-      <RailBrowser
-        overview={
-          <>
-            <p className="rail-muted">No offers on file yet.</p>
-            <button
-              className="rail-signout"
-              disabled={busy}
-              onClick={() => {
-                void logout();
-              }}
-            >
-              Sign out
-            </button>
-            {error && <p role="alert">{error}</p>}
-          </>
-        }
-      />
+      <div className="authenticated-app">
+        <header className="app-header">
+          <h1>Condos</h1>
+          <button
+            disabled={busy}
+            onClick={() => {
+              void logout();
+            }}
+          >
+            Sign out
+          </button>
+        </header>
+        {error && <p role="alert">{error}</p>}
+        <OffersWorkspace />
+      </div>
     );
   return (
     <main className="auth-shell">

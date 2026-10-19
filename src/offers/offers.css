@@ -1,0 +1,22 @@
+.offer-list {
+  list-style: none;
+  padding: 0;
+}
+.offer-list li {
+  padding: 1rem 0;
+  border-bottom: 1px solid #d9dfd4;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.offer-list a {
+  color: #274f40;
+  font-weight: 600;
+}
+.offer-list span {
+  font-size: 0.85rem;
+}
+.offer-actions {
+  display: flex;
+  gap: 0.5rem;
+}
