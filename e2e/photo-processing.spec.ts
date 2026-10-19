@@ -69,7 +69,7 @@ test("public photo processing preserves EXIF orientation, strips GPS, sizes with
       }),
     );
   });
-  expect(failures[0]).toContain("JPEG, PNG or WebP");
+  expect(failures[0]).toContain("JPEG, PNG, WebP or HEIC");
   expect(failures[1]).toContain("10 MB");
   expect(failures[2]).toContain("decoded");
 });
