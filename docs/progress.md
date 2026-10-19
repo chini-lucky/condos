@@ -2,17 +2,18 @@
 
 Integration branch: `integration/condos-v1`. Baseline main: `cfca225`.
 
-| Issue   | State      | Evidence                                                          |
-| ------- | ---------- | ----------------------------------------------------------------- |
-| #1      | Integrated | `dffaeca` — admin sign-in; integration verification below         |
-| #2      | Integrated | `6084d44` — complete Bangkok rail map; verification below         |
-| #3      | Integrated | `732ee8e` — persistent offer management; verification below       |
-| #4      | Integrated | `fe249f7` + run `39305725116` — hosted browser acceptance passed  |
-| #5      | Integrated | `2622721` — station assignment and offer pins; verification below |
-| #6–#7   | Pending    | See native GitHub dependencies and tickets.md                     |
-| #8      | Integrated | `b387f7d` — statuses and Bangkok viewing appointments             |
-| #9      | Partial    | `03b34e4` — notes integrated; focus-refresh draft gap below       |
-| #10–#17 | Pending    | See native GitHub dependencies and tickets.md                     |
+| Issue   | State      | Evidence                                                             |
+| ------- | ---------- | -------------------------------------------------------------------- |
+| #1      | Integrated | `dffaeca` — admin sign-in; integration verification below            |
+| #2      | Integrated | `6084d44` — complete Bangkok rail map; verification below            |
+| #3      | Integrated | `732ee8e` — persistent offer management; verification below          |
+| #4      | Integrated | `fe249f7` + run `39305725116` — hosted browser acceptance passed     |
+| #5      | Integrated | `2622721` — station assignment and offer pins; verification below    |
+| #6      | Integrated | `231f633` — optional rental facts and facilities; verification below |
+| #7      | Pending    | See native GitHub dependencies and tickets.md                        |
+| #8      | Integrated | `b387f7d` — statuses and Bangkok viewing appointments                |
+| #9      | Partial    | `03b34e4` — notes integrated; focus-refresh draft gap below          |
+| #10–#17 | Pending    | See native GitHub dependencies and tickets.md                        |
 
 Planning documents and implementation instructions are committed before ticket work begins. Issue completion will be recorded with merge commits and validation evidence; GitHub closes the work through the final PR.
 
@@ -51,6 +52,8 @@ The existing offer suite creates fixed-name fixtures and deletes those names dur
 Location persistence/reassignment/clearing, real pin activation, station lists/counts, unknown positioning and nearest-station browsing are verified. Shared APIs use explicit typed patches through `create_offer_details` and `save_offer`, with additive RailBrowser station/count/overlay controls. No reset, hosted migration push or deployment occurred. Ticket #6 must reconcile its form/repository extensions against this integration tip; deeper map behavior remains #14.
 
 ## Ticket #6 implementation verification
+
+Merged `ticket/06-offer-details` cleanly in `231f633`, preserving status and notes composition. Merger verification passed check/build, two combined facts/location database tests and both corresponding browser journeys on port 5293 under the shared verification lock. No reset, hosted changes or migration replay occurred.
 
 The implementation branch merges integration through `03b34e4`, including station assignment, status management and notes. Optional rental facts preserve unknown values, studio zero and basement floors; facilities distinguish unknown/present/absent, and named extra facilities are trimmed, deduplicated and removable. Shared add/edit controls and summaries are composed as separate components. Saving name, location and facts uses one expected-version backend mutation; stale-edit review shows the latest saved facts without discarding the draft.
 
