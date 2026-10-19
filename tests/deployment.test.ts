@@ -49,3 +49,40 @@ test("production deploys only main or an explicitly pinned integration bootstrap
     }),
   );
 });
+
+import { validatePublicConfig } from "../scripts/public-config.ts";
+test("frontend configuration accepts the exact Condos URL and rejects privileged or wrong-project keys", () => {
+  assert.doesNotThrow(() =>
+    validatePublicConfig(
+      "https://sthwmiesffowystewspf.supabase.co",
+      "sb_publishable_example",
+    ),
+  );
+  assert.doesNotThrow(() =>
+    validatePublicConfig(
+      "https://sthwmiesffowystewspf.supabase.co",
+      "e30.eyJyb2xlIjoiYW5vbiJ9.signature",
+    ),
+  );
+  assert.throws(() =>
+    validatePublicConfig(
+      "https://etyjwvoqdzejqeyuzeme.supabase.co",
+      "sb_publishable_example",
+    ),
+  );
+  assert.throws(() =>
+    validatePublicConfig(
+      "https://sthwmiesffowystewspf.supabase.co",
+      "sb_secret_example",
+    ),
+  );
+  assert.throws(() =>
+    validatePublicConfig(
+      "https://sthwmiesffowystewspf.supabase.co",
+      "e30.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.signature",
+    ),
+  );
+  assert.throws(() =>
+    validatePublicConfig("https://sthwmiesffowystewspf.supabase.co", ""),
+  );
+});
