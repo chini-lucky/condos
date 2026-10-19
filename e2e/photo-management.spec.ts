@@ -164,7 +164,7 @@ for (const viewport of [
         .getByRole("button", { name: "Confirm delete photo 3", exact: true })
         .click();
       await expect(
-        page.getByText("Photo deleted. Storage cleanup is queued.", {
+        page.getByText("Photo deleted. File cleanup is pending.", {
           exact: true,
         }),
       ).toBeVisible();

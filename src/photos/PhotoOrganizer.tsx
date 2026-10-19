@@ -205,7 +205,7 @@ export function PhotoOrganizer({
                         void mutate(
                           () =>
                             repository.remove(offerId, collection.revision, id),
-                          "Photo deleted. Storage cleanup is queued.",
+                          "Photo deleted. File cleanup is pending.",
                         );
                       }}
                     >
