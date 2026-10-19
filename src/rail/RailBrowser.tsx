@@ -40,6 +40,7 @@ export interface RailBrowserProps {
   onStationChange?: (station: Station | null) => void;
   selectedStationId?: string | null | undefined;
   mapOverlay?: ReactNode | ((view: MapView) => ReactNode);
+  mapControls?: ReactNode;
   cameraTarget?: CameraTarget;
   onAutomaticStationChange?: (station: Station | null) => void;
   navigationLocked?: boolean;
@@ -55,6 +56,7 @@ export function RailBrowser({
   onStationChange,
   selectedStationId,
   mapOverlay,
+  mapControls,
   stationCounts,
   stationOccupancy,
   cameraTarget,
@@ -137,28 +139,32 @@ export function RailBrowser({
       className={`rail-browser ${station ? "station-open" : "overview-open"} ${collapsed ? "panel-collapsed" : ""}`}
     >
       <div className="rail-stage">
-        <RailMap
-          selectedStationId={station?.id ?? null}
-          onSelectStation={select}
-          stationCounts={stationCounts}
-          stationOccupancy={stationOccupancy}
-          cameraTarget={cameraTarget ?? internalCamera}
-          onCameraChange={cameraChanged}
-          labelSides={labelSides}
-        >
-          {mapOverlay}
-        </RailMap>
+        {mapControls}
+        <div className="rail-map-surface">
+          <RailMap
+            selectedStationId={station?.id ?? null}
+            onSelectStation={select}
+            stationCounts={stationCounts}
+            stationOccupancy={stationOccupancy}
+            cameraTarget={cameraTarget ?? internalCamera}
+            onCameraChange={cameraChanged}
+            labelSides={labelSides}
+          >
+            {mapOverlay}
+          </RailMap>
+          {(station || collapsed) && (
+            <button
+              className="rail-home"
+              onClick={() => {
+                select(null);
+              }}
+            >
+              All stations
+            </button>
+          )}
+        </div>
       </div>
-      {(station || collapsed) && (
-        <button
-          className="rail-home"
-          onClick={() => {
-            select(null);
-          }}
-        >
-          All stations
-        </button>
-      )}
+
       <aside
         className={`rail-panel sheet-${panelMode ?? sheet}`}
         aria-label={

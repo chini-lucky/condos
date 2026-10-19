@@ -14,7 +14,9 @@ Integration branch: `integration/condos-v1`. Baseline main: `cfca225`.
 | #8      | Integrated | `b387f7d` — statuses and Bangkok viewing appointments                |
 | #9      | Integrated | `03b34e4` + `c01d075` — notes and focus-refresh draft preservation   |
 | #10     | Integrated | `0a3350b` — private photos, processing and durable cleanup           |
-| #11–#13 | Pending    | See native GitHub dependencies and tickets.md                        |
+| #11     | Integrated | `cc81f2f` — HEIC conversion and private uploads; verification below  |
+| #12     | Pending    | See native GitHub dependencies and tickets.md                        |
+| #13     | Integrated | `c780f55` — offer filters and comparison groups; verification below  |
 | #14     | Integrated | `72f60cb` — semantic map navigation and synchronized offers          |
 | #15     | Integrated | `68d7756` — recoverable Trash and restoration; verification below    |
 | #16–#17 | Pending    | See native GitHub dependencies and tickets.md                        |
@@ -97,6 +99,18 @@ Merged `ticket/10-photos` in `0a3350b`, resolving the station-card conflict by r
 
 Verified bounded private uploads, concurrent slot/order guarantees, actual image validation and metadata removal, retry/idempotence, signed-image recovery and durable cleanup. The existing local Edge server remains mounted from the photo worktree; coordinate remount before removing it. Hosted Edge secret/Vault scheduler setup and hosted resource verification remain release work. HEIC decoding and organization/deletion UI remain #11/#12; their extension points are `processPhoto`/`encodePhoto`, the photo repository, `photo_revision` and `cover_photo_id`. Final fresh migration replay must install photo `202610200010` before Trash `202610200015`. No resets or hosted mutations occurred.
 
+## Ticket #13 integration verification
+
+Merged `ticket/13-filters` cleanly in `c780f55`. Check/build passed with the existing chunk-size advisory. Both filter domain tests and all five focused filters/map-navigation browser journeys passed under the shared verification lock on port 5293. Verified unknown-value rules, facility AND grouping, type and rent semantics, matching counts/minimum known rent, pin/callout opacity, phone controls and unchanged semantic camera/navigation behavior.
+
+Photo covers and uploads remain composed. Matching station counts are separate from unfiltered active station occupancy; trashed offers remain excluded from normal lists/maps. No schema changes, resets or hosted mutations occurred.
+
+## Ticket #11 integration verification
+
+Merged `ticket/11-heic` cleanly in `cc81f2f`. Dependency install, check/build and all seven focused HEIC/baseline photo browser journeys passed under the shared verification lock on port 5293. Actual HEVC fixtures verify rotation/mirroring, metadata removal, JPEG conversion/private upload, mixed-success recovery, oversized/malformed rejection and actionable unsupported-worker behavior. Baseline JPEG/PNG/WebP processing and desktop/mobile upload recovery remain green.
+
+The codec is a separate lazy chunk (approximately 3.15 MB minified / 792 kB gzip); the build retains its chunk-size advisory. Formats, dependency license/source and browser scope are documented; physical mobile Safari has not been tested. Filters, navigation and Trash are preserved. No schema changes, resets or hosted mutations occurred.
+
 ## Ticket #7 implementation verification
 
 The implementation branch is based on integration `1605a5c`. Offers store optional agent name, company, phone, LINE ID and source URL independently, with nullable/clearable values and no invented contact details. Separate shared form fields and a collapsed agent card provide safe Call, LINE and Copy actions. Source links accept HTTP(S) and reject embedded credentials or unsafe schemes. Missing data hides actions; copy denial shows manual-copy guidance; offline failures retain drafts. Contact fields extend the existing atomic name/location/facts save rather than a second request.
@@ -114,3 +128,11 @@ Cleanup is an observable durable outbox with leased retries, tombstones, expiry 
 Observed red/green includes missing reservation/processing interfaces, real expired-image 403 recovery, Storage absence-check incompatibility, actual metadata mismatch after a Storage-before-finalize crash, and lost-success-response reconciliation. All 29 integrated Node tests pass. Three final photo Chromium journeys pass (processing fixtures plus complete desktop/mobile upload/reload/failure/renewal/reservation-response recovery); four photo/Trash journeys and eleven earlier offer/note/photo journeys also passed under the shared verification lock on port 5294. Check/build and formatting pass. A real 1600×1600 noisy JPEG completes locally in roughly 0.6–1.0 seconds. The bundle emits a non-fatal 500 kB chunk-size warning after integration.
 
 Only local migration `202610200010` was applied and explicitly recorded with local history repair; no reset or hosted mutation occurred. The worker remains served from the ticket worktree until the orchestrator remounts integrated source. The local scheduler is disabled between explicit scheduler tests to avoid fixture races. Hosted secret/Vault setup and hosted runtime verification remain the controlled deployment owner's work. HEIC and full organization/deletion UI remain #11/#12; GitHub closure belongs to the final PR.
+
+## Ticket #13 implementation verification
+
+Offer filters use public domain rules for facility AND, optional type/rent selection and explicit unknown values. Neither or both property types means all types. The slider's top position means Any, including rents above ฿35,000. Rent/type misses leave station and Unassigned lists; facility misses remain in a dimmed group that distinguishes absent from unknown. Matching counts/minimum known rent and retained zero-match station cards agree with map badges, pins and callouts. Trash is excluded before filtering.
+
+The filter bar stays in the desktop map column beside the top-aligned panel, including beside forms/details. Phone controls use the Filters pill, active dot and expandable icon-chip card. A map-controls slot reserves actual canvas space, preserving the existing camera/collision model and mobile sheet gesture area. Unfiltered station occupancy remains separate from matching counts, so filters do not redirect semantic navigation. Nonmatching pins/callouts use 0.35/0.45 opacity; empty dots use 0.32.
+
+Observed red/green domain/browser checks cover the unknown-value matrix, both-type semantics, combined filtering, rents above the slider range, clear behavior, truthful missing-facility groups, matching totals and prices, active-only fixtures and map opacity. Desktop/phone screenshots were inspected against the design; layout assertions preserve panel alignment and the 214px phone peek. Type/lint/format checks, build, all 36 Node tests and 17 relevant Chromium journeys (filters, semantic navigation, rail, offers and Trash) pass under the shared verification lock on port 5298. No database schema or hosted changes were made. Broader dossier/panel/status visual alignment remains ticket #17.

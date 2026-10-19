@@ -11,6 +11,14 @@ import type { Station } from "../rail/network";
 import { StationOfferList, walkingDescription } from "./StationOfferList";
 import { OfferMapOverlay } from "./OfferMapOverlay";
 import { stationSummaries } from "./location";
+import { OfferFiltersBar } from "./OfferFiltersBar";
+import { FilteredOfferList } from "./FilteredOfferList";
+import {
+  defaultFilters,
+  filtersActive,
+  matchingStationSummaries,
+  offerFilterOpacity,
+} from "./filters";
 import { offersRepository } from "./repository";
 import type { Offer } from "./repository";
 import "./offers.css";
@@ -29,6 +37,7 @@ function routeFromHash(): Route {
 const repository = supabase ? offersRepository(supabase) : null;
 const noteRepository = supabase ? notesRepository(supabase) : null;
 export function OffersWorkspace() {
+  const [filters, setFilters] = useState(defaultFilters);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -157,7 +166,8 @@ export function OffersWorkspace() {
     "id" in route ? offers.find((offer) => offer.id === route.id) : null;
   const activeOffers = offers.filter((offer) => offer.trashedAt === null);
   const trashedOffers = offers.filter((offer) => offer.trashedAt !== null);
-  const summaries = stationSummaries(activeOffers);
+  const occupancy = stationSummaries(activeOffers);
+  const summaries = matchingStationSummaries(activeOffers, filters);
   const invalidStation =
     (route.kind === "list" || route.kind === "add") &&
     route.stationId &&
@@ -230,14 +240,16 @@ export function OffersWorkspace() {
                   return station ? (
                     <li key={station.id}>
                       <button
+                        data-zero-matches={summary.count === 0}
                         aria-label={`Browse ${station.name}`}
                         onClick={() => browseStation(station)}
                       >
                         <LineBadges station={station} />
                         <strong>{station.name}</strong>
                         <span>
-                          {summary.count}{" "}
-                          {summary.count === 1 ? "offer" : "offers"}
+                          {filtersActive(filters)
+                            ? `${summary.count} of ${summary.total} matching`
+                            : `${summary.count} ${summary.count === 1 ? "offer" : "offers"}`}
                           {summary.lowestRent === null
                             ? ""
                             : ` · from ฿${summary.lowestRent.toLocaleString("en-GB")}`}
@@ -258,16 +270,21 @@ export function OffersWorkspace() {
                 : "No unassigned offers."}
             </p>
           ) : (
-            <ul className="offer-list">
-              {unassigned.map((offer) => (
-                <li key={offer.id}>
+            <FilteredOfferList
+              offers={unassigned}
+              filters={filters}
+              className="offer-list"
+              highlightedOfferId={highlightedOfferId}
+              onHighlight={setHighlightedOfferId}
+              renderOffer={(offer) => (
+                <>
                   <OfferCover offerId={offer.id} name={offer.name} />
                   <a href={`#offer=${offer.id}`}>{offer.name}</a>
                   <OfferStatusDisplay offer={offer} />
                   <OfferFactsSummary offer={offer} />
-                </li>
-              ))}
-            </ul>
+                </>
+              )}
+            />
           )}
         </>
       ) : route.kind === "trash" && repository ? (
@@ -368,6 +385,7 @@ export function OffersWorkspace() {
   );
   return (
     <RailBrowser
+      mapControls={<OfferFiltersBar value={filters} onChange={setFilters} />}
       overview={content}
       panelContent={
         route.kind === "list" && !invalidStation ? undefined : content
@@ -380,7 +398,7 @@ export function OffersWorkspace() {
       labelSides={labelSides}
       selectedStationId={selected?.stationId ?? focusedStation?.id ?? null}
       stationOccupancy={
-        new Map(summaries.map((summary) => [summary.stationId, summary.count]))
+        new Map(occupancy.map((summary) => [summary.stationId, summary.count]))
       }
       stationCounts={
         new Map(summaries.map((summary) => [summary.stationId, summary.count]))
@@ -388,6 +406,14 @@ export function OffersWorkspace() {
       mapOverlay={(view) => (
         <OfferMapOverlay
           offers={activeOffers}
+          opacityByOffer={
+            new Map(
+              activeOffers.map((offer) => [
+                offer.id,
+                offerFilterOpacity(offer, filters),
+              ]),
+            )
+          }
           view={view}
           highlightedOfferId={highlightedOfferId}
           selectedOfferId={selected?.id ?? null}
@@ -416,6 +442,7 @@ export function OffersWorkspace() {
             <StationOfferList
               station={station}
               offers={activeOffers}
+              filters={filters}
               onAdd={() => navigate({ kind: "add", stationId: station.id })}
               highlightedOfferId={highlightedOfferId}
               onHighlight={setHighlightedOfferId}

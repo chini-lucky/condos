@@ -1,9 +1,11 @@
+import { isHeicContainer, decodeHeic } from "./heic";
 export const maximumPhotoBytes = 10 * 1024 * 1024;
-/** Public processing boundary. HEIC decoding can supply a bitmap to encodePhoto later. */
+/** Decode supported sources to oriented pixels, then use one metadata-free JPEG pipeline. */
 export async function processPhoto(file: File): Promise<Blob> {
   if (file.size > maximumPhotoBytes)
     throw new Error("Each source photo must be 10 MB or smaller.");
-  const header = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+  const header = new Uint8Array(await file.slice(0, 4096).arrayBuffer());
+  const heic = isHeicContainer(header, file.size);
   const jpeg = header[0] === 255 && header[1] === 216 && header[2] === 255;
   const png = [137, 80, 78, 71, 13, 10, 26, 10].every(
     (value, index) => header[index] === value,
@@ -11,19 +13,24 @@ export async function processPhoto(file: File): Promise<Blob> {
   const webp =
     new TextDecoder().decode(header.slice(0, 4)) === "RIFF" &&
     new TextDecoder().decode(header.slice(8, 12)) === "WEBP";
-  if (!jpeg && !png && !webp)
-    throw new Error("Choose a JPEG, PNG or WebP photo.");
+  if (!jpeg && !png && !webp && !heic)
+    throw new Error("Choose a JPEG, PNG, WebP or HEIC photo.");
   if (
+    !heic &&
     file.type &&
     !["image/jpeg", "image/png", "image/webp"].includes(file.type)
   )
-    throw new Error("Choose a JPEG, PNG or WebP photo.");
+    throw new Error("Choose a JPEG, PNG, WebP or HEIC photo.");
   let bitmap: ImageBitmap;
   try {
-    bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
-  } catch {
+    bitmap = heic
+      ? await decodeHeic(file)
+      : await createImageBitmap(file, { imageOrientation: "from-image" });
+  } catch (error) {
+    if (heic && error instanceof Error) throw error;
     throw new Error(
       "This photo could not be decoded. Choose another file or retry.",
+      { cause: error },
     );
   }
   try {
