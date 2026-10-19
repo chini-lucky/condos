@@ -18,4 +18,8 @@ No additional scope creep or authorization/privacy defect identified in the revi
 
 ## Disposition
 
-All four findings are being corrected in one implementation branch, with behavior regressions at the agreed public seams. Verification and reviewer confirmation remain pending. The original reviewed snapshot independently passed [full fresh-database CI](https://github.com/chini-lucky/condos/actions/runs/39316921376); a new exact-commit run is required after corrections.
+All four findings were corrected in one implementation branch and integrated in `02e536b`. Both original reviewers independently verified candidate `46616a1b1e2ae1cc8d53a7b3ca374e3df673fafe` and closed their findings with no new actionable issue in the changed areas.
+
+The corrected candidate passed all 44 backend/domain tests, all 52 browser journeys, type/lint/format checks and production build. The merger independently passed three domain tests and all seven focused review regressions after integration. Regressions use actual failed signed-photo requests, keyboard navigation, two-client Trash/permanent deletion, real clipboard copies, disabled persistence and persisted status context with visible callout bounds.
+
+The original reviewed snapshot independently passed [full fresh-database CI](https://github.com/chini-lucky/condos/actions/runs/39316921376). The controlled release reruns exact-commit fresh-database CI before backend deployment and frontend publication.

@@ -31,7 +31,9 @@ Feature slices #1–#16 are integrated. [CI run 39314510146](https://github.com/
 
 The dedicated hosted photo-cleanup secret has been configured in Edge and Vault using trusted operator tooling, with an owner-only private local copy. Hosted feature migrations and final frontend publication remain pending the final release. No secret values are stored in this repository.
 
-Final visual alignment, independent Standards/Spec review and final hosted release verification are still in progress. The final combined UI will receive a new exact-commit CI run; this passing feature baseline does not establish final release completion.
+Final visual alignment and [independent Standards/Spec review](release/review.md) are complete. All four review findings were corrected and independently verified. The final corrected candidate passed all 44 backend/domain tests and all 52 browser journeys, with check/build passing. Desktop and phone evidence is in [release screenshots](release/screenshots/README.md).
+
+Final hosted release verification remains pending. The controlled workflow reruns exact-commit fresh-database CI before deployment; local or earlier CI results alone do not establish hosted completion.
 
 The final record will identify the tested integration commit, full check counts, fresh migration run, desktop/phone captures, review disposition, exact deployment run and hosted cleanup proof. Physical iPhone/Safari testing is not available; HEIC processing has passed Chromium, Firefox and Playwright WebKit engine checks as documented separately.
 
