@@ -1,3 +1,4 @@
+import { OfferCover } from "../photos/OfferPhotos";
 import { OfferStatusDisplay } from "./OfferStatusDisplay";
 import type { Station } from "../rail/network";
 import type { Offer } from "./repository";
@@ -52,6 +53,7 @@ export function StationOfferList({
         <ul className="station-offer-list">
           {assigned.map((offer) => (
             <li key={offer.id}>
+              <OfferCover offerId={offer.id} name={offer.name} />
               <a href={`#offer=${offer.id}`}>{offer.name}</a>
               <p>{walkingDescription(offer)}</p>
               <p>{rentDescription(offer)}</p>

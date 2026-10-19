@@ -16,6 +16,7 @@ import type { Offer } from "./repository";
 import "./offers.css";
 import { OfferStatusDisplay } from "./OfferStatusDisplay";
 import { OfferStatusEditor } from "./OfferStatusEditor";
+import { OfferPhotos, OfferCover } from "../photos/OfferPhotos";
 type Route =
   { kind: "list" } | { kind: "add" } | { kind: "detail" | "edit"; id: string };
 function routeFromHash(): Route {
@@ -179,6 +180,7 @@ export function OffersWorkspace() {
             <ul className="offer-list">
               {unassigned.map((offer) => (
                 <li key={offer.id}>
+                  <OfferCover offerId={offer.id} name={offer.name} />
                   <a href={`#offer=${offer.id}`}>{offer.name}</a>
                   <OfferStatusDisplay offer={offer} />
                 </li>
@@ -199,6 +201,7 @@ export function OffersWorkspace() {
       ) : selected ? (
         <>
           <h2>{selected.name}</h2>
+          <OfferPhotos key={selected.id} offerId={selected.id} />
           <OfferStatusDisplay offer={selected} />
           {repository && (
             <OfferStatusEditor
