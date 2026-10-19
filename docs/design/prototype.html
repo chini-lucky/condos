@@ -1,0 +1,1917 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<title>Condos prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,500&display=swap">
+<style>
+  /* Layout: the route map fills the window, map-app style. Zoom is the navigation. Detail lives in a side panel on desktop and a bottom sheet on phones. */
+  :root {
+    --page: #E3E5E0;
+    --page-ink: #1A1E1C;
+    --page-muted: #5A615C;
+
+    --bg: #F3F4F0;
+    --surface: #FFFFFF;
+    --ink: #161A17;
+    --muted: #5C6560;
+    --faint: #8B938C;
+    --line: #D6DAD3;
+    --wash: #E9ECE6;
+
+    /* Official route-map line colours */
+    --sukh: #78BE20;
+    --silom: #00857C;
+    --mrt: #1E3E93;
+    --river: #D3E6EE;
+
+    --ok: #0C7A3E;
+    --ok-wash: #E3F0E7;
+    --view: #8E4B2A;
+    --view-wash: #F4E9E2;
+    --pend: #6A655F;
+    --pend-wash: #EEECE8;
+    --rej: #C4342A;
+    --rej-wash: #FBEDEC;
+
+    --wall: #E7E4DC;
+    --glass: #D7E0DC;
+    --floor: #D3CBBE;
+    --sky: #E3E8E4;
+
+    --sans: "Instrument Sans", "Avenir Next", "Segoe UI", sans-serif;
+
+    --r-sm: 10px;
+    --r-md: 16px;
+    --r-lg: 24px;
+    --shadow-float: 0 1px 2px #161A1714, 0 8px 24px -8px #161A1733;
+    --shadow-sheet: 0 -1px 0 #161A170F, 0 -16px 40px -20px #161A1740;
+    --ease: cubic-bezier(.2, .8, .2, 1);
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--page);
+    color: var(--page-ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font: inherit; color: inherit; }
+  [hidden] { display: none !important; }
+  :focus-visible { outline: 2px solid var(--mrt); outline-offset: 2px; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* ---------- app shell: the map is the window ---------- */
+  html, body { height: 100%; overflow: hidden; }
+  body { background: var(--bg); color: var(--ink); font-size: 14px; line-height: 1.4; overscroll-behavior: none; }
+  .app { position: fixed; inset: 0; overflow: hidden; background: var(--bg); isolation: isolate; }
+
+  /* map */
+  .stage { position: absolute; inset: 0; touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
+  .stage.dragging { cursor: grabbing; }
+  #map { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  #map text { font-family: var(--sans); }
+  .st-lab {
+    font-size: 10.5px; font-weight: 500; fill: var(--ink);
+    stroke: var(--bg); stroke-width: 3.5px; paint-order: stroke fill; stroke-linejoin: round;
+  }
+  .st-lab.hot { font-weight: 650; font-size: 11.5px; }
+  .st-lab.focus { font-weight: 650; font-size: 15px; stroke-width: 5px; }
+  .st-code { font-size: 8.5px; font-weight: 700; letter-spacing: .04em; }
+  .badge-num { font-size: 13px; font-weight: 700; fill: #fff; font-variant-numeric: tabular-nums; }
+  .ring-lab {
+    font-size: 9.5px; font-weight: 600; fill: var(--muted); letter-spacing: .02em;
+    stroke: var(--bg); stroke-width: 3px; paint-order: stroke fill;
+    font-variant-numeric: tabular-nums;
+  }
+  .river-lab { font-family: var(--sans); font-style: italic; font-weight: 500; font-size: 12px; fill: #7FA3B3; }
+  .hit { cursor: pointer; }
+
+  /* unit callouts on the map */
+  #callouts { position: absolute; inset: 0; pointer-events: none; }
+  .callout {
+    position: absolute; left: 0; top: 0;
+    width: 168px;
+    padding: 7px 9px 8px;
+    background: var(--surface);
+    border-radius: 12px;
+    box-shadow: var(--shadow-float);
+    pointer-events: auto; cursor: pointer;
+    transition: box-shadow .2s, outline-color .2s;
+    outline: 1.5px solid transparent;
+    will-change: transform, opacity;
+  }
+  .callout:hover { outline-color: var(--line); }
+  .callout.sel { outline-color: var(--ink); }
+  .callout b { display: block; font-size: 12.5px; font-weight: 650; letter-spacing: -.01em; line-height: 1.2; }
+  .callout .meta { display: flex; justify-content: space-between; gap: 6px; margin-top: 2px; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .callout .meta em { font-style: normal; color: var(--ink); font-weight: 600; }
+  .callout .row { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+  /* ---------- floating chrome ---------- */
+  .top {
+    position: absolute; left: 0; right: 0; top: 0; z-index: 4;
+    padding: 4px 14px 10px;
+    background: linear-gradient(var(--bg) 70%, #F3F4F000);
+    pointer-events: none;
+  }
+  .top > * { pointer-events: auto; }
+  .brand { display: flex; align-items: baseline; justify-content: space-between; padding: 0 4px 8px; }
+  .brand strong { font-weight: 650; font-size: 22px; letter-spacing: -.03em; line-height: 1; }
+  .brand span { font-size: 10.5px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+  .filter-card { width: max-content; max-width: 100%; }
+  .filter-card.open {
+    width: 100%;
+    background: var(--surface);
+    border-radius: var(--r-md);
+    box-shadow: var(--shadow-float);
+    padding: 10px 12px 12px;
+  }
+  .filter-toggle {
+    height: 36px;
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 0 14px;
+    border: 0; border-radius: 18px;
+    background: var(--surface);
+    box-shadow: var(--shadow-float);
+    font-size: 13.5px; font-weight: 650; cursor: pointer;
+  }
+  .filter-toggle::after {
+    content: ""; width: 7px; height: 7px; margin-left: 2px;
+    border-right: 1.6px solid currentColor; border-bottom: 1.6px solid currentColor;
+    transform: rotate(45deg) translateY(-2px);
+  }
+  .filter-card.open .filter-toggle {
+    width: 100%; justify-content: space-between;
+    height: auto; padding: 2px 2px 8px;
+    background: none; box-shadow: none; border-radius: 0;
+  }
+  .filter-card.open .filter-toggle::after { transform: rotate(225deg) translateY(-1px); }
+  .filter-toggle i { width: 7px; height: 7px; border-radius: 50%; background: var(--ink); display: block; }
+  #fMore { display: grid; gap: 10px; margin-top: 2px; }
+  .rent-filter { min-width: 0; }
+  .f-label {
+    display: block;
+    margin: 0 2px 6px;
+    font-size: 10.5px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted);
+  }
+  .f-block + .f-block { margin-top: 12px; }
+  .f-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .f-head .f-label { margin: 0; }
+  .f-head b { font-size: 13px; font-weight: 650; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips.split { display: grid; grid-template-columns: 1fr 1fr; }
+  .chips.split .chip { justify-content: center; }
+  .chip {
+    flex: none; height: 32px;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 0 12px 0 10px;
+    border: 0; border-radius: 16px;
+    background: var(--wash);
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: background .2s var(--ease), color .2s var(--ease);
+  }
+  .chip svg { width: 15px; height: 15px; }
+  .chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+  .chip.more { padding: 0 12px; margin-top: 8px; background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--line); }
+  .chip.more[aria-pressed="true"] { background: var(--ink); color: var(--bg); box-shadow: none; }
+  .f-more { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .price-range {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 28px; margin: 2px 0 0; background: none; cursor: pointer;
+  }
+  .price-range:focus-visible { outline: none; }
+  .price-range::-webkit-slider-runnable-track {
+    height: 4px; border-radius: 2px;
+    background: linear-gradient(90deg, var(--ink) var(--p, 100%), var(--line) var(--p, 100%));
+  }
+  .price-range::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 18px; height: 18px; margin-top: -7px;
+    border-radius: 50%; background: var(--ink);
+    border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--ink);
+  }
+  .price-range::-moz-range-track { height: 4px; border: 0; border-radius: 2px; background: var(--line); }
+  .price-range::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--ink); }
+  .price-range::-moz-range-thumb {
+    width: 16px; height: 16px; border-radius: 50%; background: var(--ink);
+    border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--ink);
+  }
+  .marks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+  .marks button {
+    height: 28px; padding: 0 10px; border: 0; border-radius: 14px;
+    background: var(--wash); font: 600 12px var(--sans); cursor: pointer;
+  }
+  .marks button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+
+  .fab-stack {
+    position: absolute; right: 14px; z-index: 3;
+    display: flex; flex-direction: column; gap: 1px;
+    border-radius: 14px; overflow: hidden; box-shadow: var(--shadow-float);
+    transition: bottom .35s var(--ease);
+  }
+  .fab {
+    width: 42px; height: 42px; border: 0; background: var(--surface);
+    display: grid; place-items: center; cursor: pointer;
+  }
+  .fab:hover { background: var(--wash); }
+  .fab svg { width: 18px; height: 18px; }
+  .back-pill {
+    position: absolute; left: 14px; z-index: 3;
+    height: 36px; padding: 0 14px 0 10px;
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 0; border-radius: 18px; background: var(--ink); color: var(--bg);
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    box-shadow: var(--shadow-float);
+    transition: opacity .25s, transform .25s var(--ease), bottom .35s var(--ease);
+  }
+  .back-pill svg { width: 16px; height: 16px; }
+  .back-pill.off { opacity: 0; transform: translateY(6px); pointer-events: none; }
+  .toast {
+    position: absolute; left: 50%; top: calc(var(--chrome-h, 72px) + 10px); z-index: 5;
+    transform: translateX(-50%);
+    padding: 8px 14px; border-radius: 18px;
+    background: var(--ink); color: var(--bg);
+    font-size: 13px; font-weight: 500; white-space: nowrap;
+    transition: opacity .25s;
+  }
+
+  /* ---------- bottom sheet ---------- */
+  .sheet {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 5;
+    height: 100%;
+    background: var(--surface);
+    border-radius: var(--r-lg) var(--r-lg) 0 0;
+    box-shadow: var(--shadow-sheet);
+    display: flex; flex-direction: column;
+    transform: translateY(calc(100% - var(--sheet-h, 180px)));
+    transition: transform .42s var(--ease);
+    will-change: transform;
+  }
+  .sheet.dragging { transition: none; }
+  .grab { flex: none; padding: 8px 0 4px; display: grid; place-items: center; cursor: grab; touch-action: none; }
+  .grab i { width: 38px; height: 5px; border-radius: 3px; background: var(--line); display: block; }
+  .sheet-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 4px 18px 28px; }
+  .sheet-body::-webkit-scrollbar { width: 0; }
+  .home { flex: none; height: 22px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 7px; background: var(--surface); position: absolute; left: 0; right: 0; bottom: 0; z-index: 7; pointer-events: none; }
+  .home i { width: 120px; height: 4px; border-radius: 4px; background: var(--ink); display: block; }
+
+  .eyebrow { font-size: 10.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .h-serif { font-weight: 650; letter-spacing: -.03em; line-height: 1.15; margin: 0; text-wrap: balance; }
+
+  /* overview */
+  .ov-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+  .ov-head h2 { font-size: 22px; }
+  .ov-head p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+  .st-cards { display: flex; gap: 10px; margin: 14px -18px 0; padding: 2px 18px 4px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+  .st-cards::-webkit-scrollbar { display: none; }
+  .st-card {
+    flex: none; width: 148px; scroll-snap-align: start;
+    padding: 11px 12px 12px; border: 1px solid var(--line); border-radius: var(--r-md);
+    background: var(--surface); text-align: left; cursor: pointer;
+    display: flex; flex-direction: column; gap: 6px;
+    transition: border-color .2s, transform .2s var(--ease);
+  }
+  .st-card:hover { border-color: var(--ink); }
+  .st-card:active { transform: scale(.98); }
+  .st-card .codes { display: flex; gap: 4px; align-self: flex-start; }
+  .st-card .nm { font-size: 16px; font-weight: 650; line-height: 1.15; letter-spacing: -.02em; }
+  .st-card .ct { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .st-card .ct b { color: var(--ink); font-weight: 650; }
+  .st-card.zero { opacity: .5; }
+  .code {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 36px; height: 22px; padding: 0 7px; border-radius: 6px;
+    color: #fff; font-size: 10px; font-weight: 700; letter-spacing: .08em;
+  }
+  .code.sukh { background: var(--sukh); color: #12300A; }
+  .code.silom { background: var(--silom); }
+  .code.mrt { background: var(--mrt); }
+  .code.station { height: 26px; padding: 0 10px; border-radius: 8px; letter-spacing: -.01em; font-size: 12.5px; font-weight: 650; }
+  .lines-key { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .lines-key span { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--muted); font-weight: 500; }
+  .lines-key i { width: 18px; height: 5px; border-radius: 3px; display: block; }
+
+  /* station */
+  .stn-head { display: flex; align-items: flex-start; gap: 12px; }
+  .stn-head .h-serif { font-size: 26px; }
+  .stn-head p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+  .stn-head .codes { display: flex; gap: 4px; margin-top: 6px; }
+  .seg { display: flex; gap: 6px; margin: 16px 0 10px; }
+  .seg span { font-size: 12px; color: var(--muted); }
+  .units { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .ucard {
+    width: 100%;
+    display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 4px 12px;
+    padding: 10px; border: 1px solid var(--line); border-radius: var(--r-md);
+    background: var(--surface); text-align: left; cursor: pointer;
+    transition: border-color .2s, background .2s;
+  }
+  .ucard:hover, .ucard.sel { border-color: var(--ink); }
+  .ucard .thumb { grid-row: span 2; width: 64px; height: 64px; border-radius: var(--r-sm); overflow: hidden; background: var(--wall); }
+  .ucard .thumb svg { width: 100%; height: 100%; display: block; }
+  .ucard .t { min-width: 0; }
+  .ucard .t b { display: block; font-size: 14.5px; font-weight: 650; letter-spacing: -.01em; line-height: 1.2; }
+  .ucard .t small { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .ucard .p { text-align: right; font-weight: 650; font-variant-numeric: tabular-nums; font-size: 14.5px; letter-spacing: -.02em; }
+  .ucard .p small { display: block; font-weight: 500; font-size: 11px; color: var(--muted); letter-spacing: 0; }
+  .ucard .f { grid-column: 2 / 4; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .ucard.miss { opacity: .5; }
+  .missnote { font-size: 11.5px; color: var(--rej); font-weight: 600; }
+  .empty { padding: 18px 0 6px; color: var(--muted); }
+  .empty p { margin: 0 0 12px; }
+  .btn {
+    height: 40px; padding: 0 16px; border: 0; border-radius: 20px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    background: var(--ink); color: var(--bg); font-size: 13.5px; font-weight: 600; cursor: pointer;
+    text-decoration: none;
+  }
+  .btn.ghost { background: var(--wash); color: var(--ink); }
+  .btn svg { width: 16px; height: 16px; }
+
+  /* tiny facility trio */
+  .trio { display: inline-flex; gap: 4px; }
+  .trio i {
+    width: 22px; height: 22px; border-radius: 7px;
+    display: grid; place-items: center;
+    background: var(--ok-wash); color: var(--ok);
+  }
+  .trio i.no { background: transparent; color: var(--faint); box-shadow: inset 0 0 0 1px var(--line); position: relative; }
+  .trio i.no::after { content: ""; position: absolute; left: 4px; right: 4px; top: 50%; height: 1.2px; background: var(--faint); transform: rotate(-35deg); }
+  .trio svg { width: 14px; height: 14px; display: block; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 24px; padding: 0 10px; border-radius: 12px;
+    font-size: 12px; font-weight: 600;
+  }
+  .pill i { width: 7px; height: 7px; border-radius: 50%; display: block; background: currentColor; }
+  .pill.ok { background: var(--ok-wash); color: var(--ok); }
+  .pill.view { background: var(--view-wash); color: var(--view); }
+  .pill.pend { background: var(--pend-wash); color: var(--pend); }
+  .pill.rej { background: var(--rej-wash); color: var(--rej); }
+
+  /* unit dossier */
+  .dossier-bar {
+    position: sticky; top: -4px; z-index: 2;
+    display: flex; align-items: center; gap: 10px;
+    margin: -4px -18px 0; padding: 4px 18px 10px;
+    background: var(--surface);
+  }
+  .icon-btn {
+    width: 36px; height: 36px; flex: none; border: 0; border-radius: 18px;
+    display: grid; place-items: center; background: var(--wash); cursor: pointer;
+  }
+  .icon-btn svg { width: 18px; height: 18px; }
+  .crumb { font-size: 13.5px; font-weight: 600; }
+  .crumb small { display: block; font-weight: 500; color: var(--muted); font-size: 11.5px; }
+  .gallery { position: relative; margin: 4px -18px 0; }
+  .shots { display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 0 18px; scrollbar-width: none; }
+  .shots::-webkit-scrollbar { display: none; }
+  .shot { flex: none; width: calc(100% - 44px); scroll-snap-align: center; margin: 0; position: relative; }
+  .art { aspect-ratio: 4 / 3; max-width: 100%; border-radius: var(--r-md); overflow: hidden; background: var(--wall); position: relative; }
+  .art svg { display: block; width: 100%; height: 100%; }
+  .shot figcaption {
+    position: absolute; left: 10px; bottom: 10px;
+    padding: 3px 9px; border-radius: 10px;
+    background: #161A17B3; color: #fff;
+    font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+  }
+  .dots { display: flex; justify-content: center; gap: 5px; margin-top: 8px; }
+  .dots i { width: 6px; height: 6px; border-radius: 3px; background: var(--line); transition: width .25s var(--ease), background .25s; }
+  .dots i.on { width: 16px; background: var(--ink); }
+
+  .d-name { margin: 14px 0 0; font-size: 26px; }
+  .d-type { display: flex; align-items: center; gap: 6px; margin: 4px 0 0; font-size: 13px; font-weight: 600; color: var(--muted); }
+  .d-type svg, .type-ico { width: 15px; height: 15px; flex: none; }
+  .type-ico { display: inline-block; vertical-align: -2px; margin-right: 3px; }
+  .d-where { margin: 6px 0 0; color: var(--muted); font-size: 13.5px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .d-where b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .walk { display: inline-flex; align-items: center; gap: 4px; }
+  .walk svg { width: 14px; height: 14px; }
+  .d-price { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-top: 14px; }
+  .amt { display: flex; align-items: baseline; font-size: 38px; font-weight: 600; letter-spacing: -.045em; line-height: 1; font-variant-numeric: tabular-nums; }
+  .amt .cur { font-weight: 600; font-size: 22px; letter-spacing: 0; margin-right: 2px; }
+  .amt small { font-size: 14px; font-weight: 500; letter-spacing: 0; color: var(--muted); margin-left: 4px; }
+  .status-note { margin: 12px 0 0; font-size: 14px; }
+  .viewing { margin-top: 14px; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--r-sm); background: var(--view-wash); color: var(--view); font-size: 13px; }
+  .viewing b { font-weight: 650; }
+  .viewing svg { width: 18px; height: 18px; flex: none; }
+
+  .specs { margin-top: 16px; display: grid; grid-template-columns: repeat(3, 1fr); background: var(--wash); border-radius: var(--r-md); }
+  .specs div { padding: 11px 12px; }
+  .specs div + div { box-shadow: inset 1px 0 0 var(--surface); }
+  .specs b { display: block; font-size: 17px; font-weight: 650; letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1.15; }
+  .specs span { display: block; margin-top: 2px; font-size: 10px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+
+  .dsec { margin-top: 24px; }
+  .dsec h3 { margin: 0 0 10px; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 10.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .dsec h3 span { font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--faint); font-size: 12px; }
+  .musts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .must { padding: 10px 12px; border-radius: var(--r-md); background: var(--wash); color: var(--ink); display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .must svg { width: 18px; height: 18px; flex: none; }
+  .must b { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 650; color: inherit; }
+  .must .mark { margin-left: auto; width: 18px; height: 18px; }
+  .must.no { color: var(--faint); }
+  .must.no b { color: var(--faint); }
+  .extras { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .extras span { padding: 4px 10px; border-radius: 12px; background: var(--wash); font-size: 12px; font-weight: 500; color: var(--muted); }
+
+  .thread { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+  .thread li { position: relative; padding: 0 0 16px 22px; }
+  .thread li::before { content: ""; position: absolute; left: 4px; top: 6px; bottom: -6px; width: 1.5px; background: var(--line); }
+  .thread li:last-child::before { display: none; }
+  .thread li::after { content: ""; position: absolute; left: 0; top: 3px; width: 9px; height: 9px; border-radius: 50%; background: var(--surface); box-shadow: inset 0 0 0 2px var(--ink); }
+  .thread li.new::after { background: var(--ink); }
+  .thread time { display: block; font-size: 10.5px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .note-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .note-tools { display: flex; gap: 0; }
+  .icon-mini {
+    width: 26px; height: 26px; border: 0; border-radius: 8px; background: none; padding: 0;
+    color: var(--muted); cursor: pointer; display: grid; place-items: center;
+  }
+  .icon-mini svg { width: 14px; height: 14px; }
+  .icon-mini:hover { background: var(--wash); color: var(--ink); }
+  .icon-mini.danger:hover { background: var(--rej-wash); color: var(--rej); }
+  .thread p { margin: 2px 0 0; font-size: 14px; }
+  .thread li textarea {
+    width: 100%; box-sizing: border-box; margin-top: 4px; min-height: 56px; resize: vertical;
+    border: 0; border-radius: 10px; background: var(--wash);
+    padding: 8px 10px; font: 400 14px/1.4 var(--sans); color: var(--ink);
+  }
+  .thread li textarea:focus { outline: 2px solid var(--ink); outline-offset: 0; }
+  .note-ask { display: flex; align-items: center; gap: 8px; margin: 6px 0 0; font-size: 12.5px; color: var(--rej); }
+  .note-ask button { border: 0; background: none; padding: 0; font: inherit; font-weight: 650; cursor: pointer; color: var(--rej); }
+  .note-ask [data-note-no] { color: var(--muted); }
+  .composer { display: flex; gap: 8px; align-items: flex-end; }
+  .composer textarea {
+    flex: 1; min-width: 0; min-height: 44px; max-height: 120px; resize: none;
+    padding: 11px 14px; border: 0; border-radius: 22px; background: var(--wash);
+    font: 400 14px/1.4 var(--sans); color: var(--ink);
+  }
+  .composer textarea:focus { outline: 2px solid var(--ink); outline-offset: 0; }
+  .composer .btn { width: 44px; height: 44px; padding: 0; border-radius: 22px; flex: none; }
+  .composer .btn:disabled { background: var(--line); color: var(--faint); cursor: default; }
+
+  .agent { padding: 10px 12px; border-radius: var(--r-md); border: 1px solid var(--line); }
+  .agent-toggle {
+    width: 100%; display: flex; align-items: center; gap: 8px;
+    border: 0; background: none; padding: 0; cursor: pointer; text-align: left; color: inherit; font: inherit;
+  }
+  .agent-toggle .chev { width: 16px; height: 16px; margin-left: auto; flex: none; color: var(--muted); transform: rotate(-90deg); transition: transform .2s var(--ease); }
+  .agent.open .agent-toggle .chev { transform: rotate(90deg); }
+  .who { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+  .ini { width: 32px; height: 32px; border-radius: 16px; flex: none; display: grid; place-items: center; background: var(--ink); color: var(--bg); font-size: 14px; font-weight: 650; }
+  .who b { display: block; font-size: 15px; font-weight: 650; }
+  .who small { display: block; color: var(--muted); font-size: 12px; }
+  .kv { display: grid; grid-template-columns: 48px 1fr auto; align-items: center; gap: 4px 8px; margin: 10px 0 0; padding-top: 10px; border-top: 1px solid var(--line); font-size: 13.5px; }
+  .kv dt { color: var(--muted); font-weight: 500; }
+  .kv dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; user-select: all; }
+  .kv-acts { display: flex; gap: 2px; justify-content: flex-end; }
+  .copy, a.copy { border: 0; background: none; padding: 4px 6px; border-radius: 8px; font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer; text-decoration: none; }
+  .copy:hover, a.copy:hover { background: var(--wash); color: var(--ink); }
+
+  .brandrow { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
+  .brandrow strong { font-weight: 650; font-size: 20px; letter-spacing: -.03em; line-height: 1; }
+  .add-form { display: grid; gap: 14px; margin-top: 16px; min-width: 0; }
+  .add-form label, .add-field, .spec-edit, .type-pick { min-width: 0; }
+  .add-form label, .add-field { display: grid; gap: 6px; font-size: 12px; font-weight: 600; color: var(--muted); }
+  .add-form input[type="text"], .add-form input[type="number"], .add-form input[type="tel"] {
+    width: 100%; min-width: 0; box-sizing: border-box;
+    height: 44px; border: 0; border-radius: 12px; background: var(--wash);
+    padding: 0 14px; font: 500 15px var(--sans); color: var(--ink);
+  }
+  .add-form input:focus { outline: 2px solid var(--ink); outline-offset: 0; }
+  .add-form .btn:disabled { background: var(--line); color: var(--faint); cursor: default; }
+  .extra-add { display: flex; gap: 8px; align-items: center; }
+  .extra-add input { flex: 1; min-width: 0; }
+  .extra-add .btn { height: 44px; }
+  .extras button { border: 0; background: none; color: var(--muted); cursor: pointer; font-weight: 650; padding: 0 0 0 4px; }
+  .btn.danger { background: var(--rej); color: #fff; }
+  .btn.ghost.danger { background: var(--rej-wash); color: var(--rej); }
+  .confirm { margin-top: 10px; padding: 12px; border-radius: var(--r-sm); background: var(--rej-wash); }
+  .confirm p { margin: 0 0 10px; font-size: 14px; }
+  .confirm-actions { display: flex; gap: 8px; }
+  .unit-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .unit-actions .confirm { grid-column: 1 / -1; margin-top: 2px; }
+  .type-pick { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .type-pick button {
+    min-width: 0; height: 44px; border-radius: 14px; border: 1.5px solid var(--line);
+    background: var(--surface); cursor: pointer; padding: 0 12px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .type-pick svg { width: 18px; height: 18px; flex: none; }
+  .type-pick button[aria-pressed="true"] { border-color: var(--ink); background: var(--wash); }
+  .spec-edit { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .type-pick b { font-size: 13.5px; color: var(--ink); font-weight: 650; }
+  .hint { margin: 12px 0 0; font-size: 13px; color: var(--muted); }
+
+  .collapse { display: none; }
+
+  /* ---------- desktop: Google-Maps-style side panel ---------- */
+  @media (min-width: 960px) {
+    .top { left: 424px; top: 16px; right: 16px; width: auto; padding: 0; background: none; transition: left .38s var(--ease); }
+    .app.collapsed .top { left: 16px; }
+    .filter-card, .filter-card.open {
+      width: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px;
+      padding: 10px 14px; background: var(--surface); border-radius: var(--r-md); box-shadow: var(--shadow-float);
+    }
+    .filter-toggle, .filter-card.open .filter-toggle {
+      width: auto; height: auto; justify-content: flex-start;
+      padding: 0 2px 0 0; background: none; box-shadow: none; cursor: default;
+    }
+    .filter-toggle::after, .filter-card.open .filter-toggle::after { display: none; }
+    #fMore .chips.split { display: flex; flex-wrap: wrap; }
+    #fMore { display: contents; margin: 0; }
+    .rent-filter { flex: 1 1 200px; min-width: 180px; }
+    .sheet {
+      left: 16px; top: 16px; bottom: 16px; width: 392px; height: auto;
+      border-radius: var(--r-md);
+      box-shadow: var(--shadow-float);
+      transform: none;
+      transition: transform .38s var(--ease), opacity .3s;
+    }
+    .app.collapsed .sheet { transform: translateX(calc(-100% - 24px)); }
+    .grab { display: none; }
+    .sheet-body { padding: 18px 20px 28px; }
+    .dossier-bar { top: -18px; margin: -18px -20px 0; padding: 14px 20px 10px; }
+    .gallery { margin: 4px -20px 0; }
+    .shots { padding: 0 20px; }
+    .collapse {
+      display: grid; place-items: center;
+      position: absolute; z-index: 5; left: 408px; top: 50%;
+      width: 24px; height: 52px; margin-top: -26px;
+      border: 0; border-radius: 0 10px 10px 0;
+      background: var(--surface); box-shadow: 2px 1px 6px -2px #161A1740; cursor: pointer;
+      transition: left .38s var(--ease);
+    }
+    .collapse svg { width: 14px; height: 14px; transition: transform .3s; }
+    .app.collapsed .collapse { left: 0; }
+    .app.collapsed .collapse svg { transform: rotate(180deg); }
+    .back-pill { left: 440px; top: calc(28px + var(--chrome-h, 72px)); bottom: auto !important; }
+    .app.collapsed .back-pill { left: 16px; top: calc(28px + var(--chrome-h, 72px)); }
+    .fab-stack { bottom: 24px !important; right: 16px; opacity: 1 !important; }
+    .toast { left: calc(50% + 204px); }
+    .st-cards { flex-direction: column; overflow: visible; margin: 14px 0 0; padding: 0; }
+    .st-card { width: 100%; display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; gap: 2px 12px; align-items: center; padding: 12px 14px; }
+    .st-card .codes { grid-row: span 2; align-self: center; }
+    .callout.hov { outline-color: var(--ink); box-shadow: 0 10px 28px -10px #161A1755; }
+  }
+  @media (max-width: 959px) {
+    .top { padding-top: max(10px, env(safe-area-inset-top, 0px)); padding-left: max(14px, env(safe-area-inset-left, 0px)); padding-right: max(14px, env(safe-area-inset-right, 0px)); }
+    .sheet-body { padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px)); }
+    #zin, #zout { display: none; }   /* pinch does this on a phone */
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: 0s !important; }
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-washer" viewBox="0 0 16 16"><rect x="2.2" y="1.6" width="11.6" height="12.8" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M2.6 4.6 H13.4" stroke="currentColor" stroke-width="1.2"/><circle cx="8" cy="9.4" r="3.1" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M6.2 9.8c.6.5 1.2.5 1.8 0s1.2-.5 1.8 0" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round"/><circle cx="4.6" cy="3.1" r=".7" fill="currentColor"/></symbol>
+    <symbol id="i-garden" viewBox="0 0 16 16"><path d="M8 14.4 V7.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M8 8.6 C8 5 5.6 3 2.4 3 C2.4 6.4 4.6 8.6 8 8.6 Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M8 10.4 C8 7.2 10.2 5.4 13.6 5.4 C13.6 8.6 11.4 10.4 8 10.4 Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M4.4 14.4 H11.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
+    <symbol id="i-pool" viewBox="0 0 16 16"><path d="M5 11 V3.6 a1.6 1.6 0 0 1 3.2 0 M8.2 11 V3.6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M11 11 V3.6 a1.6 1.6 0 0 0-2.8-1" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M5 6.4 H11 M5 8.8 H11" stroke="currentColor" stroke-width="1.1"/><path d="M1.4 12.6c1.1 1 2.1 1 3.2 0s2.1-1 3.2 0 2.1 1 3.2 0 2.1-1 3.6 0" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></symbol>
+    <symbol id="i-walk" viewBox="0 0 16 16"><circle cx="9" cy="2.6" r="1.5" fill="currentColor"/><path d="M6.4 14.4 L8 10.2 L9.8 11.6 L10.6 14.4 M8 10.2 L8.6 6.4 L6 7.4 L5.2 9.6 M8.6 6.4 L10.2 8.4 L12.2 9" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-check" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="currentColor"/><path d="M4.8 8.2 L7 10.3 L11.2 5.9" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-untick" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="i-microwave" viewBox="0 0 16 16"><rect x="1.5" y="3.2" width="13" height="9.2" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="3.1" y="5" width="6.4" height="5.6" rx=".6" fill="none" stroke="currentColor" stroke-width="1.2"/><circle cx="11.7" cy="6.3" r=".7" fill="currentColor"/><circle cx="11.7" cy="8.6" r=".7" fill="currentColor"/></symbol>
+    <symbol id="i-x" viewBox="0 0 16 16"><path d="M4 4 L12 12 M12 4 L4 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="i-back" viewBox="0 0 16 16"><path d="M10 3.5 L5.5 8 L10 12.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 16 16"><path d="M8 3 V13 M3 8 H13" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 16 16"><path d="M3 8 H13" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 16 16"><path d="M5.2 1.8 L6.8 5 L5.4 6.4 C6.2 8 8 9.8 9.6 10.6 L11 9.2 L14.2 10.8 L13.4 13.4 C8 13.8 2.2 8 2.6 2.6 Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 16 16"><path d="M8 2.2 C4.2 2.2 1.6 4.4 1.6 7.2 C1.6 9.2 2.9 10.8 5 11.6 L4.6 14 L7.6 12.2 C11.6 12.4 14.4 10.2 14.4 7.2 C14.4 4.4 11.8 2.2 8 2.2 Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></symbol>
+    <symbol id="i-send" viewBox="0 0 16 16"><path d="M8 13 V3.4 M3.8 7.4 L8 3.2 L12.2 7.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-cal" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M2 6.6 H14 M5.2 1.6 V4.2 M10.8 1.6 V4.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
+    <symbol id="i-condo" viewBox="0 0 16 16"><path d="M3.2 14.2 V5.2 L6.4 2.4 L9.6 5.2 V14.2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M9.6 8.2 H12.8 V14.2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M2.4 14.2 H13.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M5 7.2 H6.2 M7.4 7.2 H8.6 M5 9.4 H6.2 M7.4 9.4 H8.6 M5 11.6 H6.2 M7.4 11.6 H8.6 M10.6 10.2 H11.8 M10.6 12.2 H11.8" stroke="currentColor" stroke-width="1.15" stroke-linecap="round"/></symbol>
+    <symbol id="i-town" viewBox="0 0 16 16"><path d="M1.8 7.4 L8 2.2 L14.2 7.4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.4 6.8 V13.8 H12.6 V6.8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M6.7 13.8 V10.2 H9.3 V13.8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></symbol>
+    <symbol id="i-pencil" viewBox="0 0 16 16"><path d="M9.2 2.8 L13.2 6.8 L5.4 14.6 H1.6 V10.6 Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M8 4 L12 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 16 16"><path d="M3 4.4 H13 M6.2 4.4 V2.8 H9.8 V4.4 M4.4 4.4 L5 13.2 H11 L11.6 4.4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-tick" viewBox="0 0 16 16"><path d="M3.2 8.4 L6.4 11.4 L12.8 4.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  </defs>
+</svg>
+
+<div class="app" id="app">
+  <div class="stage" id="stage" tabindex="0" aria-label="Map. Plus and minus zoom, arrow keys pan.">
+    <svg id="map" role="img" aria-label="Route map of BTS Sukhumvit, BTS Silom and MRT Blue lines. Stations with units on file show a count."></svg>
+    <div id="callouts"></div>
+  </div>
+
+  <div class="top" id="chrome">
+    <div class="filter-card" id="filterCard">
+      <button class="filter-toggle" id="moreFilters" type="button" aria-expanded="false" aria-controls="fMore">Filters <i id="filterDot" hidden></i></button>
+      <div id="fMore" hidden>
+        <div class="chips split" role="group" aria-label="Facilities">
+          <button class="chip" type="button" data-f="washer" aria-pressed="false"><svg><use href="#i-washer"/></svg>Washer</button>
+          <button class="chip" type="button" data-f="garden" aria-pressed="false"><svg><use href="#i-garden"/></svg>Garden</button>
+          <button class="chip" type="button" data-f="pool" aria-pressed="false"><svg><use href="#i-pool"/></svg>Pool</button>
+          <button class="chip" type="button" data-f="microwave" aria-pressed="false"><svg><use href="#i-microwave"/></svg>Microwave</button>
+        </div>
+        <div class="chips split" role="group" aria-label="Condo type">
+          <button class="chip" type="button" data-type="condo" aria-pressed="false"><svg><use href="#i-condo"/></svg>Condominium</button>
+          <button class="chip" type="button" data-type="townhouse" aria-pressed="false"><svg><use href="#i-town"/></svg>Townhouse</button>
+        </div>
+        <div class="rent-filter">
+          <div class="f-head"><span class="f-label">Max rent</span><b id="priceLabel">Any</b></div>
+          <input class="price-range" id="price" type="range" min="10000" max="35000" step="500" value="35000" aria-label="Maximum monthly rent" style="--p:100%">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button class="back-pill off" id="backPill"><svg><use href="#i-back"/></svg>All stations</button>
+  <div class="fab-stack" id="fabs">
+    <button class="fab" id="zin" aria-label="Zoom in"><svg><use href="#i-plus"/></svg></button>
+    <button class="fab" id="zout" aria-label="Zoom out"><svg><use href="#i-minus"/></svg></button>
+  </div>
+  <div class="toast" id="toast" hidden></div>
+
+  <section class="sheet" id="sheet" aria-label="Details">
+    <div class="grab" id="grab" aria-hidden="true"><i></i></div>
+    <div class="sheet-body" id="sheetBody"></div>
+  </section>
+  <button class="collapse" id="collapse" aria-label="Collapse side panel" aria-expanded="true"><svg><use href="#i-back"/></svg></button>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  const NS = "http://www.w3.org/2000/svg";
+  const KM = 27;                  // world units per km — roughly one station gap
+  const WALK = 80;                // metres per minute on foot
+  const $ = (s, el = document) => el.querySelector(s);
+  const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---------------- network (traced from the official route map) ---------------- */
+  const LINES = {
+    sukh:  { name: "BTS Sukhumvit", color: "var(--sukh)",
+             d: "M385,166 V438 Q385,450 397,450 H580 L678,548 Q690,560 690,572 V672" },
+    silom: { name: "BTS Silom", color: "var(--silom)",
+             d: "M352,450 H393 Q405,450 405,462 V585 L355,635 Q347,643 335,643 H148 L62,557" },
+    mrt:   { name: "MRT Blue", color: "var(--mrt)",
+             d: "M110,557 V350 L205,255 Q215,245 227,245 H353 Q365,245 365,233 V192 Q365,180 377,180 H470 L540,250 V503 Q540,515 528,515 H215 L173,557 H62" },
+  };
+  const STUBS = [
+    { line: "sukh", d: "M385,166 V150", to: "Khu Khot", x: 410, y: 152 },
+    { line: "sukh", d: "M690,672 V690", to: "Kheha", x: 690, y: 704 },
+    { line: "mrt",  d: "M62,557 H44", to: "Lak Song", x: 40, y: 545 },
+  ];
+
+  // [id, name, lines, x, y, label position]
+  const S = [
+    ["N9","Ha Yaek Lat Phrao",["sukh"],385,180,"tl"],
+    ["N8","Mo Chit",["sukh"],385,213,"r"],
+    ["N7","Saphan Khwai",["sukh"],385,240,"r"],
+    ["N5","Ari",["sukh"],385,272,"r"],
+    ["N4","Sanam Pao",["sukh"],385,300,"r"],
+    ["N3","Victory Monument",["sukh"],385,328,"r"],
+    ["N2","Phaya Thai",["sukh"],385,360,"r"],
+    ["N1","Ratchathewi",["sukh"],385,395,"r"],
+    ["CEN","Siam",["sukh","silom"],398,450,"tl"],
+    ["E1","Chit Lom",["sukh"],440,450,"b"],
+    ["E2","Phloen Chit",["sukh"],470,450,"t"],
+    ["E3","Nana",["sukh"],505,450,"b"],
+    ["E4","Asok",["sukh","mrt"],540,450,"tl", "MRT Sukhumvit"],
+    ["E5","Phrom Phong",["sukh"],572,450,"t"],
+    ["E6","Thong Lo",["sukh"],598,468,"r"],
+    ["E7","Ekkamai",["sukh"],618,488,"r"],
+    ["E8","Phra Khanong",["sukh"],638,508,"r"],
+    ["E9","On Nut",["sukh"],658,528,"r"],
+    ["E10","Bang Chak",["sukh"],678,548,"r"],
+    ["E11","Punnawithi",["sukh"],690,580,"r"],
+    ["E12","Udom Suk",["sukh"],690,608,"r"],
+    ["E13","Bang Na",["sukh"],690,636,"r"],
+    ["E14","Bearing",["sukh"],690,664,"r"],
+
+    ["W1","National Stadium",["silom"],352,450,"b"],
+    ["S1","Ratchadamri",["silom"],405,483,"r"],
+    ["S2","Sala Daeng",["silom"],405,515,"tl"],
+    ["S3","Chong Nonsi",["silom"],405,557,"r"],
+    ["S4","Saint Louis",["silom"],401,589,"r"],
+    ["S5","Surasak",["silom"],387,603,"r"],
+    ["S6","Saphan Taksin",["silom"],370,620,"r"],
+    ["S7","Krung Thon Buri",["silom"],318,643,"b"],
+    ["S8","Wongwian Yai",["silom"],262,643,"b"],
+    ["S9","Pho Nimit",["silom"],205,643,"b"],
+    ["S10","Talat Phlu",["silom"],148,643,"b"],
+    ["S11","Wutthakat",["silom"],105,600,"l"],
+    ["S12","Bang Wa",["silom","mrt"],62,557,"l"],
+
+    ["BL01","Tha Phra",["mrt"],110,557,"b"],
+    ["BL02","Charan 13",["mrt"],110,518,"r"],
+    ["BL03","Fai Chai",["mrt"],110,480,"r"],
+    ["BL04","Bang Khun Non",["mrt"],110,445,"r"],
+    ["BL05","Bang Yi Khan",["mrt"],110,405,"r"],
+    ["BL06","Sirindhorn",["mrt"],110,370,"r"],
+    ["BL07","Bang Phlat",["mrt"],130,330,"r"],
+    ["BL08","Bang O",["mrt"],155,305,"r"],
+    ["BL09","Bang Pho",["mrt"],180,280,"r"],
+    ["BL10","Tao Poon",["mrt"],235,245,"b"],
+    ["BL11","Bang Sue",["mrt"],290,245,"t"],
+    ["BL12","Kamphaeng Phet",["mrt"],335,245,"b"],
+    ["BL13","Chatuchak Park",["mrt"],365,213,"l"],
+    ["BL14","Phahon Yothin",["mrt"],403,180,"tr"],
+    ["BL15","Lat Phrao",["mrt"],432,180,"b"],
+    ["BL16","Ratchadaphisek",["mrt"],482,192,"r"],
+    ["BL17","Sutthisan",["mrt"],505,215,"r"],
+    ["BL18","Huai Khwang",["mrt"],528,238,"r"],
+    ["BL19","Thailand Cultural Centre",["mrt"],540,280,"r"],
+    ["BL20","Phra Ram 9",["mrt"],540,315,"r"],
+    ["BL21","Phetchaburi",["mrt"],540,350,"r"],
+    ["BL23","Queen Sirikit Centre",["mrt"],540,482,"r"],
+    ["BL24","Khlong Toei",["mrt"],505,515,"b"],
+    ["BL25","Lumphini",["mrt"],462,515,"t"],
+    ["BL26","Si Lom",["mrt"],420,515,"br"],
+    ["BL27","Sam Yan",["mrt"],355,515,"b"],
+    ["BL28","Hua Lamphong",["mrt"],300,515,"b"],
+    ["BL29","Wat Mangkon",["mrt"],255,515,"t"],
+    ["BL30","Sam Yot",["mrt"],225,515,"b"],
+    ["BL31","Sanam Chai",["mrt"],194,536,"l"],
+    ["BL32","Itsaraphap",["mrt"],145,557,"t"],
+    ["BL34","Bang Phai",["mrt"],86,557,"t"],
+  ].map(([id, name, lines, x, y, pos, alt]) => ({ id, name, lines, x, y, pos, alt }));
+  const ST = Object.fromEntries(S.map(s => [s.id, s]));
+  const LINKS = [["N8","BL13"],["N9","BL14"],["S2","BL26"]];   // walking interchanges
+
+  /* ---------------- units on file (sample data) ---------------- */
+  const U = [
+    { id:"room38", st:"E6", name:"The Room Sukhumvit 38", m:180, brg:160, status:"view", when:"Sat 25 Oct, 11:00", type:"condo",
+      price:24000, size:45, beds:1, floor:21, fac:{ washer:"In unit, front-loader", garden:null, pool:"20 m, floor 9", microwave:"In unit" }, extras:["Gym","Parking"],
+      agent:{ n:"Ploy", co:"Thong Lo Living", ph:"086 000 3812", line:"@ploylives" }, tint:"#D7E0DC",
+      notes:[["2026-10-14","High floor, faces Sukhumvit 38 food street."],["2026-10-17","Viewing booked for Saturday morning."]] },
+    { id:"ideoq36", st:"E6", name:"Ideo Q Sukhumvit 36", m:350, brg:228, status:"ok", type:"condo",
+      price:18000, size:35, beds:1, floor:12, fac:{ washer:"In unit", garden:null, pool:"Infinity, floor 26", microwave:"In unit" }, extras:["Gym","Co-working"],
+      agent:{ n:"Nok", co:"Plus Property", ph:"081 000 1836", line:"@nokplus" }, tint:"#D7E0DC",
+      notes:[["2026-10-12","Faces the BTS."],["2026-10-16","She can do a Sunday viewing."]] },
+    { id:"noble", st:"E6", name:"Noble Remix", m:420, brg:18, status:"rej", type:"condo", reason:"Unit gone. The price moved before a viewing.",
+      price:22000, size:29, beds:1, floor:19, fac:{ washer:null, garden:"Podium garden", pool:"Floor 8", microwave:null }, extras:["Gym"],
+      agent:{ n:"Pim", co:"Greyline", ph:"089 000 4219", line:"@pimgrey" }, tint:"#E4E1D8",
+      notes:[["2026-10-09","Agent said the unit is gone."],["2026-10-14","The price moved before we could view."]] },
+    { id:"whizdom", st:"E6", name:"Whizdom Essence", m:1100, brg:300, status:"ok", type:"condo",
+      price:21500, size:39, beds:1, floor:27, fac:{ washer:"Shared laundry, floor 3", garden:"Sky garden, floor 40", pool:"25 m, floor 9", microwave:"In unit" }, extras:["Gym","Sauna"],
+      agent:{ n:"Bee", co:"Urban Nest", ph:"092 000 5530", line:"@bee.nest" }, tint:"#DCE3E8",
+      notes:[["2026-10-15","Long walk, but the soi has a shuttle to the BTS."]] },
+
+    { id:"ari1", st:"N5", name:"Noble Around Ari", m:300, brg:80, status:"ok", type:"condo",
+      price:19500, size:33, beds:1, floor:9, fac:{ washer:"In unit", garden:"Courtyard garden", pool:"Floor 7", microwave:"In unit" }, extras:["Gym"],
+      agent:{ n:"Fon", co:"Ari Homes", ph:"083 000 2271", line:"@fonari" }, tint:"#DDE6DA",
+      notes:[["2026-10-11","Quiet soi, cafés downstairs."]] },
+    { id:"ari2", st:"N5", name:"Rhythm Phahol-Ari", m:650, brg:250, status:"view", when:"Sun 26 Oct, 14:30", type:"condo",
+      price:17000, size:31, beds:1, floor:28, fac:{ washer:"Shared laundry, floor 2", garden:null, pool:"Floor 10", microwave:null }, extras:["Gym","Library"],
+      agent:{ n:"Fon", co:"Ari Homes", ph:"083 000 2271", line:"@fonari" }, tint:"#D7E0DC",
+      notes:[["2026-10-18","Viewing set for Sunday afternoon."]] },
+    { id:"arihouse", st:"N5", name:"Ari Soi 5 Townhome", m:480, brg:150, status:"pend", type:"townhouse", note:"Waiting on the agent to confirm it is still free.",
+      price:28000, size:86, beds:2, floor:2, fac:{ washer:"In unit", garden:"Private garden", pool:null, microwave:"In kitchen" }, extras:["Parking"],
+      agent:{ n:"Fon", co:"Ari Homes", ph:"083 000 2271", line:"@fonari" }, tint:"#E4E6D4",
+      notes:[["2026-10-18","Townhouse down the soi. Agent has not confirmed it is still free."]] },
+
+    { id:"onnut1", st:"E9", name:"Ideo Mobi Sukhumvit", m:250, brg:310, status:"ok", type:"condo",
+      price:13000, size:30, beds:1, floor:15, fac:{ washer:"In unit", garden:"Roof garden", pool:"Floor 8", microwave:"In unit" }, extras:["Gym"],
+      agent:{ n:"Kai", co:"On Nut Rentals", ph:"085 000 7741", line:"@kai.rent" }, tint:"#DDE6DA",
+      notes:[["2026-10-10","Cheapest of the shortlist."]] },
+    { id:"onnut2", st:"E9", name:"The Base Park West", m:700, brg:150, status:"ok", type:"condo",
+      price:11500, size:28, beds:1, floor:6, fac:{ washer:"In unit", garden:"Park view garden", pool:"Floor 5", microwave:null }, extras:["Parking"],
+      agent:{ n:"Kai", co:"On Nut Rentals", ph:"085 000 7741", line:"@kai.rent" }, tint:"#DCE3E8",
+      notes:[["2026-10-13","Low floor, a little road noise."]] },
+    { id:"onnut3", st:"E9", name:"Elio Del Ray", m:1000, brg:60, status:"rej", type:"condo", reason:"No washer, and a 13 minute walk.",
+      price:10000, size:26, beds:1, floor:4, fac:{ washer:null, garden:"Garden", pool:"Floor 1", microwave:null }, extras:[],
+      agent:{ n:"Tan", co:"Self-listed", ph:"094 000 1180", line:"@tan.ray" }, tint:"#E4E1D8",
+      notes:[["2026-10-08","No washer and a 13 minute walk. Passed."]] },
+
+    { id:"refine", st:"E5", name:"Noble Refine", m:450, brg:20, status:"view", when:"Fri 24 Oct, 18:30", type:"condo",
+      price:32000, size:52, beds:1, floor:14, fac:{ washer:"In unit, washer-dryer", garden:null, pool:"Floor 6", microwave:"In unit" }, extras:["Gym","Concierge"],
+      agent:{ n:"May", co:"Prime Place", ph:"087 000 6620", line:"@mayprime" }, tint:"#D7E0DC",
+      notes:[["2026-10-16","Over budget but big. Worth a look after work."]] },
+
+    { id:"lumpini", st:"BL25", name:"Lumpini Park Rama 4", m:500, brg:205, status:"ok", type:"condo",
+      price:16000, size:30, beds:1, floor:18, fac:{ washer:"Shared laundry", garden:"Faces Lumphini Park", pool:"Floor 9", microwave:"Shared, floor 2" }, extras:["Gym"],
+      agent:{ n:"Jay", co:"Sathorn Desk", ph:"082 000 9014", line:"@jaydesk" }, tint:"#DDE6DA",
+      notes:[["2026-10-12","Park view from the balcony."]] },
+  ];
+  const unitsAt = id => U.filter(u => u.st === id).sort((a, b) => a.m - b.m);
+  const activeIds = () => [...new Set(U.map(u => u.st))];
+
+  /* ---------------- state ---------------- */
+  const FAC = ["washer", "garden", "pool", "microwave"];
+  const filters = new Set();
+  const typeFilters = new Set();
+  const PRICE_MIN = 10000, PRICE_MAX = 35000;
+  let maxPrice = PRICE_MAX;
+  let moreOpen = false;
+  const typeOk = u => typeFilters.size === 0 || typeFilters.has(u.type || "condo");
+  const priceOk = u => u.price <= maxPrice;
+  const facilityOk = u => [...filters].every(f => !!u.fac[f]);
+  const matches = u => facilityOk(u) && typeOk(u) && priceOk(u);
+  const missing = u => [...filters].filter(f => !u.fac[f]);
+  const filtering = () => filters.size > 0 || typeFilters.size > 0 || maxPrice < PRICE_MAX;
+  const FNAME = { washer: "Washer", garden: "Garden", pool: "Pool", microwave: "Microwave" };
+  const TYPE_NAME = { condo: "Condominium", townhouse: "Townhouse" };
+  const TYPE_ICON = { condo: "condo", townhouse: "town" };
+  const typeSvg = (t, cls) => `<svg${cls ? ` class="${cls}"` : ""}><use href="#i-${TYPE_ICON[t] || "condo"}"/></svg>`;
+  let mode = { v: "overview" };     // overview | station(id) | unit(id) | add(station) | edit(unit)
+  let selUnit = null, hoverUnit = null;
+
+  /* ---------------- helpers ---------------- */
+  const el = (tag, attrs = {}, parent) => {
+    const n = document.createElementNS(NS, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(n);
+    return n;
+  };
+  const baht = n => n.toLocaleString("en-US");
+  const dist = m => m >= 1000 ? (m / 1000).toFixed(1).replace(/\.0$/, "") + " km" : m + " m";
+  const lineOf = s => s.lines[0];
+  const LINE_BADGE = { sukh: "BTS", silom: "BTS", mrt: "MRT" };
+  const lineBadges = s => s.lines.map(l => `<span class="code ${l}">${LINE_BADGE[l]}</span>`).join("");
+  const esc = t => String(t).replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const ramp = (z, a, b) => clamp((z - a) / (b - a), 0, 1);
+  const fmtDate = iso => new Date(iso + "T00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+
+  /* ---------------- build the map ---------------- */
+  const svg = $("#map");
+  const world = el("g", {}, svg);
+  const gRiver = el("g", {}, world);
+  const gRings = el("g", {}, world);
+  const gLines = el("g", {}, world);
+  const gLeads = el("g", {}, world);
+  const screen = el("g", {}, svg);
+  const gLinks = el("g", {}, screen);
+  const gStations = el("g", {}, screen);
+  const gRingLabs = el("g", {}, screen);
+  const gPins = el("g", {}, screen);
+
+  // Chao Phraya, for orientation
+  el("path", { d: "M-40,205 C60,225 160,245 190,300 S235,420 205,480 S150,540 172,585 S300,598 342,652 S420,705 520,712",
+    fill: "none", stroke: "var(--river)", "stroke-width": 14, "stroke-linecap": "round", "vector-effect": "non-scaling-stroke", class: "river" }, gRiver);
+  const riverLab = el("text", { class: "river-lab" }, screen); riverLab.textContent = "Chao Phraya";
+
+  const linePaths = [];
+  for (const k in LINES) linePaths.push(el("path", { d: LINES[k].d, fill: "none", stroke: LINES[k].color, "stroke-linecap": "round", "stroke-linejoin": "round", "vector-effect": "non-scaling-stroke" }, gLines));
+  for (const s of STUBS) linePaths.push(Object.assign(el("path", { d: s.d, fill: "none", stroke: LINES[s.line].color, "stroke-dasharray": "2 4", "stroke-linecap": "round", "vector-effect": "non-scaling-stroke" }, gLines), { stub: true }));
+  const stubLabs = STUBS.map(s => { const t = el("text", { class: "ring-lab", "text-anchor": "middle" }, screen); t.textContent = "to " + s.to; return { s, t }; });
+
+  // walking rings around stations that have units
+  const RINGS = [400, 800, 1200];
+  const ringEls = [];
+  function ensureRings(id) {
+    if (ringEls.some(r => r.id === id)) return;
+    const s = ST[id];
+    const g = el("g", { opacity: 0 }, gRings);
+    RINGS.forEach((m, i) => el("circle", { cx: s.x, cy: s.y, r: m / 1000 * KM, fill: i === 0 ? "#FFFFFF66" : "none", stroke: "var(--faint)", "stroke-width": 1, "stroke-dasharray": i ? "3 4" : "none", "vector-effect": "non-scaling-stroke" }, g));
+    const labs = RINGS.map(m => { const t = el("text", { class: "ring-lab", opacity: 0 }, gRingLabs); t.textContent = `${m / WALK} min · ${dist(m)}`; return t; });
+    ringEls.push({ id, g, labs });
+  }
+
+  const leadEls = [];
+
+  // interchange connectors (screen space)
+  const linkEls = LINKS.map(([a, b]) => ({ a: ST[a], b: ST[b], n: el("line", { stroke: "var(--ink)", "stroke-width": 9, "stroke-linecap": "round" }, gLinks), m: el("line", { stroke: "var(--surface)", "stroke-width": 5.5, "stroke-linecap": "round" }, gLinks) }));
+
+  // stations
+  const lab = (t, s) => {
+    const lines = s.name.length > 13 && s.name.includes(" ") ? splitName(s.name) : [s.name];
+    lines.forEach((ln, i) => { const ts = el("tspan", { x: 0, dy: i ? "1.15em" : 0 }, t); ts.textContent = ln; });
+    return lines.length;
+  };
+  function splitName(n) {
+    const w = n.split(" "); let best = [n], bd = 1e9;
+    for (let i = 1; i < w.length; i++) { const a = w.slice(0, i).join(" "), b = w.slice(i).join(" "), d = Math.abs(a.length - b.length); if (d < bd) { bd = d; best = [a, b]; } }
+    return best;
+  }
+  const stEls = S.map(s => {
+    const g = el("g", { class: "hit", "data-st": s.id, tabindex: 0, role: "button", "aria-label": s.name }, gStations);
+    const multi = s.lines.length > 1;
+    const dot = el("circle", { r: multi ? 6.5 : 4.6, fill: "var(--surface)", stroke: multi ? "var(--ink)" : LINES[lineOf(s)].color, "stroke-width": multi ? 2.4 : 2.2 }, g);
+    el("circle", { r: 14, fill: "transparent" }, g); // tap target
+    const t = el("text", { class: "st-lab" }, g);
+    const n = lab(t, s);
+    placeLabel(t, s.pos, n, multi ? 11 : 9);
+    const badge = el("g", { opacity: 0 }, g);
+    el("circle", { r: 14, fill: "var(--bg)" }, badge);
+    el("circle", { r: 12, fill: "var(--ink)" }, badge);
+    const bt = el("text", { class: "badge-num", "text-anchor": "middle", "dominant-baseline": "central" }, badge);
+    badge.num = bt;
+    return { s, g, dot, t, badge, nLines: n };
+  });
+  function placeLabel(t, pos, n, off) {
+    const lh = 12, h = (n - 1) * lh;
+    const P = {
+      r:  [off, 3.5 - h / 2, "start"], l: [-off, 3.5 - h / 2, "end"],
+      t:  [0, -off - 1 - h, "middle"], b: [0, off + 9, "middle"],
+      tl: [-off + 2, -off + 1 - h, "end"], tr: [off - 2, -off + 1 - h, "start"],
+      bl: [-off + 2, off + 9, "end"], br: [off - 2, off + 9, "start"],
+    }[pos];
+    t.setAttribute("text-anchor", P[2]);
+    t.setAttribute("transform", `translate(${P[0]} ${P[1]})`);
+    t.dataset.pos = pos;
+  }
+
+  const pinEls = [];
+  const callouts = $("#callouts");
+  const coEls = [];
+  const STATUS = { ok: ["ok", "Available"], view: ["view", "Viewing"], pend: ["pend", "Pending"], rej: ["rej", "Rejected"] };
+  const statusPill = (u, compact) => {
+    const [cls, label] = STATUS[u.status] || STATUS.ok;
+    const style = compact ? ' style="height:20px;padding:0 8px;font-size:11px"' : "";
+    return `<span class="pill ${cls}"${style}><i></i>${label}</span>`;
+  };
+  const trio = u => `<span class="trio">${FAC.map(f => `<i class="${u.fac[f] ? "" : "no"}" title="${FNAME[f]}${u.fac[f] ? "" : ": none"}"><svg><use href="#i-${f}"/></svg></i>`).join("")}</span>`;
+  function placeUnit(u) {
+    const a = (u.brg - 90) * Math.PI / 180, r = u.m / 1000 * KM, s = ST[u.st];
+    u.x = s.x + Math.cos(a) * r; u.y = s.y + Math.sin(a) * r;
+    u.walk = Math.max(1, Math.round(u.m / WALK));
+    if (!u.type) u.type = "condo";
+  }
+  function makeLead(u) {
+    return el("line", { x1: ST[u.st].x, y1: ST[u.st].y, x2: u.x, y2: u.y, stroke: "#B9C0B8", "stroke-width": 1.2, "vector-effect": "non-scaling-stroke", opacity: 0 }, gLeads);
+  }
+  function makePin(u) {
+    const g = el("g", { class: "hit", "data-u": u.id, opacity: 0 }, gPins);
+    el("circle", { r: 16, fill: "transparent" }, g);
+    el("circle", { r: 7, fill: "var(--surface)" }, g);
+    el("circle", { r: 5.5, fill: "var(--ink)" }, g);
+    g.sel = el("circle", { r: 16, fill: "none", stroke: "var(--ink)", "stroke-width": 1.5, opacity: 0 }, g);
+    return { u, g };
+  }
+  function calloutInner(u) {
+    return `<b>${esc(u.name)}</b><div class="meta"><span>${dist(u.m)} · ${u.walk} min</span><em>฿${baht(u.price / 1000)}k</em></div><div class="row">${statusPill(u, true)}</div>`;
+  }
+  function makeCallout(u) {
+    const d = document.createElement("div");
+    d.className = "callout";
+    d.dataset.u = u.id;
+    d.innerHTML = calloutInner(u);
+    callouts.appendChild(d);
+    return { u, d, w: 168, h: 0 };
+  }
+  function mountUnit(u) {
+    placeUnit(u);
+    ensureRings(u.st);
+    leadEls.push(makeLead(u));
+    pinEls.push(makePin(u));
+    coEls.push(makeCallout(u));
+  }
+  U.forEach(mountUnit);
+
+  /* ---------------- camera ---------------- */
+  const stage = $("#stage");
+  let W = 0, H = 0, k0 = 1;
+  const cam = { k: 1, tx: 0, ty: 0 };
+  const desk = matchMedia("(min-width: 960px)");
+  const app = $("#app");
+  const BOUNDS = { x0: 20, y0: 140, x1: 740, y1: 720 };
+
+  function measure() {
+    const r = stage.getBoundingClientRect();
+    W = r.width; H = r.height;
+    // home view frames Sukhumvit, Silom and the eastern loop in whatever space the panel leaves
+    k0 = desk.matches ? Math.min((W - 440) / 470, (H - 80) / 560) : Math.min(W / 430, (H - 330) / 470);
+    k0 = Math.max(k0, .7);
+    coEls.forEach(c => c.h = c.d.offsetHeight || 64);
+  }
+  function vis() {
+    if (desk.matches) {
+      const top = $("#chrome").getBoundingClientRect().bottom - stage.getBoundingClientRect().top + 8;
+      return { l: app.classList.contains("collapsed") ? 16 : 440, t: Math.max(16, top), r: W, b: H };
+    }
+    const top = $("#chrome").getBoundingClientRect().bottom - stage.getBoundingClientRect().top + 8;
+    return { l: 0, t: top, r: W, b: H - sheetH() };
+  }
+  const visCenter = () => { const v = vis(); return { x: (v.l + v.r) / 2, y: (v.t + v.b) / 2 }; };
+  function home(animate = true) {
+    const vc = visCenter();
+    flyTo(k0, 520, 420, vc.x, vc.y, animate);
+  }
+  function setCam(k, tx, ty) {
+    k = clamp(k, k0 * 0.42, k0 * 10);
+    // keep some of the network on screen
+    tx = clamp(tx, W * 0.5 - BOUNDS.x1 * k, W * 0.5 - BOUNDS.x0 * k);
+    ty = clamp(ty, H * 0.5 - BOUNDS.y1 * k, H * 0.5 - BOUNDS.y0 * k);
+    cam.k = k; cam.tx = tx; cam.ty = ty;
+    draw();
+  }
+  let anim = null;
+  function flyTo(k1, wx, wy, sx, sy, animate = true) {
+    cancelAnimationFrame(anim);
+    const k0_ = cam.k, c0 = { x: (sx - cam.tx) / cam.k, y: (sy - cam.ty) / cam.k };
+    const dur = animate && !reduceMotion && !document.hidden ? 720 : 0, t0 = performance.now();
+    const step = now => {
+      const p = dur ? clamp((now - t0) / dur, 0, 1) : 1;
+      const e = p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+      const k = Math.exp(Math.log(k0_) + (Math.log(k1) - Math.log(k0_)) * e);
+      const cx = c0.x + (wx - c0.x) * e, cy = c0.y + (wy - c0.y) * e;
+      setCam(k, sx - cx * k, sy - cy * k);
+      if (p < 1) anim = requestAnimationFrame(step); else afterMove();
+    };
+    anim = requestAnimationFrame(step);
+  }
+  const toS = (x, y) => [x * cam.k + cam.tx, y * cam.k + cam.ty];
+
+  /* ---------------- draw ---------------- */
+  function draw() {
+    const z = cam.k / k0;
+    world.setAttribute("transform", `matrix(${cam.k} 0 0 ${cam.k} ${cam.tx} ${cam.ty})`);
+    const lw = 5 * clamp(Math.sqrt(z), .8, 2.1);
+    linePaths.forEach(p => p.setAttribute("stroke-width", p.stub ? lw * .6 : lw));
+    $(".river", svg).setAttribute("stroke-width", 14 * clamp(z, .6, 6));
+    { const [x, y] = toS(212, 402); riverLab.setAttribute("transform", `translate(${x} ${y}) rotate(-74)`); riverLab.setAttribute("opacity", ramp(z, .8, 1.1) * (1 - ramp(z, 3, 4))); }
+    stubLabs.forEach(({ s, t }) => { const [x, y] = toS(s.x, s.y); t.setAttribute("x", x); t.setAttribute("y", y); t.setAttribute("opacity", 1 - ramp(z, 2.5, 3.2)); });
+
+    const pinA = ramp(z, 1.7, 2.5);        // units appear
+    const pxKm = cam.k * KM;
+    const coA = ramp(z, 2.6, 3.2) * ramp(pxKm, 95, 130);   // callouts need room: ~100 px per km
+    const focusId = mode.v === "overview" ? null : (mode.v === "station" || mode.v === "add" ? mode.id : U.find(u => u.id === mode.id).st);
+    let nearId = null;
+
+    linkEls.forEach(L => { const [ax, ay] = toS(L.a.x, L.a.y), [bx, by] = toS(L.b.x, L.b.y); for (const n of [L.n, L.m]) { n.setAttribute("x1", ax); n.setAttribute("y1", ay); n.setAttribute("x2", bx); n.setAttribute("y2", by); } });
+
+    for (const E of stEls) {
+      const { s, g, dot, t, badge } = E;
+      const [x, y] = toS(s.x, s.y);
+      g.setAttribute("transform", `translate(${x} ${y})`);
+      const live = unitsAt(s.id).filter(matches);
+      const has = live.length > 0;
+      const focus = s.id === focusId && z > 2.2;
+      // empty stations fade; their names fade out further when zoomed far out
+      const dimDot = .32;
+      const dimLab = has ? 1 : (s.lines.length > 1 ? .7 : .5 * ramp(cam.k, .98, 1.12));
+      dot.setAttribute("opacity", has ? 0 : dimDot);
+      if (!has) {
+        dot.setAttribute("r", (s.lines.length > 1 ? 6.5 : 4.6) * (focus ? 1.8 : 1));
+        dot.setAttribute("fill", focus ? LINES[lineOf(s)].color : "var(--surface)");
+      }
+      t.setAttribute("opacity", dimLab);
+      t.classList.toggle("hot", has && !focus);
+      const fpos = focus ? freeSide(s) : null;
+      const plainOff = has ? 26 : (s.lines.length > 1 ? 11 : 9);
+      if (focus !== t.classList.contains("focus") || (focus && t.dataset.pos !== fpos)) {
+        t.classList.toggle("focus", focus);
+        const off = focus ? 30 : plainOff;
+        placeLabel(t, focus ? fpos : s.pos, focus ? 1 : E.nLines, off);
+        t.replaceChildren(); if (focus) { const ts = el("tspan", { x: 0 }, t); ts.textContent = s.name; } else lab(t, s);
+        E.off = off;
+      } else if (!focus && E.off !== plainOff) {
+        E.off = plainOff;
+        placeLabel(t, s.pos, E.nLines, plainOff);
+      }
+      badge.setAttribute("opacity", has ? 1 : 0);
+      badge.num.textContent = String(live.length);
+    }
+
+    if (!focusId) { const vc = visCenter(); let bd = 1e9; for (const id of activeIds()) { const [x, y] = toS(ST[id].x, ST[id].y), d = Math.hypot(x - vc.x, y - vc.y); if (d < bd) { bd = d; nearId = id; } } }
+    ringEls.forEach(R => {
+      const isF = R.id === focusId || (!focusId && R.id === nearId);
+      const a = pinA * (isF ? 1 : .22);
+      R.g.setAttribute("opacity", a);
+      const s = ST[R.id];
+      R.labs.forEach((t, i) => {
+        const r = RINGS[i] / 1000 * KM * cam.k, [x, y] = toS(s.x, s.y);
+        t.setAttribute("x", x + r * .72 + 3); t.setAttribute("y", y - r * .72 - 3);
+        t.setAttribute("opacity", isF && r > 40 ? a * ramp(z, 2.6, 3.4) : 0);
+      });
+    });
+
+    U.forEach((u, i) => {
+      const ok = matches(u);
+      const a = pinA * (ok ? 1 : .35);
+      leadEls[i].setAttribute("opacity", a);
+      const [x, y] = toS(u.x, u.y);
+      const P = pinEls[i];
+      P.g.setAttribute("transform", `translate(${x} ${y})`);
+      P.g.setAttribute("opacity", a);
+      P.g.style.pointerEvents = a > .3 ? "auto" : "none";
+      P.g.sel.setAttribute("opacity", selUnit === u.id || hoverUnit === u.id ? 1 : 0);
+    });
+    layoutCallouts(coA, focusId || nearId);
+  }
+
+  // the focused station's name goes on the side with the fewest unit pins (and away from the line)
+  function freeSide(s) {
+    const dirs = { b: [0, 1], t: [0, -1], r: [1, 0], l: [-1, 0] };
+    let best = "b", bs = 1e9;
+    for (const k in dirs) {
+      const [dx, dy] = dirs[k];
+      let score = 0;
+      for (const u of unitsAt(s.id)) {
+        const ux = (u.x - s.x) * cam.k, uy = (u.y - s.y) * cam.k, d = Math.hypot(ux, uy);
+        if (d < 110) score += Math.max(0, (ux * dx + uy * dy) / (d || 1)) * (110 - d);
+      }
+      if (k === "b" || k === "t") score -= 1;   // a tie prefers above or below
+      if (score < bs) { bs = score; best = k; }
+    }
+    return best;
+  }
+
+  // callouts sit beside their pin, pushed outward from the station, kept on screen and off each other
+  function layoutCallouts(alpha, onlySt) {
+    const boxes = [];
+    const v = vis(), bottom = v.b - 8, TOP = v.t + 4, L = v.l + 8;
+    const pill = $("#backPill");
+    if (pill && !pill.classList.contains("off")) {
+      const pr = pill.getBoundingClientRect(), sr = stage.getBoundingClientRect();
+      boxes.push({ x: pr.left - sr.left - 6, y: pr.top - sr.top - 6, w: pr.width + 12, h: pr.height + 12 });
+    }
+    for (const E of stEls) {
+      const [x, y] = toS(E.s.x, E.s.y);
+      if (x < L - 30 || x > W + 30 || y < TOP - 30 || y > bottom + 30) continue;
+      const hot = Number(E.badge.getAttribute("opacity")) > 0.2;
+      const r = hot ? 20 : 12;
+      boxes.push({ x: x - r, y: y - r, w: r * 2, h: r * 2 });
+    }
+    const focusSt = stEls.find(E => E.t.classList.contains("focus"));
+    if (focusSt) {
+      const [x, y] = toS(focusSt.s.x, focusSt.s.y), p = focusSt.t.dataset.pos, w = focusSt.s.name.length * 9 + 10;
+      const box = { b: [x - w / 2, y + 10], t: [x - w / 2, y - 44], r: [x + 14, y - 14], l: [x - w - 14, y - 14] }[p] || [x - w / 2, y + 10];
+      boxes.push({ x: box[0], y: box[1], w, h: 30 }, { x: x - 16, y: y - 16, w: 32, h: 32 });
+    }
+    const list = coEls.map(c => {
+      const u = c.u, [px, py] = toS(u.x, u.y), [sx, sy] = toS(ST[u.st].x, ST[u.st].y);
+      const right = px >= sx, below = py >= sy - 4;
+      let x = right ? px + 14 : px - 14 - c.w;
+      let y = below ? py - 6 : py - c.h + 6;
+      return { c, px, py, x, y, w: c.w, h: c.h || 64, vis: alpha > 0 && u.st === onlySt && px > v.l - 40 && px < W + 40 && py > v.t - 20 && py < bottom + 20 };
+    }).filter(b => { if (!b.vis) { b.c.d.style.opacity = 0; b.c.d.style.pointerEvents = "none"; } return b.vis; });
+    list.sort((a, b) => a.py - b.py);
+    for (const b of list) {
+      b.x = clamp(b.x, L, W - b.w - 8);
+      b.y = clamp(b.y, TOP, Math.max(TOP, bottom - b.h));
+      for (let pass = 0; pass < 6; pass++) {
+        let moved = false;
+        for (const o of boxes) {
+          if (b.x < o.x + o.w + 4 && b.x + b.w + 4 > o.x && b.y < o.y + o.h + 4 && b.y + b.h + 4 > o.y) {
+            const down = o.y + o.h + 6, up = o.y - b.h - 6;
+            b.y = (Math.abs(down - b.y) <= Math.abs(up - b.y) && down + b.h < bottom) || up < TOP ? down : up;
+            moved = true;
+          }
+        }
+        if (!moved) break;
+      }
+      boxes.push(b);
+      const ok = matches(b.c.u);
+      b.c.d.classList.toggle("miss", !ok);
+      b.c.d.classList.toggle("sel", selUnit === b.c.u.id);
+      b.c.d.classList.toggle("hov", hoverUnit === b.c.u.id);
+      b.c.d.style.opacity = alpha * (ok ? 1 : .45);
+      b.c.d.style.pointerEvents = alpha > .5 ? "auto" : "none";
+      b.c.d.style.transform = `translate(${b.x}px, ${b.y}px)`;
+    }
+  }
+
+  /* ---------------- gestures ---------------- */
+  const ptrs = new Map();
+  let gesture = null;
+  stage.addEventListener("pointerdown", e => {
+    if (e.button !== 0) return;
+    cancelAnimationFrame(anim);
+    try { stage.setPointerCapture(e.pointerId); } catch {}
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const r = stage.getBoundingClientRect();
+    gesture = { start: performance.now(), moved: 0, target: e.target, k: cam.k, tx: cam.tx, ty: cam.ty, r, pts: [...ptrs.values()].map(p => ({ ...p })) };
+  });
+  stage.addEventListener("pointermove", e => {
+    if (!ptrs.has(e.pointerId) || !gesture) return;
+    const prev = ptrs.get(e.pointerId);
+    gesture.moved += Math.hypot(e.clientX - prev.x, e.clientY - prev.y);
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const pts = [...ptrs.values()], r = gesture.r;
+    if (gesture.moved > 4) stage.classList.add("dragging");
+    if (pts.length === 1 && gesture.pts.length === 1) {
+      const p0 = gesture.pts[0];
+      setCam(gesture.k, gesture.tx + pts[0].x - p0.x, gesture.ty + pts[0].y - p0.y);
+    } else if (pts.length >= 2) {
+      if (gesture.pts.length < 2) gesture = { ...gesture, k: cam.k, tx: cam.tx, ty: cam.ty, pts: pts.map(p => ({ ...p })) };
+      const [a0, b0] = gesture.pts, [a, b] = pts;
+      const d0 = Math.hypot(a0.x - b0.x, a0.y - b0.y), d1 = Math.hypot(a.x - b.x, a.y - b.y);
+      const m0 = { x: (a0.x + b0.x) / 2 - r.left, y: (a0.y + b0.y) / 2 - r.top }, m1 = { x: (a.x + b.x) / 2 - r.left, y: (a.y + b.y) / 2 - r.top };
+      const k = clamp(gesture.k * d1 / d0, k0 * .42, k0 * 10);
+      const wx = (m0.x - gesture.tx) / gesture.k, wy = (m0.y - gesture.ty) / gesture.k;
+      setCam(k, m1.x - wx * k, m1.y - wy * k);
+    }
+  });
+  const endPtr = e => {
+    if (!ptrs.has(e.pointerId)) return;
+    ptrs.delete(e.pointerId);
+    if (ptrs.size) return;
+    stage.classList.remove("dragging");
+    const g = gesture; gesture = null;
+    if (!g) return;
+    if (g.moved < 6 && performance.now() - g.start < 500) tap(g.target);
+    else afterMove();
+  };
+  stage.addEventListener("pointerup", endPtr);
+  stage.addEventListener("pointercancel", endPtr);
+  stage.addEventListener("wheel", e => {
+    e.preventDefault();
+    cancelAnimationFrame(anim);
+    const r = stage.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+    const f = Math.exp(-e.deltaY * (e.ctrlKey ? .01 : .0022));
+    const k = clamp(cam.k * f, k0 * .42, k0 * 10);
+    const wx = (mx - cam.tx) / cam.k, wy = (my - cam.ty) / cam.k;
+    setCam(k, mx - wx * k, my - wy * k);
+    clearTimeout(stage.wt); stage.wt = setTimeout(afterMove, 220);
+  }, { passive: false });
+  stage.addEventListener("dblclick", e => {
+    const r = stage.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+    flyTo(cam.k * 2, (mx - cam.tx) / cam.k, (my - cam.ty) / cam.k, mx, my);
+  });
+  stage.addEventListener("keydown", e => {
+    const t = e.target.closest("[data-st]");
+    if (t && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openStation(t.dataset.st); }
+  });
+
+  function tap(target) {
+    const u = target.closest && target.closest("[data-u]");
+    if (u) return openUnit(u.dataset.u);
+    const s = target.closest && target.closest("[data-st]");
+    if (s) return openStation(s.dataset.st);
+  }
+
+  // After a free pan or pinch, the sheet follows the nearest station with units.
+  function afterMove() {
+    const z = cam.k / k0;
+    $("#backPill").classList.toggle("off", z < 1.5 && mode.v === "overview");
+    if (mode.v === "unit" || mode.v === "add" || mode.v === "edit") return;
+    if (z < 1.5) { if (mode.v !== "overview") { mode = { v: "overview" }; render(); setSheet("peek"); } return; }
+    if (z < 2.2) return;
+    const vc = visCenter();
+    let best = null, bd = 1e9;
+    for (const id of activeIds()) { const [x, y] = toS(ST[id].x, ST[id].y), d = Math.hypot(x - vc.x, y - vc.y); if (d < bd) { bd = d; best = id; } }
+    if (best && bd < Math.min(W, H) * .45 && !(mode.v === "station" && mode.id === best)) {
+      mode = { v: "station", id: best }; render(); setSheet(desk.matches ? "half" : "peek"); draw();
+    }
+  }
+
+  /* ---------------- navigation ---------------- */
+  function focusStation(id, animate = true) {
+    const s = ST[id], us = unitsAt(id);
+    const far = Math.max(600, ...us.map(u => u.m)) / 1000 * KM;
+    const v = vis(), vc = visCenter(), room = Math.min((v.r - v.l) / 2 - (desk.matches ? 110 : 34), (v.b - v.t) / 2 - 30);
+    const k = clamp(room / far, k0 * 3.4, k0 * 9);
+    flyTo(k, s.x, s.y, vc.x, vc.y, animate);
+  }
+  function openStation(id) {
+    selUnit = null;
+    mode = { v: "station", id };
+    render();
+    setSheet(desk.matches ? "half" : "peek");   // phones keep the map big; swipe up for the list
+    focusStation(id);
+    $("#backPill").classList.remove("off");
+    if (!unitsAt(id).length) toast(`Nothing on file near ${ST[id].name} yet`);
+  }
+  function openAdd(id) {
+    mode = { v: "add", id };
+    render();
+    setSheet("full");
+    $("#backPill").classList.remove("off");
+    draw();
+  }
+  function openEdit(id) {
+    if (!U.some(x => x.id === id)) return;
+    selUnit = id;
+    mode = { v: "edit", id };
+    render();
+    setSheet("full");
+    $("#backPill").classList.remove("off");
+    draw();
+  }
+  function openUnit(id) {
+    const u = U.find(x => x.id === id);
+    const from = mode;
+    selUnit = id;
+    mode = { v: "unit", id };
+    render();
+    setSheet("full");
+    if (desk.matches && (cam.k / k0 < 2.5 || !(from.v === "station" && from.id === u.st))) focusStation(u.st);
+    draw();
+    $("#backPill").classList.remove("off");
+  }
+  function goOverview() {
+    selUnit = null;
+    mode = { v: "overview" };
+    render();
+    setSheet("peek");
+    home();
+    $("#backPill").classList.add("off");
+  }
+  $("#backPill").addEventListener("click", goOverview);
+  const zoomBy = f => { const vc = visCenter(); flyTo(cam.k * f, (vc.x - cam.tx) / cam.k, (vc.y - cam.ty) / cam.k, vc.x, vc.y); };
+  $("#zin").addEventListener("click", () => zoomBy(1.8));
+  $("#zout").addEventListener("click", () => zoomBy(1 / 1.8));
+
+  let tt;
+  function toast(msg) {
+    const t = $("#toast"); t.textContent = msg; t.hidden = false; t.style.opacity = 1;
+    clearTimeout(tt); tt = setTimeout(() => { t.style.opacity = 0; setTimeout(() => t.hidden = true, 260); }, 2200);
+  }
+
+  /* ---------------- filters ---------------- */
+  function syncPrice() {
+    const pct = ((maxPrice - PRICE_MIN) / (PRICE_MAX - PRICE_MIN)) * 100;
+    const slider = $("#price");
+    slider.value = String(maxPrice);
+    slider.style.setProperty("--p", pct + "%");
+    $("#priceLabel").textContent = maxPrice >= PRICE_MAX ? "Any" : "≤ ฿" + baht(maxPrice);
+    $("#filterDot").hidden = !(filters.size || typeFilters.size || maxPrice < PRICE_MAX);
+  }
+  function applyFilters() {
+    $("#filterDot").hidden = !(filters.size || typeFilters.size || maxPrice < PRICE_MAX);
+    render({ keep: true });
+    draw();
+  }
+  document.querySelectorAll(".chip[data-f]").forEach(b => b.addEventListener("click", () => {
+    const f = b.dataset.f;
+    filters.has(f) ? filters.delete(f) : filters.add(f);
+    b.setAttribute("aria-pressed", String(filters.has(f)));
+    applyFilters();
+  }));
+  document.querySelectorAll(".chip[data-type]").forEach(b => b.addEventListener("click", () => {
+    const t = b.dataset.type;
+    typeFilters.has(t) ? typeFilters.delete(t) : typeFilters.add(t);
+    if (typeFilters.size === 2) typeFilters.clear();
+    document.querySelectorAll(".chip[data-type]").forEach(x => x.setAttribute("aria-pressed", String(typeFilters.has(x.dataset.type))));
+    applyFilters();
+  }));
+  $("#price").addEventListener("input", () => { maxPrice = Number($("#price").value); syncPrice(); applyFilters(); });
+  $("#moreFilters").addEventListener("click", () => { if (desk.matches) return; moreOpen = !moreOpen; syncChrome(); draw(); });
+
+  /* ---------------- bottom sheet ---------------- */
+  const sheet = $("#sheet"), body = $("#sheetBody");
+  let sheetState = "peek";
+  const appH = () => $("#app").getBoundingClientRect().height;
+  const SNAP = { peek: () => mode.v === "overview" ? 214 : 132, half: () => Math.round(appH() * .46), full: () => appH() - 8 };
+  const sheetH = () => desk.matches ? 0 : SNAP[sheetState]();
+  function setSheet(st) {
+    sheetState = st;
+    if (desk.matches) { ["fabs", "backPill"].forEach(i => $("#" + i).style.bottom = ""); return; }
+    sheet.style.setProperty("--sheet-h", sheetH() + "px");
+    const b = sheetH() + 12;
+    $("#fabs").style.bottom = b + "px";
+    $("#backPill").style.bottom = b + "px";
+    $("#fabs").style.opacity = st === "full" ? 0 : 1;
+  }
+  // drag the handle (or the top of the sheet) between peek, half and full
+  {
+    let d = null;
+    const startDrag = e => {
+      if (desk.matches) return;
+      if (e.target.closest("button, a, input, textarea, .shots, .st-cards")) return;
+      if (body.scrollTop > 0 && !e.target.closest(".grab")) return;
+      d = { y: e.clientY, h: sheetH(), id: e.pointerId, moved: 0 };
+      sheet.classList.add("dragging");
+    };
+    const move = e => {
+      if (!d || e.pointerId !== d.id) return;
+      d.moved = d.y - e.clientY;
+      if (Math.abs(d.moved) > 4 && !d.cap) { try { sheet.setPointerCapture(e.pointerId); } catch {} d.cap = true; }
+      const h = clamp(d.h + d.moved, 120, SNAP.full());
+      sheet.style.setProperty("--sheet-h", h + "px");
+    };
+    const end = e => {
+      if (!d || e.pointerId !== d.id) return;
+      sheet.classList.remove("dragging");
+      const h = d.h + d.moved, opts = Object.keys(SNAP);
+      let best = sheetState;
+      if (Math.abs(d.moved) > 4) best = opts.reduce((a, b) => Math.abs(SNAP[b]() - h) < Math.abs(SNAP[a]() - h) ? b : a);
+      else if (e.target.closest(".grab")) best = sheetState === "peek" ? "half" : sheetState === "half" ? "full" : "half";
+      d = null;
+      setSheet(best);
+    };
+    sheet.addEventListener("pointerdown", startDrag);
+    sheet.addEventListener("pointermove", move);
+    sheet.addEventListener("pointerup", end);
+    sheet.addEventListener("pointercancel", end);
+  }
+
+  /* ---------------- sheet content ---------------- */
+  function render(opts = {}) {
+    const keep = opts.keep ? body.scrollTop : 0;
+    if (mode.v === "overview") body.innerHTML = renderOverview();
+    else if (mode.v === "station") body.innerHTML = renderStation(mode.id);
+    else if (mode.v === "add") body.innerHTML = renderAdd(mode.id);
+    else if (mode.v === "edit") body.innerHTML = renderEdit(mode.id);
+    else body.innerHTML = renderUnit(mode.id);
+    wireSheet();
+    body.scrollTop = keep;
+  }
+  function filterBlurb() {
+    const parts = [];
+    if (typeFilters.size === 1) parts.push(TYPE_NAME[[...typeFilters][0]] + " only");
+    if (maxPrice < PRICE_MAX) parts.push("rent ≤ ฿" + baht(maxPrice));
+    if (filters.size) parts.push("with " + [...filters].map(f => FNAME[f].toLowerCase()).join(", "));
+    return parts.length ? parts.join(", ") + ". " : "";
+  }
+
+  function renderOverview() {
+    const rows = activeIds().map(id => ({ s: ST[id], all: unitsAt(id), live: unitsAt(id).filter(matches) }))
+      .sort((a, b) => b.live.length - a.live.length || b.all.length - a.all.length);
+    const total = U.filter(matches).length, nSt = rows.filter(r => r.live.length).length;
+    return `
+      <div class="brandrow"><strong>Condos</strong><span class="eyebrow">Bangkok</span></div>
+      <div class="ov-head"><div>
+        <h2 class="h-serif"><span class="num">${total}</span> ${total === 1 ? "unit" : "units"} near <span class="num">${nSt}</span> ${nSt === 1 ? "station" : "stations"}</h2>
+        ${filterBlurb().trim() ? `<p>${filterBlurb().trim()}</p>` : ""}
+      </div></div>
+      <div class="st-cards">${rows.map(r => {
+        const from = r.live.map(u => u.price);
+        return `<button class="st-card ${r.live.length ? "" : "zero"}" data-open-st="${r.s.id}">
+          <span class="codes">${lineBadges(r.s)}</span>
+          <span class="nm">${esc(r.s.name)}</span>
+          <span class="ct"><b>${r.live.length}</b>${filtering() ? ` of ${r.all.length}` : ""} ${r.all.length === 1 && !filtering() ? "unit" : "units"}${from.length ? ` · from ฿${baht(Math.min(...from) / 1000)}k` : ""}</span>
+        </button>`; }).join("")}</div>
+      <div class="lines-key">${Object.values(LINES).map(l => `<span><i style="background:${l.color}"></i>${l.name}</span>`).join("")}</div>`;
+  }
+
+  function renderStation(id) {
+    const s = ST[id], all = unitsAt(id);
+    const scoped = all.filter(u => typeOk(u) && priceOk(u));
+    const ok = scoped.filter(facilityOk), miss = scoped.filter(u => !facilityOk(u));
+    const card = u => `<li><button class="ucard ${facilityOk(u) ? "" : "miss"}" data-open-u="${u.id}">
+        <span class="thumb">${photo(u, "living")}</span>
+        <span class="t"><b>${esc(u.name)}</b><small>${dist(u.m)} · ${u.walk} min · ${typeSvg(u.type, "type-ico")}${TYPE_NAME[u.type] || "Condominium"}${facilityOk(u) ? "" : ` · No ${missing(u).map(f => FNAME[f].toLowerCase()).join(", ")}`}</small></span>
+        <span class="p">฿${baht(u.price)}<small>/mo</small></span>
+        <span class="f">${trio(u)}${statusPill(u)}</span>
+      </button></li>`;
+    const nearest = () => {
+      let best = null, bd = 1e9;
+      for (const a of activeIds()) { const d = Math.hypot(ST[a].x - s.x, ST[a].y - s.y); if (a !== s.id && d < bd) { bd = d; best = a; } }
+      return best ? ST[best] : null;
+    };
+    const near = nearest();
+    return `
+      <div class="stn-head">
+        <div style="flex:1;min-width:0">
+          <div class="codes">${lineBadges(s)}</div>
+          <h2 class="h-serif" style="margin-top:8px">${esc(s.name)}</h2>
+          <p>${all.length ? `${scoped.length} ${scoped.length === 1 ? "unit" : "units"} within ${dist(Math.max(...all.map(u => u.m)))}${filtering() ? ` · ${ok.length} match` : ""}` : "Nothing on file here yet."}</p>
+        </div>
+      </div>
+      <button class="btn ghost" data-add="${s.id}" style="margin-top:14px">Add a unit</button>
+      ${scoped.length ? `
+        <div class="seg"><span>Nearest first</span></div>
+        <ul class="units">${ok.map(card).join("")}</ul>
+        ${miss.length ? `<div class="seg" style="margin-top:18px"><span>Missing a facility</span></div><ul class="units">${miss.map(card).join("")}</ul>` : ""}
+      ` : `<div class="empty"><p>${all.length ? "Nothing here matches the filters." : "Add a unit from an agent chat and it will appear on the map here."}</p>
+          ${near ? `<button class="btn ghost" data-open-st="${near.id}">Nearest with units: ${esc(near.name)}</button>` : ""}</div>`}`;
+  }
+
+  function typePick(current) {
+    const opt = (id, name) => `<button type="button" data-pick="${id}" aria-pressed="${current === id}"><svg><use href="#i-${TYPE_ICON[id]}"/></svg><b>${name}</b></button>`;
+    return `<div class="type-pick" role="radiogroup" aria-label="Type">${opt("condo", "Condominium")}${opt("townhouse", "Townhouse")}</div>`;
+  }
+  function facilityEditor(u) {
+    const on = f => !!(u && u.fac[f]);
+    return `
+      <div class="add-field">
+        <span class="f-label">Facilities</span>
+        <div class="chips split" id="facToggles">
+          ${FAC.map(f => `<button type="button" class="chip" data-fac="${f}" aria-pressed="${on(f)}"><svg><use href="#i-${f}"/></svg>${FNAME[f]}</button>`).join("")}
+        </div>
+        <div class="extra-add">
+          <input id="extraName" type="text" placeholder="Another facility" aria-label="Another facility" autocomplete="off">
+          <button type="button" class="btn ghost" id="extraAdd">Add</button>
+        </div>
+        <div class="extras" id="extraList">${(u ? u.extras : []).map(x => `<span data-extra="${esc(x)}">${esc(x)} <button type="button" aria-label="Remove ${esc(x)}">×</button></span>`).join("")}</div>
+      </div>`;
+  }
+  function unitFields(u) {
+    const v = value => u ? ` value="${esc(value)}"` : "";
+    const agent = u ? u.agent : { n: "", co: "", ph: "", line: "" };
+    return `
+      <label>Building / Unit<input name="name" type="text" required${v(u ? u.name : "")} autocomplete="off"></label>
+      <div class="add-field"><span class="f-label">Type</span>${typePick(u ? u.type : null)}</div>
+      <label>Rent<input name="price" type="number" inputmode="numeric" min="1000" step="500" required${v(u ? u.price : "")}></label>
+      <label>Walk, m<input name="m" type="number" inputmode="numeric" min="30" step="10" required${v(u ? u.m : "")}></label>
+      <div class="spec-edit">
+        <label>Size, m²<input name="size" type="number" inputmode="numeric" min="10" step="1"${v(u ? u.size : "")}></label>
+        <label>Beds<input name="beds" type="number" inputmode="numeric" min="0" step="1"${v(u ? u.beds : "")}></label>
+        <label>Floor<input name="floor" type="number" inputmode="numeric" min="1" step="1"${v(u ? u.floor : "")}></label>
+      </div>
+      ${facilityEditor(u)}
+      <div class="add-field">
+        <span class="f-label">Agent</span>
+        <label>Name<input name="agentName" type="text"${v(agent.n)} autocomplete="name"></label>
+        <label>Company<input name="agentCo" type="text"${v(agent.co)} autocomplete="organization"></label>
+        <label>Phone<input name="agentPh" type="tel"${v(agent.ph)} autocomplete="tel"></label>
+        <label>LINE<input name="agentLine" type="text"${v(agent.line)} autocomplete="off"></label>
+      </div>`;
+  }
+  function renderAdd(st) {
+    const s = ST[st];
+    return `
+      <div class="dossier-bar">
+        <button class="icon-btn" data-back-st="${st}" aria-label="Back to ${esc(s.name)}"><svg><use href="#i-back"/></svg></button>
+        <div class="crumb">Add a unit<small>${esc(s.name)}</small></div>
+      </div>
+      <form class="add-form" id="addform">
+        ${unitFields(null)}
+        <button class="btn" type="submit" id="addSave" disabled>Save</button>
+      </form>`;
+  }
+
+  function renderEdit(id) {
+    const u = U.find(x => x.id === id);
+    return `
+      <div class="dossier-bar">
+        <button class="icon-btn" data-back-u="${u.id}" aria-label="Back to ${esc(u.name)}"><svg><use href="#i-back"/></svg></button>
+        <div class="crumb">Edit unit<small>${esc(u.name)}</small></div>
+      </div>
+      <form class="add-form" id="editform">
+        ${unitFields(u)}
+        <button class="btn" type="submit" id="editSave">Save</button>
+      </form>`;
+  }
+
+  function noteHTML(i, d, text, label) {
+    return `<li data-i="${i}">
+      <div class="note-top"><time datetime="${d}">${label || fmtDate(d)}</time>
+        <span class="note-tools">
+          <button type="button" class="icon-mini" data-note-edit aria-label="Edit note"><svg><use href="#i-pencil"/></svg></button>
+          <button type="button" class="icon-mini danger" data-note-del aria-label="Delete note"><svg><use href="#i-trash"/></svg></button>
+        </span>
+      </div>
+      <p>${esc(text)}</p>
+      <div class="note-ask" hidden>Delete this note? <button type="button" data-note-yes>Delete</button> <button type="button" data-note-no>Keep</button></div>
+    </li>`;
+  }
+  function renderUnit(id) {
+    const u = U.find(x => x.id === id), s = ST[u.st];
+    const kinds = ["living", "view", "facade"];
+    return `
+      <div class="dossier-bar">
+        <button class="icon-btn" data-back aria-label="Back to ${esc(s.name)}"><svg><use href="#i-back"/></svg></button>
+        <div class="crumb">${esc(s.name)}<small>${u.walk} min walk · ${dist(u.m)}</small></div>
+        <span style="margin-left:auto">${statusPill(u)}</span>
+      </div>
+      <div class="gallery">
+        <div class="shots" id="shots">${kinds.map(k => `<figure class="shot"><div class="art">${photo(u, k)}</div><figcaption>${{ living: "Living", view: "View", facade: "Facade" }[k]}</figcaption></figure>`).join("")}</div>
+        <div class="dots" id="dots">${kinds.map((_, i) => `<i class="${i ? "" : "on"}"></i>`).join("")}</div>
+      </div>
+      <h2 class="h-serif d-name">${esc(u.name)}</h2>
+      <p class="d-type">${typeSvg(u.type)}${TYPE_NAME[u.type] || "Condominium"}</p>
+      <p class="d-where"><span class="walk"><svg><use href="#i-walk"/></svg><b>${dist(u.m)}</b>&nbsp;· ${u.walk} min to ${esc(s.name)}</span>${lineBadges(s)}</p>
+      <div class="d-price"><div class="amt"><span class="cur">฿</span>${baht(u.price)}<small>/mo</small></div></div>
+      ${u.reason ? `<p class="status-note">${esc(u.reason)}</p>` : ""}
+      ${u.status === "pend" && u.note ? `<p class="status-note">${esc(u.note)}</p>` : ""}
+      ${u.status === "view" ? `<div class="viewing"><svg><use href="#i-cal"/></svg><span>Viewing booked · <b>${esc(u.when)}</b></span></div>` : ""}
+      <div class="specs"><div><b>${u.size} m²</b><span>Size</span></div><div><b>${u.beds} bed</b><span>Beds</span></div><div><b>${u.floor}</b><span>Floor</span></div></div>
+
+      <section class="dsec">
+        <h3>Facilities</h3>
+        <div class="musts">${FAC.map(f => `
+          <div class="must ${u.fac[f] ? "" : "no"}">
+            <svg><use href="#i-${f}"/></svg>
+            <b>${FNAME[f]}</b>
+            <svg class="mark"><use href="#i-${u.fac[f] ? "check" : "untick"}"/></svg>
+          </div>`).join("")}</div>
+        ${u.extras.length ? `<div class="extras">${u.extras.map(x => `<span>${esc(x)}</span>`).join("")}</div>` : ""}
+      </section>
+
+      <section class="dsec">
+        <h3>Notes <span>${u.notes.length} ${u.notes.length === 1 ? "entry" : "entries"}</span></h3>
+        <ol class="thread" id="thread">${u.notes.map(([d, t], i) => noteHTML(i, d, t)).join("")}</ol>
+        <form class="composer" id="composer">
+          <textarea id="note-${u.id}" rows="1" placeholder="Add a note" aria-label="Add a note"></textarea>
+          <button class="btn" type="submit" aria-label="Add note" disabled><svg><use href="#i-send"/></svg></button>
+        </form>
+      </section>
+
+      <section class="dsec">
+        <h3>Agent</h3>
+        <div class="agent" id="agentCard">
+          <button type="button" class="agent-toggle" aria-expanded="false" aria-controls="agentMore">
+            <span class="who"><span class="ini">${esc((u.agent.n || "?")[0])}</span><span><b>${esc(u.agent.n)}</b><small>${esc(u.agent.co)}</small></span></span>
+            <svg class="chev" aria-hidden="true"><use href="#i-back"/></svg>
+          </button>
+          <div id="agentMore" hidden>
+            <dl class="kv">
+              <dt>Phone</dt><dd>${esc(u.agent.ph)}</dd>
+              <span class="kv-acts">${u.agent.ph ? `<a class="copy" href="tel:${u.agent.ph.replace(/\s/g, "")}">Call</a>` : ""}<button class="copy" type="button" data-copy="${esc(u.agent.ph)}">Copy</button></span>
+              <dt>LINE</dt><dd>${esc(u.agent.line)}</dd>
+              <span class="kv-acts">${u.agent.line ? `<a class="copy" href="https://line.me/R/ti/p/~${encodeURIComponent(u.agent.line.replace(/^@/, ""))}" target="_blank" rel="noopener">LINE</a>` : ""}<button class="copy" type="button" data-copy="${esc(u.agent.line)}">Copy</button></span>
+            </dl>
+          </div>
+        </div>
+      </section>
+      <section class="dsec unit-actions">
+        <button class="btn ghost" type="button" data-edit>Edit unit</button>
+        <button class="btn ghost danger" type="button" data-ask-del>Delete unit</button>
+        <div class="confirm" id="delConfirm" hidden>
+          <p>Delete ${esc(u.name)}? It leaves the map.</p>
+          <div class="confirm-actions">
+            <button class="btn danger" type="button" data-del-yes>Delete</button>
+            <button class="btn ghost" type="button" data-del-no>Keep</button>
+          </div>
+        </div>
+      </section>`;
+  }
+
+  function deleteUnit(id) {
+    const i = U.findIndex(x => x.id === id);
+    if (i < 0) return;
+    const st = U[i].st;
+    leadEls[i].remove();
+    pinEls[i].g.remove();
+    coEls[i].d.remove();
+    U.splice(i, 1);
+    leadEls.splice(i, 1);
+    pinEls.splice(i, 1);
+    coEls.splice(i, 1);
+    selUnit = null;
+    openStation(st);
+  }
+
+  function readAgent(form) {
+    return {
+      n: form.agentName.value.trim() || "Agent",
+      co: form.agentCo.value.trim(),
+      ph: form.agentPh.value.trim(),
+      line: form.agentLine.value.trim(),
+    };
+  }
+  function readFacilities(form) {
+    const fac = {};
+    FAC.forEach(f => {
+      const on = form.querySelector(`[data-fac="${f}"]`).getAttribute("aria-pressed") === "true";
+      fac[f] = on ? "Yes" : null;
+    });
+    return { fac, extras: [...form.querySelectorAll("#extraList [data-extra]")].map(el => el.dataset.extra) };
+  }
+  function wireFacilities(form) {
+    form.querySelectorAll("[data-fac]").forEach(b => b.addEventListener("click", () => {
+      const on = b.getAttribute("aria-pressed") !== "true";
+      b.setAttribute("aria-pressed", String(on));
+    }));
+    const extraName = $("#extraName", form);
+    const extraList = $("#extraList", form);
+    extraList.querySelectorAll("button").forEach(b => b.addEventListener("click", () => b.parentElement.remove()));
+    const addExtra = () => {
+      const name = extraName.value.trim();
+      if (!name || [...extraList.querySelectorAll("[data-extra]")].some(el => el.dataset.extra === name)) return;
+      const span = document.createElement("span");
+      span.dataset.extra = name;
+      span.innerHTML = `${esc(name)} <button type="button" aria-label="Remove ${esc(name)}">×</button>`;
+      span.querySelector("button").addEventListener("click", () => span.remove());
+      extraList.appendChild(span);
+      extraName.value = "";
+    };
+    $("#extraAdd", form).addEventListener("click", addExtra);
+    extraName.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); addExtra(); } });
+  }
+
+  function wireSheet() {
+    body.querySelectorAll("[data-open-st]").forEach(b => b.addEventListener("click", () => openStation(b.dataset.openSt)));
+    body.querySelectorAll("[data-open-u]").forEach(b => b.addEventListener("click", () => openUnit(b.dataset.openU)));
+    body.querySelectorAll("[data-add]").forEach(b => b.addEventListener("click", () => openAdd(b.dataset.add)));
+    body.querySelectorAll("[data-back-st]").forEach(b => b.addEventListener("click", () => openStation(b.dataset.backSt)));
+    body.querySelectorAll("[data-back-u]").forEach(b => b.addEventListener("click", () => openUnit(b.dataset.backU)));
+    body.querySelectorAll("[data-edit]").forEach(b => b.addEventListener("click", () => openEdit(mode.id)));
+    const addForm = $("#addform", body);
+    const editForm = $("#editform", body);
+    const facForm = addForm || editForm;
+    if (facForm) wireFacilities(facForm);
+    if (addForm) {
+      let pick = null;
+      const save = $("#addSave", addForm);
+      const sync = () => { save.disabled = !pick || !addForm.name.value.trim() || !addForm.price.value || !addForm.m.value; };
+      addForm.querySelectorAll("[data-pick]").forEach(b => b.addEventListener("click", () => {
+        pick = b.dataset.pick;
+        addForm.querySelectorAll("[data-pick]").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+        sync();
+      }));
+      addForm.addEventListener("input", sync);
+      addForm.addEventListener("submit", e => {
+        e.preventDefault();
+        if (!pick) return;
+        const { fac, extras } = readFacilities(addForm);
+        const u = {
+          id: "u" + Date.now(), st: mode.id, name: addForm.name.value.trim(),
+          m: Number(addForm.m.value), brg: Math.round(Math.random() * 360),
+          status: "pend", type: pick, price: Number(addForm.price.value),
+          size: Number(addForm.size.value) || 30,
+          beds: addForm.beds.value === "" ? 1 : Number(addForm.beds.value),
+          floor: Number(addForm.floor.value) || 1,
+          fac, extras,
+          note: "Waiting on the agent to confirm.",
+          agent: readAgent(addForm),
+          tint: "#D7E0DC", notes: [["2026-10-19", "Added from an agent chat. Waiting to confirm details."]],
+        };
+        U.push(u);
+        mountUnit(u);
+        measure();
+        openUnit(u.id);
+      });
+    }
+    if (editForm) {
+      const u = U.find(x => x.id === mode.id);
+      let pick = u.type;
+      const save = $("#editSave", editForm);
+      const sync = () => { save.disabled = !pick || !editForm.name.value.trim() || !(Number(editForm.price.value) > 0) || !(Number(editForm.m.value) > 0); };
+      editForm.querySelectorAll("[data-pick]").forEach(b => b.addEventListener("click", () => {
+        pick = b.dataset.pick;
+        editForm.querySelectorAll("[data-pick]").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+        sync();
+      }));
+      editForm.addEventListener("input", sync);
+      editForm.addEventListener("submit", e => {
+        e.preventDefault();
+        if (!pick) return;
+        const { fac, extras } = readFacilities(editForm);
+        u.name = editForm.name.value.trim();
+        u.type = pick;
+        u.price = Number(editForm.price.value);
+        u.m = Number(editForm.m.value);
+        u.size = Number(editForm.size.value) || 30;
+        u.beds = editForm.beds.value === "" ? 1 : Number(editForm.beds.value);
+        u.floor = Number(editForm.floor.value) || 1;
+        u.fac = fac;
+        u.extras = extras;
+        u.agent = readAgent(editForm);
+        placeUnit(u);
+        const i = U.findIndex(x => x.id === u.id);
+        leadEls[i].setAttribute("x2", u.x);
+        leadEls[i].setAttribute("y2", u.y);
+        coEls[i].d.innerHTML = calloutInner(u);
+        draw();
+        openUnit(u.id);
+      });
+    }
+    const ask = $("[data-ask-del]", body);
+    if (ask) {
+      const editBtn = $("[data-edit]", body);
+      const showAsk = on => {
+        $("#delConfirm", body).hidden = !on;
+        ask.hidden = on;
+        if (editBtn) editBtn.hidden = on;
+      };
+      ask.addEventListener("click", () => showAsk(true));
+      $("[data-del-no]", body).addEventListener("click", () => showAsk(false));
+      $("[data-del-yes]", body).addEventListener("click", () => deleteUnit(mode.id));
+    }
+    const agentToggle = $(".agent-toggle", body);
+    if (agentToggle) agentToggle.addEventListener("click", () => {
+      const open = agentToggle.getAttribute("aria-expanded") !== "true";
+      agentToggle.setAttribute("aria-expanded", String(open));
+      agentToggle.closest(".agent").classList.toggle("open", open);
+      $("#agentMore", body).hidden = !open;
+    });
+    const back = $("[data-back]", body);
+    if (back) back.addEventListener("click", () => { const u = U.find(x => x.id === mode.id); openStation(u.st); });
+    body.querySelectorAll("[data-copy]").forEach(b => b.addEventListener("click", () => {
+      const v = b.dataset.copy;
+      const label = b.textContent;
+      const done = () => { b.textContent = "Copied"; setTimeout(() => b.textContent = label, 1400); };
+      const dd = b.closest(".kv-acts")?.previousElementSibling;
+      navigator.clipboard?.writeText(v).then(done, () => { if (!dd) return; const r = document.createRange(); r.selectNodeContents(dd); getSelection().removeAllRanges(); getSelection().addRange(r); });
+    }));
+    const thread = $("#thread", body);
+    if (thread) thread.addEventListener("click", e => {
+      const li = e.target.closest("li");
+      if (!li) return;
+      const u = U.find(x => x.id === mode.id);
+      const i = Number(li.dataset.i);
+      const edit = e.target.closest("[data-note-edit]");
+      if (edit) {
+        const p = li.querySelector("p");
+        if (li.classList.contains("editing")) {
+          const next = li.querySelector("textarea").value.trim();
+          if (!next) return;
+          u.notes[i][1] = next;
+          p.textContent = next;
+          p.hidden = false;
+          li.querySelector("textarea").remove();
+          li.classList.remove("editing");
+          edit.querySelector("use").setAttribute("href", "#i-pencil");
+          edit.setAttribute("aria-label", "Edit note");
+          return;
+        }
+        const ta = document.createElement("textarea");
+        ta.value = u.notes[i][1];
+        ta.setAttribute("aria-label", "Edit note");
+        p.hidden = true;
+        p.after(ta);
+        li.classList.add("editing");
+        li.querySelector(".note-ask").hidden = true;
+        edit.querySelector("use").setAttribute("href", "#i-tick");
+        edit.setAttribute("aria-label", "Save note");
+        ta.focus();
+        ta.addEventListener("keydown", ev => {
+          if (ev.key === "Enter" && !ev.shiftKey) { ev.preventDefault(); edit.click(); }
+          else if (ev.key === "Escape") {
+            p.hidden = false;
+            ta.remove();
+            li.classList.remove("editing");
+            edit.querySelector("use").setAttribute("href", "#i-pencil");
+            edit.setAttribute("aria-label", "Edit note");
+          }
+        });
+        return;
+      }
+      if (e.target.closest("[data-note-del]")) { li.querySelector(".note-ask").hidden = false; return; }
+      if (e.target.closest("[data-note-no]")) { li.querySelector(".note-ask").hidden = true; return; }
+      if (e.target.closest("[data-note-yes]")) {
+        u.notes.splice(i, 1);
+        li.remove();
+        thread.querySelectorAll("li").forEach((el, n) => el.dataset.i = n);
+        const n = u.notes.length;
+        thread.closest("section").querySelector("h3 span").textContent = `${n} ${n === 1 ? "entry" : "entries"}`;
+      }
+    });
+    const shots = $("#shots", body);
+    if (shots) shots.addEventListener("scroll", () => {
+      const i = Math.round(shots.scrollLeft / (shots.firstElementChild.offsetWidth + 8));
+      $("#dots", body).querySelectorAll("i").forEach((d, j) => d.classList.toggle("on", i === j));
+    }, { passive: true });
+    const form = $("#composer", body);
+    if (form) {
+      const ta = $("textarea", form), btn = $("button", form);
+      ta.addEventListener("input", () => { btn.disabled = !ta.value.trim(); ta.style.height = "auto"; ta.style.height = Math.min(120, ta.scrollHeight) + "px"; });
+      form.addEventListener("submit", e => {
+        e.preventDefault();
+        const t = ta.value.trim(); if (!t) return;
+        const u = U.find(x => x.id === mode.id);
+        const iso = "2026-10-19";
+        u.notes.push([iso, t]);
+        $("#thread", body).insertAdjacentHTML("beforeend", noteHTML(u.notes.length - 1, iso, t, "Today"));
+        const n = u.notes.length;
+        $("#thread", body).closest("section").querySelector("h3 span").textContent = `${n} ${n === 1 ? "entry" : "entries"}`;
+        ta.value = ""; btn.disabled = true; ta.style.height = "";
+      });
+    }
+  }
+
+  /* ---------------- placeholder photos ---------------- */
+  function photo(u, kind) {
+    const pool = u.fac.pool, garden = u.fac.garden;
+    if (kind === "living") return `<svg class="pic" viewBox="0 0 160 120" preserveAspectRatio="xMidYMid slice"><rect width="160" height="120" fill="#E7E4DC"/><rect y="80" width="160" height="40" fill="#D3CBBE"/><rect x="20" y="14" width="76" height="48" fill="${u.tint}"/><path d="M20 14 H96 V62 H20 Z M58 14 V62 M20 38 H96" fill="none" stroke="#161A17" stroke-width="1.3"/><rect x="30" y="66" width="84" height="24" rx="2" fill="#161A17"/><rect x="24" y="72" width="14" height="16" fill="#2C3330"/><rect x="108" y="70" width="12" height="18" fill="#2C3330"/><rect x="132" y="86" width="3.5" height="20" fill="#5C6560"/><circle cx="133.5" cy="80" r="8" fill="#0C7A3E"/></svg>`;
+    if (kind === "view") return `<svg class="pic" viewBox="0 0 160 120" preserveAspectRatio="xMidYMid slice"><rect width="160" height="120" fill="#E3E8E4"/><rect x="12" y="42" width="26" height="78" fill="#2A312E"/><rect x="44" y="16" width="32" height="104" fill="#3C4742"/><rect x="82" y="50" width="20" height="70" fill="#24302C"/><rect x="108" y="30" width="36" height="90" fill="#4E5954"/><g fill="#E3E8E4"><rect x="50" y="26" width="5" height="7"/><rect x="60" y="26" width="5" height="7"/><rect x="50" y="40" width="5" height="7"/><rect x="60" y="40" width="5" height="7"/><rect x="116" y="40" width="6" height="8"/><rect x="128" y="40" width="6" height="8"/><rect x="116" y="56" width="6" height="8"/><rect x="128" y="56" width="6" height="8"/></g><rect y="92" width="160" height="28" fill="#161A17"/><rect y="98" width="160" height="2.5" fill="#78BE20"/></svg>`;
+    return `<svg class="pic" viewBox="0 0 160 120" preserveAspectRatio="xMidYMid slice"><rect width="160" height="120" fill="#E3E8E4"/><rect x="46" y="8" width="68" height="112" fill="#E7E4DC"/><g fill="#161A17"><rect x="56" y="16" width="7" height="8" opacity=".85"/><rect x="70" y="16" width="7" height="8" opacity=".35"/><rect x="84" y="16" width="7" height="8" opacity=".85"/><rect x="98" y="16" width="7" height="8" opacity=".55"/><rect x="56" y="30" width="7" height="8" opacity=".4"/><rect x="70" y="30" width="7" height="8" opacity=".85"/><rect x="84" y="30" width="7" height="8" opacity=".3"/><rect x="98" y="30" width="7" height="8" opacity=".85"/><rect x="56" y="44" width="7" height="8" opacity=".85"/><rect x="70" y="44" width="7" height="8" opacity=".5"/><rect x="84" y="44" width="7" height="8" opacity=".85"/><rect x="98" y="44" width="7" height="8" opacity=".25"/></g>${garden ? `<rect x="46" y="4" width="68" height="6" fill="#0C7A3E"/>` : ""}<rect x="46" y="96" width="68" height="24" fill="#2A312E"/><rect x="70" y="102" width="20" height="18" fill="#E7E4DC"/>${pool ? `<rect x="118" y="104" width="38" height="10" rx="2" fill="#9CC6D6"/>` : ""}${garden ? `<circle cx="28" cy="100" r="12" fill="#0C7A3E"/><rect x="26.5" y="104" width="3" height="16" fill="#5C6560"/>` : ""}</svg>`;
+  }
+
+  /* ---------------- desktop niceties ---------------- */
+  // hovering a list card lights up its pin, and the other way round
+  body.addEventListener("pointerover", e => { const c = e.target.closest("[data-open-u]"); const id = c ? c.dataset.openU : null; if (id !== hoverUnit) { hoverUnit = id; draw(); } });
+  body.addEventListener("pointerleave", () => { if (hoverUnit) { hoverUnit = null; draw(); } });
+  stage.addEventListener("pointerover", e => {
+    const t = e.target.closest("[data-u]"), id = t ? t.dataset.u : null;
+    if (id !== hoverUnit) { hoverUnit = id; draw(); body.querySelectorAll("[data-open-u]").forEach(c => c.classList.toggle("sel", c.dataset.openU === id)); }
+  });
+  $("#collapse").addEventListener("click", () => {
+    const c = app.classList.toggle("collapsed");
+    $("#collapse").setAttribute("aria-expanded", !c);
+    $("#collapse").setAttribute("aria-label", c ? "Show side panel" : "Collapse side panel");
+    draw();
+  });
+  document.addEventListener("keydown", e => {
+    if (e.target.closest("input, textarea")) return;
+    const vc = visCenter(), step = 80;
+    if (e.key === "+" || e.key === "=") zoomBy(1.6);
+    else if (e.key === "-" || e.key === "_") zoomBy(1 / 1.6);
+    else if (e.key.startsWith("Arrow")) {
+      const dx = { ArrowLeft: step, ArrowRight: -step }[e.key] || 0, dy = { ArrowUp: step, ArrowDown: -step }[e.key] || 0;
+      setCam(cam.k, cam.tx + dx, cam.ty + dy); clearTimeout(stage.wt); stage.wt = setTimeout(afterMove, 250);
+    } else if (e.key === "Escape") {
+      if (mode.v === "unit") openStation(U.find(u => u.id === mode.id).st);
+      else if (mode.v === "edit") openUnit(mode.id);
+      else if (mode.v === "add") openStation(mode.id);
+      else if (mode.v === "station") goOverview();
+    } else return;
+    e.preventDefault();
+  });
+
+  function syncChrome() {
+    const open = desk.matches || moreOpen;
+    $("#fMore").hidden = !open;
+    $("#filterCard").classList.toggle("open", open && !desk.matches);
+    $("#moreFilters").setAttribute("aria-expanded", String(open));
+    const h = $("#chrome").offsetHeight;
+    app.style.setProperty("--chrome-h", h + "px");
+    sheet.style.top = desk.matches ? "16px" : "";
+  }
+  desk.addEventListener("change", () => { syncChrome(); measure(); draw(); });
+
+  /* ---------------- boot ---------------- */
+  render();
+  measure();
+  setSheet("peek");
+  syncChrome();
+  cam.k = k0; home(false);
+  draw();
+  new ResizeObserver(() => { const z = cam.k / k0; syncChrome(); measure(); setSheet(sheetState === "full" && !desk.matches && mode.v !== "unit" && mode.v !== "add" && mode.v !== "edit" ? "half" : sheetState); if (mode.v === "station") focusStation(mode.id, false); else if (mode.v === "overview" && z < 1.5) home(false); else draw(); }).observe(stage);
+  const hash = location.hash.slice(1);
+  if (hash === "thonglo") openStation("E6");
+  else if (hash.startsWith("unit-")) openUnit(hash.slice(5));
+  else if (hash.startsWith("edit-")) openEdit(hash.slice(5));
+  else if (hash.startsWith("add-")) openAdd(hash.slice(4));
+})();
+</script>
+</body>
+</html>
