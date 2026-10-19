@@ -1,3 +1,4 @@
+import { OfferCover } from "../photos/OfferPhotos";
 import { FilteredOfferList } from "./FilteredOfferList";
 import {
   classifyOffer,
@@ -32,10 +33,14 @@ export function StationOfferList({
   onAdd,
   onSelectStation,
   filters = defaultFilters(),
+  highlightedOfferId,
+  onHighlight,
 }: {
   station: Station;
   offers: readonly Offer[];
   filters?: OfferFilters;
+  highlightedOfferId?: string | null;
+  onHighlight?: (id: string | null) => void;
   onAdd: () => void;
   onSelectStation: (station: Station) => void;
 }) {
@@ -68,8 +73,11 @@ export function StationOfferList({
           offers={assigned}
           filters={filters}
           className="station-offer-list"
+          highlightedOfferId={highlightedOfferId}
+          onHighlight={onHighlight}
           renderOffer={(offer) => (
             <>
+              <OfferCover offerId={offer.id} name={offer.name} />
               <a href={`#offer=${offer.id}`}>{offer.name}</a>
               <p>{walkingDescription(offer)}</p>
               <OfferFactsSummary offer={offer} />

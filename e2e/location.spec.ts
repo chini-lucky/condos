@@ -53,9 +53,9 @@ test("assign, position, reassign and clear offers while station lists and pins a
     }),
   ).toHaveCount(1);
   await page.getByRole("button", { name: "Back", exact: true }).click();
-  await page
-    .getByRole("button", { name: "Browse Thong Lo", exact: true })
-    .click();
+  await expect(
+    page.getByRole("heading", { name: "Thong Lo", exact: true }),
+  ).toBeVisible();
   await page
     .getByRole("button", {
       name: "Open Station positioned fixture",

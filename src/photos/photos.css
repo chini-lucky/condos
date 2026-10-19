@@ -1,0 +1,79 @@
+.offer-photos {
+  margin-block: 1rem;
+}
+.offer-photos h3 {
+  display: flex;
+  justify-content: space-between;
+}
+.offer-photos h3 span,
+.photo-help {
+  color: #66615a;
+  font-size: 0.8rem;
+}
+.photo-placeholder {
+  min-height: 10rem;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  background: #eeece7;
+  color: #6b675e;
+  border-radius: 0.8rem;
+  padding: 0.8rem;
+}
+.offer-photo {
+  display: block;
+  width: 100%;
+  height: 17rem;
+  object-fit: contain;
+  border-radius: 0.8rem;
+  background: #eeece7;
+}
+.photo-dots {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.1rem;
+}
+.photo-dots button {
+  background: transparent;
+  border: 0;
+  color: #a7a49c;
+  min-width: 2rem;
+  min-height: 2.75rem;
+  padding: 0.4rem;
+}
+.photo-dots button[aria-pressed="true"] {
+  color: #254e3e;
+}
+.photo-upload-list {
+  list-style: none;
+  padding: 0;
+  font-size: 0.85rem;
+}
+.photo-upload-list li {
+  padding-block: 0.5rem;
+  border-bottom: 1px solid #ddd8ce;
+  overflow-wrap: anywhere;
+}
+.photo-upload-list li > span:first-child {
+  font-weight: 600;
+}
+.photo-upload-list p {
+  margin: 0.25rem 0;
+}
+.offer-cover {
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+.offer-cover .offer-photo,
+.offer-cover .photo-placeholder {
+  height: 8rem;
+  min-height: 8rem;
+  object-fit: cover;
+}
+.photo-cleanup {
+  font-size: 0.8rem;
+  padding: 0.5rem;
+  background: #f3efe5;
+  border-radius: 0.5rem;
+}

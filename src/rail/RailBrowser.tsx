@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { RailMap } from "./RailMap";
 import { getStation, interchanges, lineIds, lines, stations } from "./network";
 import type { Station } from "./network";
 import "./rail.css";
+import { semanticStation } from "./mapNavigation";
+import type { MapView, CameraTarget } from "./mapNavigation";
 
 export function LineBadges({ station }: { station: Station }) {
   const memberships = new Set(station.lines);
@@ -37,8 +39,14 @@ export interface RailBrowserProps {
   panelMode?: "full" | undefined;
   onStationChange?: (station: Station | null) => void;
   selectedStationId?: string | null | undefined;
-  mapOverlay?: ReactNode | ((scale: number) => ReactNode);
+  mapOverlay?: ReactNode | ((view: MapView) => ReactNode);
+  mapControls?: ReactNode;
+  cameraTarget?: CameraTarget;
+  onAutomaticStationChange?: (station: Station | null) => void;
+  navigationLocked?: boolean;
+  labelSides?: ReadonlyMap<string, "left" | "right">;
   stationCounts?: ReadonlyMap<string, number>;
+  stationOccupancy?: ReadonlyMap<string, number>;
 }
 export function RailBrowser({
   renderStation,
@@ -48,13 +56,23 @@ export function RailBrowser({
   onStationChange,
   selectedStationId,
   mapOverlay,
+  mapControls,
   stationCounts,
+  stationOccupancy,
+  cameraTarget,
+  onAutomaticStationChange,
+  navigationLocked = false,
+  labelSides,
 }: RailBrowserProps) {
   const [internalStation, setStation] = useState<Station | null>(null);
   const station =
     selectedStationId === undefined
       ? internalStation
       : (getStation(selectedStationId ?? "") ?? null);
+  const [internalCamera, setInternalCamera] = useState<CameraTarget>({
+    stationId: selectedStationId ?? null,
+    key: 0,
+  });
   const [collapsed, setCollapsed] = useState(false);
   const [sheet, setSheet] = useState<"peek" | "half" | "full">("peek");
   const dragStart = useRef<number | null>(null);
@@ -63,6 +81,10 @@ export function RailBrowser({
     function escape(event: globalThis.KeyboardEvent) {
       if (event.key === "Escape" && !event.defaultPrevented && !panelContent) {
         setStation(null);
+        setInternalCamera((current) => ({
+          stationId: null,
+          key: Number(current.key) + 1,
+        }));
         onStationChange?.(null);
         setSheet("peek");
       }
@@ -73,32 +95,76 @@ export function RailBrowser({
   function select(next: Station | null) {
     onStationChange?.(next);
     setStation(next);
+    setInternalCamera((current) => ({
+      stationId: next?.id ?? null,
+      key: Number(current.key) + 1,
+    }));
     setCollapsed(false);
     setSheet("peek");
   }
+  const cameraChanged = useCallback(
+    (view: MapView, reason: "manual" | "focus") => {
+      if (reason !== "manual" || navigationLocked || panelContent) return;
+      const candidates = stations.filter(
+        (item) => ((stationOccupancy ?? stationCounts)?.get(item.id) ?? 0) > 0,
+      );
+      const id = semanticStation(
+        view.zoom,
+        {
+          x: view.viewport.x + view.viewport.width / 2,
+          y: view.viewport.y + view.viewport.height / 2,
+        },
+        candidates,
+      );
+      if (id === undefined || id === (station?.id ?? null)) return;
+      const next = id ? (getStation(id) ?? null) : null;
+      setStation(next);
+      setSheet("peek");
+      if (onAutomaticStationChange) onAutomaticStationChange(next);
+      else onStationChange?.(next);
+    },
+    [
+      navigationLocked,
+      panelContent,
+      stationCounts,
+      stationOccupancy,
+      station?.id,
+      onAutomaticStationChange,
+      onStationChange,
+    ],
+  );
+
   return (
     <main
       className={`rail-browser ${station ? "station-open" : "overview-open"} ${collapsed ? "panel-collapsed" : ""}`}
     >
       <div className="rail-stage">
-        <RailMap
-          selectedStationId={station?.id ?? null}
-          onSelectStation={select}
-          stationCounts={stationCounts}
-        >
-          {mapOverlay}
-        </RailMap>
+        {mapControls}
+        <div className="rail-map-surface">
+          <RailMap
+            selectedStationId={station?.id ?? null}
+            onSelectStation={select}
+            stationCounts={stationCounts}
+            stationOccupancy={stationOccupancy}
+            cameraTarget={cameraTarget ?? internalCamera}
+            onCameraChange={cameraChanged}
+            labelSides={labelSides}
+          >
+            {mapOverlay}
+          </RailMap>
+          {(station || collapsed) && (
+            <button
+              className="rail-home"
+              onClick={() => {
+                select(null);
+              }}
+            >
+              All stations
+            </button>
+          )}
+        </div>
       </div>
-      {(station || collapsed) && (
-        <button
-          className="rail-home"
-          onClick={() => {
-            select(null);
-          }}
-        >
-          All stations
-        </button>
-      )}
+
       <aside
         className={`rail-panel sheet-${panelMode ?? sheet}`}
         aria-label={

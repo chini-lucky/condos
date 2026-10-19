@@ -34,6 +34,8 @@ svg:focus-visible,
   position: absolute;
   inset: 0 0 0 360px;
   transition: left 0.2s;
+  display: flex;
+  flex-direction: column;
 }
 .rail-map,
 .rail-map svg {
@@ -62,7 +64,7 @@ svg:focus-visible,
 .rail-dot {
   fill: white;
   stroke: #8b938c;
-  opacity: 0.6;
+  opacity: 0.32;
   pointer-events: none;
 }
 .rail-dot.selected {
@@ -74,7 +76,6 @@ svg:focus-visible,
   fill: #5c6560;
   paint-order: stroke;
   stroke: #f3f4f0;
-  stroke-width: 3px;
   stroke-linejoin: round;
 }
 .rail-label.selected {
@@ -333,4 +334,86 @@ svg:focus-visible,
   border: 0;
   padding: 10px 14px;
   border-radius: 8px;
+}
+.walking-ring-label {
+  fill: #5c6560;
+  paint-order: stroke;
+  stroke: #f3f4f0;
+  stroke-linejoin: round;
+}
+.offer-callout-button {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  border: 1px solid #d6dad3;
+  border-radius: 10px;
+  background: white;
+  color: #161a17;
+  padding: 10px 12px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  box-shadow: 0 2px 8px #161a1710;
+  font:
+    12px "Instrument Sans",
+    sans-serif;
+}
+.offer-callout-button > strong {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 14px;
+}
+.offer-callout-button > span {
+  color: #5c6560;
+}
+.offer-callout-button .callout-facilities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  font-size: 10px;
+}
+.offer-map-callout.is-highlighted .offer-callout-button {
+  border: 2px solid #161a17;
+  background: #f3f4f0;
+}
+.station-offer-list > li {
+  border-radius: 8px;
+  padding: 12px;
+}
+.station-offer-list > li.is-highlighted {
+  background: #e9ece6;
+  box-shadow: inset 3px 0 #161a17;
+}
+@media (max-width: 959px) {
+  .station-open .rail-panel-content > .rail-badges {
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+  .station-open .rail-panel-content > h1 {
+    display: inline;
+    vertical-align: middle;
+    margin: 0;
+  }
+}
+
+.rail-map-surface {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+.rail-map-surface > .rail-home {
+  left: 40px;
+  top: 25px;
+}
+.panel-collapsed .rail-map-surface > .rail-home {
+  left: 65px;
+}
+@media (max-width: 959px) {
+  .rail-map-surface > .rail-home,
+  .panel-collapsed .rail-map-surface > .rail-home {
+    left: 16px;
+  }
 }

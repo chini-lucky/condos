@@ -1,3 +1,4 @@
+import { FilterIcon } from "./FilterIcon";
 import { useState } from "react";
 import { facilityNames, type FacilityName, type PropertyType } from "./facts";
 import {
@@ -58,6 +59,7 @@ export function OfferFiltersBar({
                 checked={value.facilities.includes(name)}
                 onChange={(event) => facility(name, event.target.checked)}
               />
+              <FilterIcon name={name} />
               {name.charAt(0).toUpperCase() + name.slice(1)}
             </label>
           ))}
@@ -68,6 +70,7 @@ export function OfferFiltersBar({
                 checked={value.types.includes(name)}
                 onChange={(event) => type(name, event.target.checked)}
               />
+              <FilterIcon name={name} />
               {name.charAt(0).toUpperCase() + name.slice(1)}
             </label>
           ))}

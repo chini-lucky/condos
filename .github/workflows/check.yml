@@ -22,7 +22,11 @@ jobs:
       - run: npm run check
       - run: supabase start > /tmp/condos-start.log 2>&1
       - run: npm run local:env
+      - run: node scripts/configure-local-photos.ts
+      - run: supabase functions serve --no-verify-jwt --env-file /tmp/condos-photo-functions.env > /tmp/condos-functions.log 2>&1 &
+      - run: node scripts/wait-local-functions.ts
       - run: npm test
+      - run: node scripts/verify-local-photo-scheduler.ts
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
       - run: npm run build

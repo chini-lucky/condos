@@ -18,8 +18,8 @@ export function FilteredOfferList({
   filters: OfferFilters;
   renderOffer: (offer: Offer) => ReactNode;
   className: string;
-  highlightedOfferId?: string | null;
-  onHighlight?: (id: string | null) => void;
+  highlightedOfferId?: string | null | undefined;
+  onHighlight?: ((id: string | null) => void) | undefined;
 }) {
   const matches = offers.filter(
     (offer) => classifyOffer(offer, filters).kind === "match",

@@ -23,24 +23,30 @@ export function stationLabels(
   selectedId: string | null,
   overview: boolean,
   interchanges: readonly string[] = [],
+  preferredSides?: ReadonlyMap<string, "left" | "right">,
+  prominentIds: readonly string[] = [],
 ): Map<string, Label> {
   const labels = new Map<string, Label>();
   const occupied: Bounds[] = [];
   function priority(station: Station) {
     return station.id === selectedId
       ? 0
-      : interchanges.includes(station.id) || station.lines.length > 1
+      : prominentIds.includes(station.id)
         ? 1
-        : 2;
+        : interchanges.includes(station.id) || station.lines.length > 1
+          ? 2
+          : 3;
   }
   for (const station of [...stations].sort(
     (a, b) => priority(a) - priority(b),
   )) {
-    if (overview && priority(station) > 1) continue;
+    if (overview && priority(station) > 2) continue;
     const focused = station.id === selectedId;
-    const left = station.label.includes("l");
+    const left = preferredSides?.has(station.id)
+      ? preferredSides.get(station.id) === "left"
+      : station.label.includes("l");
     const label: Label = {
-      x: station.x + (left ? -10 : 10) * scale,
+      x: station.x + (left ? -1 : 1) * (focused ? 16 : 10) * scale,
       y:
         station.y +
         (station.label.includes("t")
