@@ -33,7 +33,7 @@ test("HEIC uploads as private JPEG, reloads in the carousel, and a failed conver
       "accept",
       /image\/heic/,
     );
-    const valid = await readFile("tests/fixtures/heic/basic.heic");
+    const valid = await readFile("tests/fixtures/heic/rotated-gps.heic");
     await page.getByLabel("Choose photos").setInputFiles([
       { name: "phone-no-mime.heic", mimeType: "", buffer: valid },
       {
@@ -65,7 +65,14 @@ test("HEIC uploads as private JPEG, reloads in the carousel, and a failed conver
           element instanceof HTMLImageElement ? element.naturalWidth : 0,
         ),
       )
-      .toBe(64);
+      .toBe(800);
+    await expect
+      .poll(() =>
+        image.evaluate((element) =>
+          element instanceof HTMLImageElement ? element.naturalHeight : 0,
+        ),
+      )
+      .toBe(1600);
     const assets = await db.from("photo_assets").select("*").eq("offer_id", id);
     expect(assets.error).toBeNull();
     expect(

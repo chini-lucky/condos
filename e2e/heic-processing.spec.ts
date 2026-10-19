@@ -91,3 +91,39 @@ test("a browser without workers gets an actionable HEIC error without loading th
   expect(error).toContain("JPEG");
   expect(requests.some((url) => url.includes("heic-to"))).toBe(false);
 });
+
+test("malformed and oversized HEIC are rejected while a following valid photo still converts", async ({
+  page,
+}) => {
+  await page.goto("./");
+  const bytes = [...(await readFile("tests/fixtures/heic/basic.heic"))];
+  const result = await page.evaluate(async (bytes) => {
+    const path = "/condos/src/photos/process.ts";
+    const { processPhoto } = await import(/* @vite-ignore */ path);
+    const source = new Uint8Array(bytes);
+    const cases = [
+      new File(["this is not HEIC"], "spoof.heic", { type: "image/heic" }),
+      new File([source.slice(0, 80)], "truncated.heic", { type: "image/heic" }),
+      new File([source, new Uint8Array(10 * 1024 * 1024)], "too-big.heic", {
+        type: "",
+      }),
+    ];
+    const errors = [];
+    for (const file of cases) {
+      try {
+        await processPhoto(file);
+        errors.push("accepted");
+      } catch (error) {
+        errors.push(error instanceof Error ? error.message : "failed");
+      }
+    }
+    const converted: Blob = await processPhoto(
+      new File([source], "valid-again.heic", { type: "image/heic" }),
+    );
+    return { errors, type: converted.type };
+  }, bytes);
+  expect(result.errors.every((message) => message !== "accepted")).toBe(true);
+  expect(result.errors[1]).toContain("HEIC");
+  expect(result.errors[2]).toContain("10 MB");
+  expect(result.type).toBe("image/jpeg");
+});

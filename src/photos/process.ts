@@ -1,6 +1,6 @@
 import { isHeicContainer, decodeHeic } from "./heic";
 export const maximumPhotoBytes = 10 * 1024 * 1024;
-/** Public processing boundary. HEIC decoding can supply a bitmap to encodePhoto later. */
+/** Decode supported sources to oriented pixels, then use one metadata-free JPEG pipeline. */
 export async function processPhoto(file: File): Promise<Blob> {
   if (file.size > maximumPhotoBytes)
     throw new Error("Each source photo must be 10 MB or smaller.");
@@ -14,13 +14,13 @@ export async function processPhoto(file: File): Promise<Blob> {
     new TextDecoder().decode(header.slice(0, 4)) === "RIFF" &&
     new TextDecoder().decode(header.slice(8, 12)) === "WEBP";
   if (!jpeg && !png && !webp && !heic)
-    throw new Error("Choose a JPEG, PNG or WebP photo.");
+    throw new Error("Choose a JPEG, PNG, WebP or HEIC photo.");
   if (
     !heic &&
     file.type &&
     !["image/jpeg", "image/png", "image/webp"].includes(file.type)
   )
-    throw new Error("Choose a JPEG, PNG or WebP photo.");
+    throw new Error("Choose a JPEG, PNG, WebP or HEIC photo.");
   let bitmap: ImageBitmap;
   try {
     bitmap = heic
@@ -30,6 +30,7 @@ export async function processPhoto(file: File): Promise<Blob> {
     if (heic && error instanceof Error) throw error;
     throw new Error(
       "This photo could not be decoded. Choose another file or retry.",
+      { cause: error },
     );
   }
   try {
