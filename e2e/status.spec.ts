@@ -117,14 +117,12 @@ test("conflicting and failed status saves keep the draft until the admin reviews
   await page.getByRole("button", { name: "Save status and viewing" }).click();
   await expect(page.getByText("Offline reason", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Back", exact: true }).click();
-  const row = page
-    .getByRole("listitem")
-    .filter({
-      has: page.getByRole("link", {
-        name: "Status conflict offer",
-        exact: true,
-      }),
-    });
+  const row = page.getByRole("listitem").filter({
+    has: page.getByRole("link", {
+      name: "Status conflict offer",
+      exact: true,
+    }),
+  });
   await expect(row.getByText("Rejected", { exact: true })).toBeVisible();
   expect(await row.evaluate((el) => getComputedStyle(el).opacity)).toBe("1");
   const { createClient } = await import("@supabase/supabase-js");

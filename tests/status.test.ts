@@ -57,6 +57,14 @@ test("admin freely changes status and optional explanations/appointments, with s
     const stale = await db.rpc("update_offer_status", args("Rejected", 1));
     assert.equal(stale.error?.code, "40001");
     assert.ok((await db.rpc("update_offer_status", args("Imaginary"))).error);
+    assert.ok(
+      (
+        await db.rpc("update_offer_status", {
+          ...args("Viewing"),
+          p_viewing_at: "infinity",
+        })
+      ).error,
+    );
     const cleared = await db.rpc("update_offer_status", args("Viewing"));
     assert.equal(cleared.error, null);
     version++;

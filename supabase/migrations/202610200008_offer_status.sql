@@ -1,7 +1,7 @@
 alter table public.offers
   add column pending_explanation text,
   add column rejection_reason text,
-  add column viewing_at timestamptz;
+  add column viewing_at timestamptz check (viewing_at is null or isfinite(viewing_at));
 
 create function public.update_offer_status(
   p_id uuid, p_expected_version bigint, p_status text,
