@@ -123,6 +123,62 @@ test("photos upload privately, carousel order survives reload, failures retain s
     await expect(
       page.getByRole("button", { name: "Show photo 3" }),
     ).toBeVisible();
+    await page.unroute("**/functions/v1/upload-photo");
+    await page.route("**/functions/v1/upload-photo", async (route) => {
+      await route.fetch(); // The server saved it, but its success response is lost.
+      await route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({ error: "Response interrupted after save" }),
+      });
+    });
+    await page
+      .getByLabel("Choose photos")
+      .setInputFiles("tests/fixtures/photos/landscape.webp");
+    await page.getByRole("button", { name: "Upload selected photos" }).click();
+    await expect(
+      page.getByText("1 photo saved.", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Show photo 4" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Retry failed photos" }),
+    ).toHaveCount(0);
+    let lostReservation = false;
+    await page.route("**/rest/v1/rpc/reserve_photos", async (route) => {
+      if (!lostReservation) {
+        lostReservation = true;
+        await route.fetch();
+        await route.fulfill({
+          status: 503,
+          contentType: "application/json",
+          body: JSON.stringify({ message: "Reservation response interrupted" }),
+        });
+      } else await route.continue();
+    });
+    await page
+      .getByLabel("Choose photos")
+      .setInputFiles("tests/fixtures/photos/landscape.webp");
+    await page.getByRole("button", { name: "Upload selected photos" }).click();
+    await expect(
+      page.getByRole("alert").filter({ hasText: "could not be reserved" }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Upload selected photos" }).click();
+    await expect(
+      page.getByText("1 photo saved.", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Show photo 5" }),
+    ).toBeVisible();
+    const attached = await db
+      .from("photo_assets")
+      .select("state")
+      .eq("offer_id", created.data.id)
+      .in("state", ["uploading", "ready"]);
+    expect(attached.error).toBeNull();
+    expect(attached.data?.length).toBe(5);
+    expect(attached.data?.every((photo) => photo.state === "ready")).toBe(true);
     await page.getByRole("button", { name: "Back", exact: true }).click();
     await expect(
       page.getByRole("img", { name: "Browser photo offer cover photo" }),

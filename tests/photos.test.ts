@@ -547,3 +547,74 @@ test("cleanup retries a Storage transport failure while retaining real bytes, an
     await service.from("photo_cleanup").delete().eq("object_key", key);
   }
 });
+
+test("retry after Storage success before finalization attaches the existing object's actual metadata idempotently", async () => {
+  const db = await signedIn();
+  const offer = await db.rpc("create_offer", {
+    p_name: "Uncertain upload recovery",
+  });
+  assert.equal(offer.error, null);
+  try {
+    const reserved = await db.rpc("reserve_photos", {
+      p_offer_id: offer.data.id,
+      p_count: 2,
+      p_request_id: randomUUID(),
+    });
+    assert.equal(reserved.error, null);
+    const [first, recovered] = reserved.data;
+    const { readFile } = await import("node:fs/promises");
+    const small = new Uint8Array(
+      await readFile(
+        new URL("./fixtures/photos/oriented-gps.jpg", import.meta.url),
+      ),
+    );
+    assert.equal((await upload(db, first.id, small)).status, 200);
+    const existing = await service.storage
+      .from("offer-photos")
+      .download(first.object_key);
+    assert.equal(existing.error, null);
+    assert.ok(existing.data);
+    // Represent a process stopping after a validated Storage write but before its DB finalize.
+    assert.equal(
+      (
+        await service.storage
+          .from("offer-photos")
+          .upload(recovered.object_key, existing.data, {
+            contentType: "image/jpeg",
+          })
+      ).error,
+      null,
+    );
+    const different = new Uint8Array(
+      await readFile(
+        new URL("./fixtures/photos/bounded-noise.jpg", import.meta.url),
+      ),
+    );
+    const retry = await upload(db, recovered.id, different);
+    assert.equal(retry.status, 200, await retry.text());
+    const photo = await db
+      .from("photo_assets")
+      .select("width,height,byte_size")
+      .eq("id", recovered.id)
+      .single();
+    assert.deepEqual(photo.data, {
+      width: 40,
+      height: 20,
+      byte_size: existing.data.size,
+    });
+    const repeat = await upload(db, recovered.id, different);
+    assert.equal(repeat.status, 200);
+    assert.equal(
+      (
+        await db
+          .from("photo_assets")
+          .select("id")
+          .eq("offer_id", offer.data.id)
+          .eq("state", "ready")
+      ).data?.length,
+      2,
+    );
+  } finally {
+    await service.from("offers").delete().eq("id", offer.data.id);
+  }
+});

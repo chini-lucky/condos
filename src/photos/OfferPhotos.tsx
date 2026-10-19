@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../auth";
 import { maximumPhotoBytes, processPhoto } from "./process";
 import { photosRepository } from "./repository";
@@ -11,6 +11,7 @@ type Selection = {
   file: File;
   status: "selected" | "uploading" | "saved" | "failed";
   error: string;
+  photoId?: string;
 };
 export function OfferPhotos({ offerId }: { offerId: string }) {
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -19,6 +20,9 @@ export function OfferPhotos({ offerId }: { offerId: string }) {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Selection[]>([]);
   const [busy, setBusy] = useState(false);
+  const reservationRequest = useRef<
+    { id: string; selection: string } | undefined
+  >(undefined);
   const [notice, setNotice] = useState("");
   const [cleanup, setCleanup] = useState<{ pending: number; failed: number }>();
   const refresh = useCallback(async () => {
@@ -52,7 +56,7 @@ export function OfferPhotos({ offerId }: { offerId: string }) {
   const current = photos[Math.min(index, Math.max(0, photos.length - 1))];
   async function uploadSelected() {
     if (!repository || busy) return;
-    const entries = selected.filter((entry) => entry.status !== "saved");
+    let entries = selected.filter((entry) => entry.status !== "saved");
     if (entries.length === 0) return;
     setBusy(true);
     setError("");
@@ -66,16 +70,37 @@ export function OfferPhotos({ offerId }: { offerId: string }) {
         ),
       );
     try {
-      reservations = await repository.reserve(
-        offerId,
-        entries.length,
-        crypto.randomUUID(),
-      );
+      if (entries.some((entry) => entry.photoId)) {
+        const confirmed = new Set(
+          (await repository.list(offerId)).map((photo) => photo.id),
+        );
+        entries = entries.filter((entry) => {
+          if (!entry.photoId || !confirmed.has(entry.photoId)) return true;
+          update(entry.id, { status: "saved", error: "" });
+          saved++;
+          return false;
+        });
+      }
+      if (entries.length > 0) {
+        const selection = entries.map((entry) => entry.id).join(":");
+        if (reservationRequest.current?.selection !== selection)
+          reservationRequest.current = { id: crypto.randomUUID(), selection };
+        reservations = await repository.reserve(
+          offerId,
+          entries.length,
+          reservationRequest.current.id,
+        );
+        reservationRequest.current = undefined;
+      }
       for (const [position, entry] of entries.entries()) {
         const reservation = reservations[position];
         if (!reservation)
           throw new Error("Photo reservation missing. Please retry.");
-        update(entry.id, { status: "uploading", error: "" });
+        update(entry.id, {
+          status: "uploading",
+          error: "",
+          photoId: reservation.id,
+        });
         try {
           const jpeg = await processPhoto(entry.file);
           await repository.upload(reservation, jpeg);
@@ -90,6 +115,19 @@ export function OfferPhotos({ offerId }: { offerId: string }) {
             await repository.cancel([reservation.id]);
           } catch (cleanupError) {
             message += ` ${cleanupError instanceof Error ? cleanupError.message : "Cleanup is pending."}`;
+          }
+          try {
+            if (
+              (await repository.list(offerId)).some(
+                (photo) => photo.id === reservation.id,
+              )
+            ) {
+              update(entry.id, { status: "saved", error: "" });
+              saved++;
+              continue;
+            }
+          } catch {
+            /* Keep the reservation identity until access returns. */
           }
           update(entry.id, { status: "failed", error: message });
         }
