@@ -65,3 +65,51 @@ test("an admin creates distinct name-only offers, while unknown facts stay absen
     await client(config.serviceKey).from("offers").delete().in("id", ids);
   }
 });
+
+test("a stale rename is rejected by the server without overwriting the newer offer", async () => {
+  const first = await admin();
+  const second = await admin();
+  const created = await first.rpc("create_offer", { p_name: "Original" });
+  assert.equal(created.error, null);
+  const id = created.data.id;
+  try {
+    const rename = await second.rpc("rename_offer", {
+      p_id: id,
+      p_name: " Newer ",
+      p_expected_version: 1,
+    });
+    assert.equal(rename.error, null);
+    assert.equal(rename.data.name, "Newer");
+    assert.equal(rename.data.version, 2);
+    assert.ok(
+      Date.parse(rename.data.updated_at) >= Date.parse(created.data.created_at),
+    );
+    const stale = await first.rpc("rename_offer", {
+      p_id: id,
+      p_name: "Stale",
+      p_expected_version: 1,
+    });
+    assert.equal(stale.error?.code, "40001");
+    const read = await first
+      .from("offers")
+      .select("name,version")
+      .eq("id", id)
+      .single();
+    assert.deepEqual(read.data, { name: "Newer", version: 2 });
+    assert.ok(
+      (await first.from("offers").update({ name: "Bypass" }).eq("id", id))
+        .error,
+    );
+    assert.ok(
+      (
+        await first.rpc("rename_offer", {
+          p_id: id,
+          p_name: " ",
+          p_expected_version: 2,
+        })
+      ).error,
+    );
+  } finally {
+    await client(config.serviceKey).from("offers").delete().eq("id", id);
+  }
+});
