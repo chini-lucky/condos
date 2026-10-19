@@ -45,3 +45,22 @@ test("trusted provisioning reuses the existing labelled credential file without 
     rmSync(folder, { recursive: true, force: true });
   }
 });
+
+test("provisioning rejects an in-repository credential directory even when its name starts with two dots", () => {
+  const folder = mkdtempSync(join(process.cwd(), "..credential-test-"));
+  const file = join(folder, "admin.txt");
+  writeFileSync(file, "Disposable-local-test-password-9!\n", { mode: 0o600 });
+  try {
+    assert.throws(
+      () =>
+        execFileSync(
+          process.execPath,
+          ["scripts/create-admin.ts", "local", file],
+          { stdio: "pipe" },
+        ),
+      /outside the repository/,
+    );
+  } finally {
+    rmSync(folder, { recursive: true, force: true });
+  }
+});

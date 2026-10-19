@@ -2,7 +2,7 @@
 import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
-import { dirname, isAbsolute, relative, resolve } from "node:path";
+import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import { localConfig } from "./local-config.ts";
 const [target, fileArg] = process.argv.slice(2);
@@ -17,8 +17,12 @@ const physicalFile = resolve(
   file.split("/").at(-1) ?? "",
 );
 const inside = relative(repo, physicalFile);
-if (!inside.startsWith("..") && !isAbsolute(inside))
+if (
+  inside === "" ||
+  (!isAbsolute(inside) && inside !== ".." && !inside.startsWith(`..${sep}`))
+)
   throw new Error("Password file must be outside the repository");
+
 let password: string;
 try {
   const info = statSync(file);
