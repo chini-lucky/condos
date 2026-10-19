@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent, PointerEvent, ReactNode } from 'react';
 import { getStation, interchanges, lineRoutes, lines, stations } from './network';
-import type { LineId, Station } from './network';
+import type { Station } from './network';
+import { stationLabels } from './labels';
 import { homeViewport, panBy, zoomAt } from './viewport';
 import type { Point, Viewport } from './viewport';
 
@@ -20,6 +21,7 @@ export function RailMap({ selectedStationId, onSelectStation, children }: RailMa
   const [view, setView] = useState<Viewport>(homeViewport);
   const selected = selectedStationId ? getStation(selectedStationId) : undefined;
   const scale = view.width / size.width;
+  const labels = stationLabels(stations, scale, selectedStationId, view.width >= 850, interchanges.flat());
 
   useEffect(() => {
     const element = svg.current;
@@ -116,9 +118,9 @@ export function RailMap({ selectedStationId, onSelectStation, children }: RailMa
       <title>Bangkok BTS and MRT Blue station map</title>
       <path d="M-40,205 C60,225 160,245 190,300 S235,420 205,480 S150,540 172,585 S300,598 342,652 S420,705 520,712" className="rail-river" />
       <text x="205" y="420" transform="rotate(-74 205 420)" className="rail-river-label" fontSize={12 * scale}>Chao Phraya</text>
-      {Object.entries(lineRoutes).map(([id, routes]) => routes.map((route, index) => <polyline key={`${id}-${index}`}
+      {Object.entries(lines).map(([id, line]) => (line.badge === 'MRT' ? lineRoutes.blue : line.name === 'BTS Silom' ? lineRoutes.silom : lineRoutes.sukhumvit).map((route, index) => <polyline key={`${id}-${index}`}
         points={route.map(key => { const station = getStation(key); return station ? `${station.x},${station.y}` : ''; }).join(' ')}
-        fill="none" stroke={lines[id as LineId].color} strokeWidth={4 * scale} strokeLinejoin="round" strokeLinecap="round" />))}
+        fill="none" stroke={line.color} strokeWidth={4 * scale} strokeLinejoin="round" strokeLinecap="round" />))}
       {interchanges.map(([a, b]) => {
         const first = getStation(a); const second = getStation(b);
         return first && second ? <line key={a} x1={first.x} y1={first.y} x2={second.x} y2={second.y} stroke="#748076" strokeWidth={2 * scale} strokeDasharray={`${3 * scale} ${3 * scale}`} /> : null;
@@ -126,17 +128,15 @@ export function RailMap({ selectedStationId, onSelectStation, children }: RailMa
       {children}
       {stations.map(station => {
         const active = selectedStationId === station.id;
-        const interchange = station.lines.length > 1 || interchanges.some(pair => pair.includes(station.id));
-        const showName = active || interchange || view.width < 850;
-        const left = station.label.includes('l'); const top = station.label.includes('t');
+        const label = labels.get(station.id);
         return <g key={station.id} data-station={station.id} role="button" tabIndex={0} aria-label={`Select ${station.name}`}
           aria-pressed={active} onClick={event => { if (event.detail === 0) onSelectStation(station); }}
           onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelectStation(station); } }}
           onFocus={() => { if (station.x < view.x || station.x > view.x + view.width || station.y < view.y || station.y > view.y + view.height) setView(current => ({ ...current, x: station.x - current.width / 2, y: station.y - current.height / 2 })); }}>
           <circle cx={station.x} cy={station.y} r={19 * scale} fill="transparent" className="rail-hit" />
           <circle cx={station.x} cy={station.y} r={(active ? 7 : 4) * scale} className={active ? 'rail-dot selected' : 'rail-dot'} strokeWidth={2 * scale} />
-          {showName && <text x={station.x + (left ? -10 : 10) * scale} y={station.y + (top ? -11 : station.label.includes('b') ? 18 : 4) * scale}
-            textAnchor={left ? 'end' : 'start'} fontSize={(active ? 16 : 11) * scale} className={active ? 'rail-label selected' : 'rail-label'}>{station.name}</text>}
+          {label && <text x={label.x} y={label.y}
+            textAnchor={label.anchor} fontSize={label.fontSize} className={active ? 'rail-label selected' : 'rail-label'}>{station.name}</text>}
         </g>;
       })}
     </svg>

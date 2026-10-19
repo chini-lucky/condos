@@ -13,7 +13,7 @@ button:focus-visible, select:focus-visible, svg:focus-visible, [data-station]:fo
 .rail-river-label { fill: #7fa3b3; font-style: italic; }
 .rail-dot { fill: white; stroke: #8b938c; opacity: .6; pointer-events: none; }
 .rail-dot.selected { fill: #161a17; stroke: white; opacity: 1; }
-.rail-label { fill: #5c6560; paint-order: stroke; stroke: #f3f4f0; stroke-width: 3px; stroke-linejoin: round; pointer-events: none; }
+.rail-label { fill: #5c6560; paint-order: stroke; stroke: #f3f4f0; stroke-width: 3px; stroke-linejoin: round; }
 .rail-label.selected { fill: #161a17; font-weight: 700; }
 [data-station] { cursor: pointer; }
 [data-station]:focus-visible .rail-dot, [data-station]:hover .rail-dot { fill: #161a17; opacity: 1; }
