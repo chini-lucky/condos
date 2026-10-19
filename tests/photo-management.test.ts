@@ -438,3 +438,54 @@ test("photo mutations enforce identity, offer ownership and revisions, and rejec
     await service.from("offers").delete().in("id", [id, other]);
   }
 });
+
+test("a delayed duplicate finalizer cannot delete an already attached photo after Trash", async () => {
+  const db = await admin(),
+    id = await createPhotos(db, 1);
+  try {
+    const before = (await db.rpc("get_offer_photos", { p_offer_id: id })).data,
+      photo = before.photos[0];
+    const offer = (
+      await db.from("offers").select("version").eq("id", id).single()
+    ).data;
+    assert.equal(
+      (
+        await db.rpc("trash_offer", {
+          p_id: id,
+          p_expected_version: offer?.version,
+        })
+      ).error,
+      null,
+    );
+    // A second previously validated request may reach finalize after another request
+    // attached the photo and the offer was subsequently moved to Trash.
+    const duplicate = await service.rpc("finalize_photo", {
+      p_id: photo.id,
+      p_bytes: photo.byte_size,
+      p_width: photo.width,
+      p_height: photo.height,
+    });
+    assert.equal(duplicate.error, null);
+    assert.equal(duplicate.data.id, photo.id);
+    assert.deepEqual(
+      (await db.rpc("get_offer_photos", { p_offer_id: id })).data,
+      before,
+    );
+    assert.equal(
+      (await service.storage.from("offer-photos").download(photo.object_key))
+        .error,
+      null,
+    );
+    assert.equal(
+      (
+        await db
+          .from("photo_cleanup")
+          .select("object_key")
+          .eq("object_key", photo.object_key)
+      ).data?.length,
+      0,
+    );
+  } finally {
+    await service.from("offers").delete().eq("id", id);
+  }
+});

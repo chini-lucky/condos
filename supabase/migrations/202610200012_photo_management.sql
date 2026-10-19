@@ -61,14 +61,15 @@ revoke all on function public.choose_photo_cover(uuid,bigint,uuid) from public;
 grant execute on function public.choose_photo_cover(uuid,bigint,uuid) to authenticated;
 create or replace function public.finalize_photo(p_id uuid, p_bytes integer, p_width integer, p_height integer)
 returns public.photo_assets language plpgsql security definer set search_path = '' as $$
-declare asset public.photo_assets; live boolean;
+declare asset public.photo_assets; live boolean; parent_exists boolean;
 begin
   select * into asset from public.photo_assets where id = p_id;
   if not found then return null; end if;
-  perform 1 from public.offers o where o.id = asset.offer_id and (to_jsonb(o)->>'trashed_at') is null for update;
-  live := found;
+  select (to_jsonb(o)->>'trashed_at') is null into live from public.offers o where o.id = asset.offer_id for update;
+  parent_exists := found;
+  live := coalesce(live, false);
   select * into asset from public.photo_assets where id = p_id for update;
-  if live and asset.state = 'ready' then return asset; end if;
+  if parent_exists and asset.state = 'ready' then return asset; end if;
   if not live or asset.state <> 'uploading' or asset.expires_at <= now() then
     update public.photo_assets set state = 'deleting' where id = p_id;
     insert into public.photo_cleanup(object_key) values (asset.object_key)
