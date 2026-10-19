@@ -2,11 +2,12 @@
 
 Integration branch: `integration/condos-v1`. Baseline main: `cfca225`.
 
-| Issue  | State      | Evidence                                                  |
-| ------ | ---------- | --------------------------------------------------------- |
-| #1     | Integrated | `dffaeca` — admin sign-in; integration verification below |
-| #2     | Integrated | `6084d44` — complete Bangkok rail map; verification below |
-| #3–#17 | Blocked    | See native GitHub dependencies and tickets.md             |
+| Issue  | State      | Evidence                                                    |
+| ------ | ---------- | ----------------------------------------------------------- |
+| #1     | Integrated | `dffaeca` — admin sign-in; integration verification below   |
+| #2     | Integrated | `6084d44` — complete Bangkok rail map; verification below   |
+| #3     | Integrated | `732ee8e` — persistent offer management; verification below |
+| #4–#17 | Pending    | See native GitHub dependencies and tickets.md               |
 
 Planning documents and implementation instructions are committed before ticket work begins. Issue completion will be recorded with merge commits and validation evidence; GitHub closes the work through the final PR.
 
@@ -21,3 +22,9 @@ Authentication checks cover admin-only access, denied self-enrolment, secure cre
 Merged `ticket/02-rail-map` without conflicts in `6084d44`. On integration, `npm run check`, `npm run build`, and the three rail-network/viewport/label domain tests passed. All nine Chromium journeys passed together: five rail navigation/responsive/touch journeys and all four existing authentication journeys. The rail fixture is excluded from the production build. Local Condos and Lola stacks were not reset or stopped.
 
 Offer pins, walking rings, semantic offer navigation and map/card synchronization remain #5/#14 work. RailBrowser extension points are ready for offer UI composition. The GitHub issue remains open for closure through the final PR.
+
+## Ticket #3 integration verification
+
+Merged `ticket/03-offers` without conflicts in `732ee8e`. Integration passed `npm run check`, `npm run build`, all eight Node database/provisioning/domain tests, and all fourteen Chromium journeys on dedicated port 5286. These include the existing authentication and rail journeys plus persistent name-only creation/rename/direct links, concurrent-edit review, offline and in-flight save behavior, missing-link recovery, focus refresh and mobile sheet navigation.
+
+The typed offers repository, shared OfferForm and OffersWorkspace composition are integrated for later features. Tests used the existing local Condos migrations through `202610190005`; no stack reset or deployment occurred. Optional offer facts and feature-specific editing remain later tickets. The GitHub issue remains open for closure through the final PR.
