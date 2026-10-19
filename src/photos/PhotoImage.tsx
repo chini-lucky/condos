@@ -9,7 +9,7 @@ export function PhotoImage({
   objectKey: string;
   alt: string;
 }) {
-  const [source, setSource] = useState<string>();
+  const [source, setSource] = useState<{ url: string; generation: number }>();
   const [error, setError] = useState("");
   const [renewal, setRenewal] = useState(0);
   const [imageRetries, setImageRetries] = useState(0);
@@ -21,7 +21,7 @@ export function PhotoImage({
         .signedUrl(objectKey)
         .then((link) => {
           if (!active) return;
-          setSource(link.url);
+          setSource({ url: link.url, generation: renewal });
           setError("");
           timer = setTimeout(
             () => setRenewal((value) => value + 1),
@@ -56,7 +56,9 @@ export function PhotoImage({
   return source ? (
     <img
       className="offer-photo"
-      src={source}
+      key={source.generation}
+      src={source.url}
+      onLoad={() => setImageRetries(0)}
       alt={alt}
       onError={() => {
         if (imageRetries < 1) {
