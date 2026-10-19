@@ -78,6 +78,42 @@
   margin-top: 0.3rem;
 }
 
+.offer-status-label {
+  display: inline-block;
+  border-radius: 1rem;
+  padding: 0.2rem 0.6rem;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+.offer-status-pending {
+  background: #fff0cf;
+  color: #754d00;
+}
+.offer-status-available {
+  background: #e1f2e8;
+  color: #205b3b;
+}
+.offer-status-viewing {
+  background: #e4eaff;
+  color: #334889;
+}
+.offer-status-rejected {
+  background: #f8e5e5;
+  color: #843b3b;
+}
+.offer-panel-content textarea,
+.offer-panel-content select,
+.offer-panel-content input[type="datetime-local"] {
+  font: inherit;
+  max-width: 100%;
+  padding: 0.6rem;
+  border: 1px solid #c9c9c4;
+  border-radius: 0.4rem;
+}
+.offer-panel-content textarea {
+  min-height: 5rem;
+  resize: vertical;
+}
 .offer-location-fields {
   margin: 1rem 0;
   padding: 1rem;

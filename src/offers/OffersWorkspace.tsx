@@ -11,6 +11,10 @@ import { stationSummaries } from "./location";
 import { offersRepository } from "./repository";
 import type { Offer } from "./repository";
 import "./offers.css";
+import { OfferStatusDisplay } from "./OfferStatusDisplay";
+import { OfferStatusEditor } from "./OfferStatusEditor";
+import { OfferNotes } from "../notes/OfferNotes";
+import { notesRepository } from "../notes/notesRepository";
 type Route =
   { kind: "list" } | { kind: "add" } | { kind: "detail" | "edit"; id: string };
 function routeFromHash(): Route {
@@ -28,6 +32,7 @@ function navigate(route: Route) {
         : `offer=${encodeURIComponent(route.id)}${route.kind === "edit" ? "&edit" : ""}`;
 }
 const repository = supabase ? offersRepository(supabase) : null;
+const noteRepository = supabase ? notesRepository(supabase) : null;
 export function OffersWorkspace() {
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -175,7 +180,7 @@ export function OffersWorkspace() {
               {unassigned.map((offer) => (
                 <li key={offer.id}>
                   <a href={`#offer=${offer.id}`}>{offer.name}</a>
-                  <span>{offer.status}</span>
+                  <OfferStatusDisplay offer={offer} />
                   <OfferFactsSummary offer={offer} />
                 </li>
               ))}
@@ -195,7 +200,14 @@ export function OffersWorkspace() {
       ) : selected ? (
         <>
           <h2>{selected.name}</h2>
-          <p>{selected.status}</p>
+          <OfferStatusDisplay offer={selected} />
+          {repository && (
+            <OfferStatusEditor
+              offer={selected}
+              repository={repository}
+              onSaved={saved}
+            />
+          )}
           <p>
             {selected.stationId
               ? `Station: ${getStation(selected.stationId)?.name ?? selected.stationId}`
@@ -215,6 +227,13 @@ export function OffersWorkspace() {
             Edit offer
           </button>
           <a href={`#offer=${selected.id}`}>Direct link to offer</a>
+          {noteRepository && (
+            <OfferNotes
+              key={selected.id}
+              offerId={selected.id}
+              repository={noteRepository}
+            />
+          )}
         </>
       ) : (
         <>

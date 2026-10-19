@@ -1,3 +1,4 @@
+import { OfferStatusDisplay } from "./OfferStatusDisplay";
 import type { Station } from "../rail/network";
 import { OfferFactsSummary } from "./OfferFactsSummary";
 import type { Offer } from "./repository";
@@ -55,7 +56,7 @@ export function StationOfferList({
               <a href={`#offer=${offer.id}`}>{offer.name}</a>
               <p>{walkingDescription(offer)}</p>
               <OfferFactsSummary offer={offer} />
-              <span>{offer.status}</span>
+              <OfferStatusDisplay offer={offer} />
             </li>
           ))}
         </ul>

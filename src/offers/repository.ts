@@ -7,6 +7,9 @@ export interface Offer extends OfferFacts, OfferLocation {
   id: string;
   name: string;
   status: "Pending" | "Available" | "Viewing" | "Rejected";
+  pendingExplanation: string | null;
+  rejectionReason: string | null;
+  viewingAt: string | null;
   version: number;
   createdAt: string;
   updatedAt: string;
@@ -82,10 +85,24 @@ function decode(value: unknown): Offer {
     )
   )
     throw new Error("Invalid extra facilities");
+  const pendingExplanation = field("pending_explanation"),
+    rejectionReason = field("rejection_reason"),
+    viewingAt = field("viewing_at");
+  if (
+    (pendingExplanation !== null && typeof pendingExplanation !== "string") ||
+    (rejectionReason !== null && typeof rejectionReason !== "string") ||
+    (viewingAt !== null && typeof viewingAt !== "string")
+  )
+    throw new Error("Invalid offer response");
+  if (viewingAt !== null && !Number.isFinite(Date.parse(viewingAt)))
+    throw new Error("Invalid appointment response");
   return {
     id,
     name,
     status,
+    pendingExplanation,
+    rejectionReason,
+    viewingAt,
     version,
     createdAt,
     updatedAt,
@@ -161,6 +178,33 @@ export function offersRepository(client: SupabaseClient) {
         throw new OfferFailure(
           "unavailable",
           "Offer was not saved. Check your connection and try again.",
+        );
+      return decode(result.data);
+    },
+    async updateStatus(
+      id: string,
+      version: number,
+      values: {
+        status: Offer["status"];
+        pendingExplanation: string | null;
+        rejectionReason: string | null;
+        viewingAt: string | null;
+      },
+    ): Promise<Offer> {
+      const result = await client.rpc("update_offer_status", {
+        p_id: id,
+        p_expected_version: version,
+        p_status: values.status,
+        p_pending_explanation: values.pendingExplanation,
+        p_rejection_reason: values.rejectionReason,
+        p_viewing_at: values.viewingAt,
+      });
+      if (result.error)
+        throw new OfferFailure(
+          result.error.code === "40001" ? "conflict" : "unavailable",
+          result.error.code === "40001"
+            ? "This offer changed on another device. Your draft is kept. Review the latest offer before retrying."
+            : "Status was not saved. Check your connection and try again.",
         );
       return decode(result.data);
     },
