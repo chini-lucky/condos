@@ -2,7 +2,7 @@
   list-style: none;
   padding: 0;
 }
-.offer-list li {
+.offer-list > li {
   padding: 1rem 0;
   border-bottom: 1px solid #d9dfd4;
   display: flex;
@@ -58,7 +58,7 @@
 .offer-facts {
   font-size: 0.9rem;
 }
-.offer-list li {
+.offer-list > li {
   flex-wrap: wrap;
 }
 .offer-list .offer-facts {

@@ -43,14 +43,12 @@ test("create, inspect and clear optional facts and facilities without fabricatin
   ).toBeVisible();
   const detailLink = page.url();
   await page.getByRole("button", { name: "Back", exact: true }).click();
-  const card = page
-    .getByRole("listitem")
-    .filter({
-      has: page.getByRole("link", {
-        name: "Facts browser fixture",
-        exact: true,
-      }),
-    });
+  const card = page.getByRole("listitem").filter({
+    has: page.getByRole("link", {
+      name: "Facts browser fixture",
+      exact: true,
+    }),
+  });
   await expect(
     card.getByText("✓ Washer: Present", { exact: true }),
   ).toBeVisible();
