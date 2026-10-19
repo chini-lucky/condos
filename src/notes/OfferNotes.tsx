@@ -180,10 +180,25 @@ function NoteEntry({
   }
   async function review() {
     setBusy(true);
-    if (await refresh()) {
-      setReviewed(true);
+    try {
+      const latest = (await repository.list(note.offerId)).find(
+        (item) => item.id === note.id,
+      );
+      if (!latest) {
+        setError(
+          "This note was deleted on another device. Your draft is kept; copy it before cancelling.",
+        );
+      } else {
+        await refresh();
+        setReviewed(true);
+      }
+    } catch {
+      setError(
+        "Unable to load the latest note. Your draft is kept. Please try again.",
+      );
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
   }
   return (
     <li>

@@ -104,6 +104,38 @@ test("failed note writes retain drafts and concurrent edits require review", asy
   ).toBeVisible();
   await other.close();
 });
+test("reviewing a remotely deleted note preserves the attempted edit", async ({
+  page,
+  browser,
+}) => {
+  await create(page);
+  await page.getByLabel("New note").fill("Remotely removed");
+  await page.getByRole("button", { name: "Add note", exact: true }).click();
+  await expect(
+    page.getByText("Remotely removed", { exact: true }),
+  ).toBeVisible();
+  const link = page.url();
+  const other = await browser.newContext();
+  const second = await other.newPage();
+  await login(second);
+  await second.goto(link);
+  await second.getByRole("button", { name: "Edit note", exact: true }).click();
+  await second.getByLabel("Edit note text").fill("Keep my deleted-note draft");
+  await page.getByRole("button", { name: "Delete note", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Confirm delete note", exact: true })
+    .click();
+  await expect(page.getByRole("heading", { name: "Notes (0)" })).toBeVisible();
+  await second.getByRole("button", { name: "Save note", exact: true }).click();
+  await second.getByRole("button", { name: "Review latest notes" }).click();
+  await expect(second.getByLabel("Edit note text")).toHaveValue(
+    "Keep my deleted-note draft",
+  );
+  await expect(second.getByRole("alert")).toContainText(
+    "deleted on another device",
+  );
+  await other.close();
+});
 test.afterAll(async () => {
   const { createClient } = await import("@supabase/supabase-js");
   const { localConfig } = await import("../scripts/local-config.ts");
