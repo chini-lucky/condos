@@ -2,25 +2,25 @@
 
 Integration branch: `integration/condos-v1`. Baseline main: `cfca225`.
 
-| Issue | State      | Evidence                                                                   |
-| ----- | ---------- | -------------------------------------------------------------------------- |
-| #1    | Integrated | `dffaeca` — admin sign-in; integration verification below                  |
-| #2    | Integrated | `6084d44` — complete Bangkok rail map; verification below                  |
-| #3    | Integrated | `732ee8e` — persistent offer management; verification below                |
-| #4    | Integrated | `fe249f7` + run `39305725116` — hosted browser acceptance passed           |
-| #5    | Integrated | `2622721` — station assignment and offer pins; verification below          |
-| #6    | Integrated | `231f633` — optional rental facts and facilities; verification below       |
-| #7    | Integrated | `9575dce` — agent contacts and source links; verification below            |
-| #8    | Integrated | `b387f7d` — statuses and Bangkok viewing appointments                      |
-| #9    | Integrated | `03b34e4` + `c01d075` — notes and focus-refresh draft preservation         |
-| #10   | Integrated | `0a3350b` — private photos, processing and durable cleanup                 |
-| #11   | Integrated | `cc81f2f` — HEIC conversion and private uploads; verification below        |
-| #12   | Integrated | `c50ab62` — photo order, cover and individual deletion; verification below |
-| #13   | Integrated | `c780f55` — offer filters and comparison groups; verification below        |
-| #14   | Integrated | `72f60cb` — semantic map navigation and synchronized offers                |
-| #15   | Integrated | `68d7756` — recoverable Trash and restoration; verification below          |
-| #16   | Integrated | `682e33a` — permanent deletion and durable cleanup receipts                |
-| #17   | Partial    | `9af6917` — final UI integrated; reviews and release verification pending  |
+| Issue | State      | Evidence                                                                         |
+| ----- | ---------- | -------------------------------------------------------------------------------- |
+| #1    | Integrated | `dffaeca` — admin sign-in; integration verification below                        |
+| #2    | Integrated | `6084d44` — complete Bangkok rail map; verification below                        |
+| #3    | Integrated | `732ee8e` — persistent offer management; verification below                      |
+| #4    | Integrated | `fe249f7` + run `39305725116` — hosted browser acceptance passed                 |
+| #5    | Integrated | `2622721` — station assignment and offer pins; verification below                |
+| #6    | Integrated | `231f633` — optional rental facts and facilities; verification below             |
+| #7    | Integrated | `9575dce` — agent contacts and source links; verification below                  |
+| #8    | Integrated | `b387f7d` — statuses and Bangkok viewing appointments                            |
+| #9    | Integrated | `03b34e4` + `c01d075` — notes and focus-refresh draft preservation               |
+| #10   | Integrated | `0a3350b` — private photos, processing and durable cleanup                       |
+| #11   | Integrated | `cc81f2f` — HEIC conversion and private uploads; verification below              |
+| #12   | Integrated | `c50ab62` — photo order, cover and individual deletion; verification below       |
+| #13   | Integrated | `c780f55` — offer filters and comparison groups; verification below              |
+| #14   | Integrated | `72f60cb` — semantic map navigation and synchronized offers                      |
+| #15   | Integrated | `68d7756` — recoverable Trash and restoration; verification below                |
+| #16   | Integrated | `682e33a` — permanent deletion and durable cleanup receipts                      |
+| #17   | Partial    | `9af6917` + `02e536b` — UI/review fixes integrated; final hosted release pending |
 
 Planning documents and implementation instructions are committed before ticket work begins. Issue completion will be recorded with merge commits and validation evidence; GitHub closes the work through the final PR.
 
@@ -134,7 +134,15 @@ Merged `ticket/17-final-app` cleanly in `9af6917`. Check/build passed with exist
 
 The implementer reports a prior complete 44-test Node suite and 45-journey browser suite passing on this candidate; merger verification was focused on changed presentation boundaries. Reference comparisons and nine desktop/phone screenshots are recorded in `/tmp/condos-implementation/ticket17-ui.md` and `/tmp/condos-implementation/final-ui`. The dossier, cards and overview are separate React components; existing persistence/private-photo/lifecycle behavior remains composed.
 
-Only the UI portion of #17 is integrated. Independent Standards/Spec reviews, resolution of actionable findings and final controlled release/hosted verification remain pending. No schema changes, resets or deployment occurred during this merge. Ticket #17 is not complete.
+The UI portion was integrated first; subsequent review corrections are recorded below. Final controlled release/hosted verification remains pending. No schema changes, resets or deployment occurred during this merge. Ticket #17 is not complete.
+
+## Ticket #17 review corrections integration
+
+Merged `ticket/17-review-fixes` cleanly in `02e536b`. The original independent Standards and Spec reviewers confirmed all four findings closed with no new actionable findings on candidate `46616a1`; their verification records are in `/tmp/condos-implementation/review-standards-verification.md` and `/tmp/condos-implementation/review-spec-verification.md`.
+
+Merger verification passed three location-domain tests and all seven focused gallery/context/unavailable-draft browser regressions under the shared lock on port 5293, then check/build serially. Coverage includes independent main/preview image retry, pure location parsing, copyable offer/note/status drafts surviving remote Trash and permanent deletion with writes disabled, and truthful saved status context on dossier/cards/callouts with correct collision bounds. The implementer additionally reports all 44 Node and 52 browser tests passing on the exact reviewed source. Build retains its existing main/lazy-codec chunk advisories.
+
+Review fixes are integrated; final hosted release and verification remain pending. No database migration, reset, hosted action, main merge or issue closure occurred during this integration.
 
 ## Ticket #7 implementation verification
 
