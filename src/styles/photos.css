@@ -58,7 +58,8 @@
   object-fit: cover;
 }
 
-.gallery-next > span {
+.authenticated-app .gallery-advance {
+  padding: 0;
   position: absolute;
   left: 4px;
   top: calc(50% - 18px);

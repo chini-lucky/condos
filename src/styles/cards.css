@@ -162,3 +162,12 @@
 .offer-card .offer-card-meta span {
   font-size: inherit;
 }
+.offer-card .offer-status-context {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.offer-card .offer-status-context p {
+  margin: 6px 0 0;
+}

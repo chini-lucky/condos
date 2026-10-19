@@ -23,8 +23,10 @@ export function OfferDossier({
   onEdit,
   onBack,
   onTrashed,
+  unavailable = false,
 }: {
   offer: Offer;
+  unavailable?: boolean;
   repository: OffersRepository;
   notes: NotesRepository | null;
   onSaved: (offer: Offer) => void;
@@ -53,7 +55,11 @@ export function OfferDossier({
         </div>
         <OfferStatusDisplay offer={offer} compact />
       </header>
-      <OfferPhotos key={`photos-${offer.id}`} offerId={offer.id}>
+      <OfferPhotos
+        key={`photos-${offer.id}`}
+        offerId={offer.id}
+        readOnly={unavailable}
+      >
         <h2 className="dossier-name">{offer.name}</h2>
         <p className="dossier-type">
           <PropertyLabel type={offer.propertyType} />
@@ -69,6 +75,7 @@ export function OfferDossier({
             offer={offer}
             repository={repository}
             onSaved={onSaved}
+            unavailable={unavailable}
           />
         </div>
         <OfferSpecs offer={offer} />
@@ -88,6 +95,7 @@ export function OfferDossier({
             key={`notes-${offer.id}`}
             offerId={offer.id}
             repository={notes}
+            unavailable={unavailable}
           />
         )}
         <section className="dossier-section">
@@ -96,14 +104,20 @@ export function OfferDossier({
         </section>
       </OfferPhotos>
       <footer className="dossier-footer">
-        <button className="button secondary" onClick={onEdit}>
+        <button
+          className="button secondary"
+          disabled={unavailable}
+          onClick={onEdit}
+        >
           Edit offer
         </button>
-        <OfferTrashActions
-          offer={offer}
-          repository={repository}
-          onChanged={onTrashed}
-        />
+        {!unavailable && (
+          <OfferTrashActions
+            offer={offer}
+            repository={repository}
+            onChanged={onTrashed}
+          />
+        )}
         <a className="quiet-link" href={`#offer=${offer.id}`}>
           Direct link to offer
         </a>

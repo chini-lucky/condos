@@ -1,3 +1,4 @@
+import { OfferStatusContext } from "./OfferStatusContext";
 import { OfferCover } from "../photos/OfferPhotos";
 import {
   FacilityIndicators,
@@ -32,6 +33,7 @@ export function OfferCard({ offer }: { offer: Offer }) {
           <FacilityIndicators offer={offer} compact />
           <OfferStatusDisplay offer={offer} compact />
         </div>
+        <OfferStatusContext offer={offer} concise />
       </div>
       <OfferPrice rent={offer.rent} compact />
     </div>

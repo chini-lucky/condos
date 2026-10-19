@@ -19,6 +19,26 @@ export function locationDraft(
     bearing: offer?.bearing?.toString() ?? "",
   };
 }
+export function parseLocation(draft: LocationDraft): OfferLocation {
+  const walkingMetres =
+    draft.walkingMetres.trim() === "" ? null : Number(draft.walkingMetres);
+  const bearing = draft.bearing.trim() === "" ? null : Number(draft.bearing);
+  if (draft.stationId && !getStation(draft.stationId))
+    throw new Error("Choose a station from the rail map.");
+  if (
+    walkingMetres !== null &&
+    (!Number.isFinite(walkingMetres) || walkingMetres < 0)
+  )
+    throw new Error("Walking distance must be zero or more metres.");
+  if (
+    bearing !== null &&
+    (!Number.isFinite(bearing) || bearing < 0 || bearing >= 360)
+  )
+    throw new Error(
+      "Direction must be from 0 up to, but not including, 360 degrees.",
+    );
+  return { stationId: draft.stationId || null, walkingMetres, bearing };
+}
 export interface LocatedOffer extends OfferLocation {
   rent?: number | null;
 }

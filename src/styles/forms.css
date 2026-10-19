@@ -55,12 +55,14 @@
 
 .offer-notes form {
   display: flex;
+  flex-wrap: wrap;
   align-items: end;
   gap: 8px;
 }
 
 .offer-notes form label {
-  flex: 1;
+  min-width: 0;
+  flex: 1 1 180px;
   margin: 0;
   font-size: 10px;
 }
@@ -144,4 +146,21 @@
 
 .offer-panel-content form .facility-fields-grid label {
   margin: 0;
+}
+.unavailable-drafts {
+  padding: 12px;
+  border: 1px solid #ebc6c2;
+  border-radius: 12px;
+  background: #fbedec;
+  margin-bottom: 16px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.unavailable-drafts button {
+  font-size: 11px;
+  margin: 6px 0 0;
+}
+.unavailable-drafts a {
+  display: block;
+  color: inherit;
 }

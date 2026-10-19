@@ -1,3 +1,4 @@
+import { OfferStatusContext, offerStatusContext } from "./OfferStatusContext";
 import { formatAppointment } from "./appointments";
 import type { Offer } from "./repository";
 import { getStation } from "../rail/network";
@@ -33,10 +34,18 @@ export function OfferMapOverlay({
   const stationIds = new Set(
     offers.flatMap((offer) => (offer.stationId ? [offer.stationId] : [])),
   );
-  const box = { width: Math.min(184, view.size.width - 24), height: 88 };
   const calloutOffers = positioned.filter(
     (item) => item.offer.stationId === focusId,
   );
+  // Each concise context paragraph has room for up to four wrapped lines.
+  const contextRows = Math.max(
+    0,
+    ...calloutOffers.map(({ offer }) => offerStatusContext(offer).length),
+  );
+  const box = {
+    width: Math.min(184, view.size.width - 24),
+    height: 88 + 56 * contextRows,
+  };
   const callouts =
     27 / scale >= 100 && opacity > 0
       ? placeCallouts(
@@ -230,6 +239,7 @@ export function OfferMapOverlay({
                   <FacilityIndicators offer={offer} compact />
                   <OfferStatusDisplay offer={offer} compact />
                 </div>
+                <OfferStatusContext offer={offer} concise />
               </button>
             </foreignObject>
           </g>

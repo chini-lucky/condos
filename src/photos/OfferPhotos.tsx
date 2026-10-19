@@ -18,9 +18,11 @@ type Selection = {
 export function OfferPhotos({
   offerId,
   children,
+  readOnly = false,
 }: {
   offerId: string;
   children?: ReactNode;
+  readOnly?: boolean;
 }) {
   const [collection, setCollection] = useState<PhotoCollection | null>(null);
   const photos = collection?.photos ?? [];
@@ -63,8 +65,12 @@ export function OfferPhotos({
     };
   }, [refresh]);
   const current = photos[Math.min(index, Math.max(0, photos.length - 1))];
+  const nextPhoto =
+    photos[
+      (Math.min(index, Math.max(0, photos.length - 1)) + 1) % photos.length
+    ];
   async function uploadSelected() {
-    if (!repository || busy) return;
+    if (!repository || busy || readOnly) return;
     let entries = selected.filter((entry) => entry.status !== "saved");
     if (entries.length === 0) return;
     setBusy(true);
@@ -179,26 +185,22 @@ export function OfferPhotos({
                   alt={`Offer photo ${Math.min(index, photos.length - 1) + 1} of ${photos.length}`}
                 />
               </div>
-              {photos.length > 1 && (
-                <button
-                  className="gallery-next"
-                  aria-label="Next photo"
-                  onClick={() =>
-                    setIndex(
-                      (Math.min(index, photos.length - 1) + 1) % photos.length,
-                    )
-                  }
-                >
-                  <PhotoImage
-                    objectKey={
-                      photos[
-                        (Math.min(index, photos.length - 1) + 1) % photos.length
-                      ]!.objectKey
+              {photos.length > 1 && nextPhoto && (
+                <div className="gallery-next">
+                  <PhotoImage objectKey={nextPhoto.objectKey} alt="" />
+                  <button
+                    className="gallery-advance"
+                    aria-label="Next photo"
+                    onClick={() =>
+                      setIndex(
+                        (Math.min(index, photos.length - 1) + 1) %
+                          photos.length,
+                      )
                     }
-                    alt=""
-                  />
-                  <span aria-hidden="true">›</span>
-                </button>
+                  >
+                    <span aria-hidden="true">›</span>
+                  </button>
+                </div>
               )}
             </div>
             <div className="photo-dots" aria-label="Photo navigation">
@@ -227,7 +229,7 @@ export function OfferPhotos({
             offerId={offerId}
             collection={collection}
             repository={repository}
-            uploading={busy}
+            uploading={busy || readOnly}
             onChanged={(next) => {
               const selectedId = current?.id;
               const found = next.photos.findIndex(
@@ -267,7 +269,7 @@ export function OfferPhotos({
               type="file"
               accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
               multiple
-              disabled={busy}
+              disabled={busy || readOnly}
               onChange={(event) => {
                 const files = Array.from(event.currentTarget.files ?? []);
                 setNotice("");
@@ -325,7 +327,7 @@ export function OfferPhotos({
         )}
         {selected.some((entry) => entry.status !== "saved") && (
           <button
-            disabled={busy}
+            disabled={busy || readOnly}
             onClick={() => {
               void uploadSelected();
             }}
@@ -346,7 +348,7 @@ export function OfferPhotos({
               {cleanup.failed > 0 ? `; ${cleanup.failed} awaiting retry` : ""}.
             </p>
             <button
-              disabled={busy}
+              disabled={busy || readOnly}
               onClick={() => {
                 if (repository)
                   void repository

@@ -1,3 +1,4 @@
+import { CopyDraftButton } from "./CopyDraftButton";
 import { useState } from "react";
 import {
   appointmentInput,
@@ -10,8 +11,10 @@ export function OfferStatusEditor({
   offer,
   repository,
   onSaved,
+  unavailable = false,
 }: {
   offer: Offer;
+  unavailable?: boolean;
   repository: OffersRepository;
   onSaved: (offer: Offer) => void;
 }) {
@@ -20,6 +23,7 @@ export function OfferStatusEditor({
     <StatusForm
       key={offer.id}
       offer={offer}
+      unavailable={unavailable}
       repository={repository}
       onSaved={(saved) => {
         setOpen(false);
@@ -28,7 +32,9 @@ export function OfferStatusEditor({
       onCancel={() => setOpen(false)}
     />
   ) : (
-    <button onClick={() => setOpen(true)}>Change status or viewing</button>
+    <button disabled={unavailable} onClick={() => setOpen(true)}>
+      Change status or viewing
+    </button>
   );
 }
 function StatusForm({
@@ -36,8 +42,10 @@ function StatusForm({
   repository,
   onSaved,
   onCancel,
+  unavailable,
 }: {
   offer: Offer;
+  unavailable: boolean;
   repository: OffersRepository;
   onSaved: (offer: Offer) => void;
   onCancel: () => void;
@@ -53,6 +61,7 @@ function StatusForm({
     [latest, setLatest] = useState<Offer | null>(null);
   async function save(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (unavailable) return;
     setError("");
     setBusy(true);
     setConflict(false);
@@ -185,8 +194,23 @@ function StatusForm({
           unchanged.
         </p>
       )}
+      {unavailable && (
+        <CopyDraftButton
+          label="Copy status draft"
+          text={JSON.stringify(
+            {
+              status,
+              pendingExplanation: pending,
+              rejectionReason: reason,
+              viewingTimeBangkok: time,
+            },
+            null,
+            2,
+          )}
+        />
+      )}
       <div className="offer-actions">
-        <button disabled={busy} type="submit">
+        <button disabled={busy || unavailable} type="submit">
           {busy ? "Saving status…" : "Save status and viewing"}
         </button>
         <button type="button" disabled={busy} onClick={onCancel}>
