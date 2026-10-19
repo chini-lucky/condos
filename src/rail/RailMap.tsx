@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent, PointerEvent, ReactNode } from 'react';
-import { getStation, interchanges, lineRoutes, lines, stations } from './network';
+import { getStation, interchanges, lineIds, lineRoutes, lines, stations } from './network';
 import type { Station } from './network';
 import { stationLabels } from './labels';
 import { homeViewport, panBy, zoomAt } from './viewport';
@@ -118,9 +118,9 @@ export function RailMap({ selectedStationId, onSelectStation, children }: RailMa
       <title>Bangkok BTS and MRT Blue station map</title>
       <path d="M-40,205 C60,225 160,245 190,300 S235,420 205,480 S150,540 172,585 S300,598 342,652 S420,705 520,712" className="rail-river" />
       <text x="205" y="420" transform="rotate(-74 205 420)" className="rail-river-label" fontSize={12 * scale}>Chao Phraya</text>
-      {Object.entries(lines).map(([id, line]) => (line.badge === 'MRT' ? lineRoutes.blue : line.name === 'BTS Silom' ? lineRoutes.silom : lineRoutes.sukhumvit).map((route, index) => <polyline key={`${id}-${index}`}
+      {lineIds.map(id => lineRoutes[id].map((route, index) => <polyline key={`${id}-${index}`}
         points={route.map(key => { const station = getStation(key); return station ? `${station.x},${station.y}` : ''; }).join(' ')}
-        fill="none" stroke={line.color} strokeWidth={4 * scale} strokeLinejoin="round" strokeLinecap="round" />))}
+        fill="none" stroke={lines[id].color} strokeWidth={4 * scale} strokeLinejoin="round" strokeLinecap="round" />))}
       {interchanges.map(([a, b]) => {
         const first = getStation(a); const second = getStation(b);
         return first && second ? <line key={a} x1={first.x} y1={first.y} x2={second.x} y2={second.y} stroke="#748076" strokeWidth={2 * scale} strokeDasharray={`${3 * scale} ${3 * scale}`} /> : null;

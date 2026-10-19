@@ -1,5 +1,6 @@
 // Static reference data; source verification and topology notes: docs/rail-reference.md.
 export type LineId = 'sukhumvit' | 'silom' | 'blue';
+export const lineIds: readonly LineId[] = ['sukhumvit', 'silom', 'blue'];
 export interface Station {
   id: string;
   name: string;

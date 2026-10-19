@@ -1,12 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { RailMap } from './RailMap';
-import { getStation, lines, stations } from './network';
+import { getStation, interchanges, lineIds, lines, stations } from './network';
 import type { Station } from './network';
 import './rail.css';
 
 export function LineBadges({ station }: { station: Station }) {
-  return <span className="rail-badges">{station.lines.map(id => <span key={id} style={{ background: lines[id].color }} aria-label={lines[id].name}>{lines[id].badge}</span>)}</span>;
+  const memberships = new Set(station.lines);
+  for (const pair of interchanges) {
+    if (!pair.includes(station.id)) continue;
+    for (const id of pair) for (const line of getStation(id)?.lines ?? []) memberships.add(line);
+  }
+  return <span className="rail-badges">{lineIds.filter(id => memberships.has(id)).map(id => <span key={id} style={{ background: lines[id].color }} aria-label={lines[id].name}>{lines[id].badge}</span>)}</span>;
 }
 
 export interface RailBrowserProps {
@@ -19,6 +24,7 @@ export function RailBrowser({ renderStation, overview }: RailBrowserProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [sheet, setSheet] = useState<'peek' | 'half' | 'full'>('peek');
   const dragStart = useRef<number | null>(null);
+  const dragged = useRef(false);
   useEffect(() => {
     function escape(event: globalThis.KeyboardEvent) { if (event.key === 'Escape') { setStation(null); setSheet('peek'); } }
     window.addEventListener('keydown', escape);
@@ -30,9 +36,9 @@ export function RailBrowser({ renderStation, overview }: RailBrowserProps) {
     {(station || collapsed) && <button className="rail-home" onClick={() => { select(null); }}>All stations</button>}
     <aside className={`rail-panel sheet-${sheet}`} aria-label={station ? 'Station details' : 'Stations'}>
       <button className="rail-sheet-handle" aria-label={sheet === 'full' ? 'Collapse station sheet' : 'Expand station sheet'}
-        onPointerDown={event => { dragStart.current = event.clientY; event.currentTarget.setPointerCapture(event.pointerId); }}
-        onPointerUp={event => { if (dragStart.current === null) return; const delta = event.clientY - dragStart.current; dragStart.current = null; if (Math.abs(delta) > 30) setSheet(delta < 0 ? sheet === 'peek' ? 'half' : 'full' : sheet === 'full' ? 'half' : 'peek'); }}
-        onClick={() => setSheet(sheet === 'peek' ? 'half' : sheet === 'half' ? 'full' : 'peek')}><span /></button>
+        onPointerDown={event => { dragged.current = false; dragStart.current = event.clientY; event.currentTarget.setPointerCapture(event.pointerId); }}
+        onPointerUp={event => { if (dragStart.current === null) return; const delta = event.clientY - dragStart.current; dragStart.current = null; if (Math.abs(delta) > 30) { dragged.current = true; setSheet(delta < 0 ? sheet === 'peek' ? 'half' : 'full' : sheet === 'full' ? 'half' : 'peek'); } }}
+        onClick={() => { if (dragged.current) { dragged.current = false; return; } setSheet(sheet === 'peek' ? 'half' : sheet === 'half' ? 'full' : 'peek'); }}><span /></button>
       <button className="rail-panel-toggle" aria-label={collapsed ? 'Expand station panel' : 'Collapse station panel'} onClick={() => setCollapsed(!collapsed)}>{collapsed ? '›' : '‹'}</button>
       <div className="rail-panel-content">
         {station ? <>
