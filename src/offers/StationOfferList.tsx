@@ -24,11 +24,15 @@ export function StationOfferList({
   offers,
   onAdd,
   onSelectStation,
+  highlightedOfferId,
+  onHighlight,
 }: {
   station: Station;
   offers: readonly Offer[];
   onAdd: () => void;
   onSelectStation: (station: Station) => void;
+  highlightedOfferId?: string | null;
+  onHighlight?: (id: string | null) => void;
 }) {
   const assigned = offersByDistance(
     offers.filter((offer) => offer.stationId === station.id),
@@ -52,7 +56,17 @@ export function StationOfferList({
       ) : (
         <ul className="station-offer-list">
           {assigned.map((offer) => (
-            <li key={offer.id}>
+            <li
+              key={offer.id}
+              data-offer-card={offer.id}
+              className={
+                highlightedOfferId === offer.id ? "is-highlighted" : undefined
+              }
+              onMouseEnter={() => onHighlight?.(offer.id)}
+              onMouseLeave={() => onHighlight?.(null)}
+              onFocus={() => onHighlight?.(offer.id)}
+              onBlur={() => onHighlight?.(null)}
+            >
               <a href={`#offer=${offer.id}`}>{offer.name}</a>
               <p>{walkingDescription(offer)}</p>
               <OfferFactsSummary offer={offer} />

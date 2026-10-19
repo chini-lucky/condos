@@ -23,6 +23,7 @@ export function stationLabels(
   selectedId: string | null,
   overview: boolean,
   interchanges: readonly string[] = [],
+  preferredSides?: ReadonlyMap<string, "left" | "right">,
 ): Map<string, Label> {
   const labels = new Map<string, Label>();
   const occupied: Bounds[] = [];
@@ -38,7 +39,9 @@ export function stationLabels(
   )) {
     if (overview && priority(station) > 1) continue;
     const focused = station.id === selectedId;
-    const left = station.label.includes("l");
+    const left = preferredSides?.has(station.id)
+      ? preferredSides.get(station.id) === "left"
+      : station.label.includes("l");
     const label: Label = {
       x: station.x + (left ? -10 : 10) * scale,
       y:

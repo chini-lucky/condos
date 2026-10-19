@@ -11,13 +11,19 @@ import {
 import type { Station } from "./network";
 import { stationLabels } from "./labels";
 import { homeViewport, panBy, zoomAt } from "./viewport";
+import { fitNetwork, focusViewport, semanticStation } from "./mapNavigation";
+import type { MapView, CameraTarget } from "./mapNavigation";
 import type { Point, Viewport } from "./viewport";
 
 export interface RailMapProps {
   selectedStationId: string | null;
   onSelectStation: (station: Station | null) => void;
   /** Map-coordinate overlays, such as persisted offer pins. */
-  children?: ReactNode | ((scale: number) => ReactNode);
+  children?: ReactNode | ((view: MapView) => ReactNode);
+  cameraTarget: CameraTarget;
+  onCameraChange?:
+    ((view: MapView, reason: "manual" | "focus") => void) | undefined;
+  labelSides?: ReadonlyMap<string, "left" | "right"> | undefined;
   stationCounts?: ReadonlyMap<string, number> | undefined;
 }
 
@@ -26,15 +32,29 @@ export function RailMap({
   onSelectStation,
   children,
   stationCounts,
+  cameraTarget,
+  onCameraChange,
+  labelSides,
 }: RailMapProps) {
   const svg = useRef<SVGSVGElement>(null);
   const pointers = useRef(new Map<number, Point>());
   const moved = useRef(false);
   const [size, setSize] = useState({ width: 900, height: 900 });
   const [view, setView] = useState<Viewport>(homeViewport);
-  const selected = selectedStationId
-    ? getStation(selectedStationId)
+  const targetStation = cameraTarget.stationId
+    ? getStation(cameraTarget.stationId)
     : undefined;
+  const source = useRef<"manual" | "focus">("focus");
+  const frame = useRef<number | null>(null);
+  const currentView = useRef(view);
+  useEffect(() => {
+    currentView.current = view;
+  }, [view]);
+  function updateCamera(update: Viewport | ((current: Viewport) => Viewport)) {
+    if (frame.current !== null) cancelAnimationFrame(frame.current);
+    source.current = "manual";
+    setView(update);
+  }
   const scale = view.width / size.width;
   const labels = stationLabels(
     stations,
@@ -42,6 +62,7 @@ export function RailMap({
     selectedStationId,
     view.width >= 850,
     interchanges.flat(),
+    labelSides,
   );
 
   useEffect(() => {
@@ -54,25 +75,105 @@ export function RailMap({
         height: entry.contentRect.height,
       };
       setSize(nextSize);
-      const aspect = nextSize.width / nextSize.height;
-      const width = selected
-        ? Math.max(340, 420 * aspect)
-        : Math.max(homeViewport.width, homeViewport.height * aspect);
-      const height = width / aspect;
-      const center = selected ?? {
-        x: homeViewport.x + homeViewport.width / 2,
-        y: homeViewport.y + homeViewport.height / 2,
-      };
-      setView({
-        x: center.x - width / 2,
-        y: center.y - height / 2,
-        width,
-        height,
-      });
+      const destination = targetStation
+        ? focusViewport(targetStation, nextSize)
+        : fitNetwork(nextSize);
+      source.current = "focus";
+      if (frame.current !== null) cancelAnimationFrame(frame.current);
+      if (
+        matchMedia("(prefers-reduced-motion: reduce)").matches ||
+        currentView.current === homeViewport
+      ) {
+        setView(destination);
+        return;
+      }
+      const start = currentView.current;
+      const began = performance.now();
+      function animate(now: number) {
+        const progress = Math.min(1, (now - began) / 260);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        setView({
+          x: start.x + (destination.x - start.x) * eased,
+          y: start.y + (destination.y - start.y) * eased,
+          width: start.width + (destination.width - start.width) * eased,
+          height: start.height + (destination.height - start.height) * eased,
+        });
+        frame.current = progress < 1 ? requestAnimationFrame(animate) : null;
+      }
+      frame.current = requestAnimationFrame(animate);
     });
     observer.observe(element);
-    return () => observer.disconnect();
-  }, [selected]);
+    return () => {
+      observer.disconnect();
+      if (frame.current !== null) cancelAnimationFrame(frame.current);
+    };
+  }, [targetStation, cameraTarget.key]);
+
+  const candidates = stations.filter(
+    (station) => (stationCounts?.get(station.id) ?? 0) > 0,
+  );
+  const nearestStationId =
+    semanticStation(
+      3,
+      { x: view.x + view.width / 2, y: view.y + view.height / 2 },
+      candidates,
+    ) ?? null;
+  const blocked = [
+    { x: 0, y: 0, width: Math.min(220, size.width), height: 80 },
+    { x: size.width - 80, y: size.height - 125, width: 80, height: 125 },
+    ...stations.map((station) => ({
+      x: (station.x - view.x) / scale - 13,
+      y: (station.y - view.y) / scale - 13,
+      width: 26,
+      height: 26,
+    })),
+    ...[...labels.entries()].map(([id, label]) => ({
+      x:
+        (label.x - view.x) / scale -
+        (label.anchor === "end"
+          ? (label.fontSize / scale) *
+            0.58 *
+            (getStation(id)?.name.length ?? 10)
+          : 0),
+      y: (label.y - label.fontSize - view.y) / scale,
+      width:
+        (label.fontSize / scale) * 0.58 * (getStation(id)?.name.length ?? 10),
+      height: label.fontSize / scale + 6,
+    })),
+  ];
+  const mapView: MapView = {
+    viewport: view,
+    size,
+    scale,
+    zoom: fitNetwork(size).width / view.width,
+    focusedStationId: selectedStationId,
+    nearestStationId,
+    blocked,
+  };
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const candidates = stations.filter(
+        (station) => (stationCounts?.get(station.id) ?? 0) > 0,
+      );
+      const scale = view.width / size.width;
+      const snapshot: MapView = {
+        viewport: view,
+        size,
+        scale,
+        zoom: fitNetwork(size).width / view.width,
+        focusedStationId: selectedStationId,
+        nearestStationId:
+          semanticStation(
+            3,
+            { x: view.x + view.width / 2, y: view.y + view.height / 2 },
+            candidates,
+          ) ?? null,
+        blocked: [],
+      };
+      onCameraChange?.(snapshot, source.current);
+    }, 160);
+    return () => clearTimeout(timer);
+  }, [view, size, selectedStationId, stationCounts, onCameraChange]);
 
   function point(clientX: number, clientY: number): Point {
     const rect = svg.current?.getBoundingClientRect();
@@ -82,7 +183,7 @@ export function RailMap({
     };
   }
   function zoom(factor: number) {
-    setView((current) =>
+    updateCamera((current) =>
       zoomAt(current, factor, {
         x: current.x + current.width / 2,
         y: current.y + current.height / 2,
@@ -97,6 +198,8 @@ export function RailMap({
       event.preventDefault();
       const rect = element?.getBoundingClientRect();
       if (!rect) return;
+      source.current = "manual";
+      if (frame.current !== null) cancelAnimationFrame(frame.current);
       setView((current) =>
         zoomAt(current, Math.exp(-event.deltaY * 0.002), {
           x:
@@ -132,7 +235,7 @@ export function RailMap({
     const dx = next.x - previous.x;
     const dy = next.y - previous.y;
     if (Math.abs(dx) + Math.abs(dy) > 2) moved.current = true;
-    setView((current) => {
+    updateCamera((current) => {
       let updated = panBy(
         current,
         (-dx * current.width) / size.width,
@@ -169,7 +272,7 @@ export function RailMap({
     const change = changes[event.key];
     if (change) {
       event.preventDefault();
-      setView((current) => panBy(current, ...change));
+      updateCamera((current) => panBy(current, ...change));
     }
     if (event.key === "+" || event.key === "=") {
       event.preventDefault();
@@ -182,7 +285,7 @@ export function RailMap({
     if (event.key === "0" || event.key === "Home") {
       event.preventDefault();
       onSelectStation(null);
-      setView(homeViewport);
+      updateCamera(fitNetwork(size));
     }
   }
 
@@ -201,7 +304,7 @@ export function RailMap({
         onPointerUp={pointerUp}
         onPointerCancel={pointerUp}
         onDoubleClick={(event) =>
-          setView((current) =>
+          updateCamera((current) =>
             zoomAt(
               current,
               event.shiftKey ? 0.5 : 2,
@@ -335,7 +438,7 @@ export function RailMap({
             </g>
           );
         })}
-        {typeof children === "function" ? children(scale) : children}
+        {typeof children === "function" ? children(mapView) : children}
       </svg>
       <p id="map-keyboard-help" className="sr-only">
         Arrow keys pan. Plus and minus zoom. Home resets. Tab to a station and

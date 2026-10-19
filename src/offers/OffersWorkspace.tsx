@@ -15,21 +15,12 @@ import { OfferStatusDisplay } from "./OfferStatusDisplay";
 import { OfferStatusEditor } from "./OfferStatusEditor";
 import { OfferNotes } from "../notes/OfferNotes";
 import { notesRepository } from "../notes/notesRepository";
-type Route =
-  { kind: "list" } | { kind: "add" } | { kind: "detail" | "edit"; id: string };
+import { parseRoute, parentRoute, navigate, routeHash } from "./navigation";
+import type { Route } from "./navigation";
+import type { CameraTarget } from "../rail/mapNavigation";
+import { offerPosition } from "./location";
 function routeFromHash(): Route {
-  const params = new URLSearchParams(location.hash.slice(1));
-  const id = params.get("offer");
-  if (id) return { kind: params.has("edit") ? "edit" : "detail", id };
-  return { kind: params.has("add-offer") ? "add" : "list" };
-}
-function navigate(route: Route) {
-  location.hash =
-    route.kind === "list"
-      ? "offers"
-      : route.kind === "add"
-        ? "add-offer"
-        : `offer=${encodeURIComponent(route.id)}${route.kind === "edit" ? "&edit" : ""}`;
+  return parseRoute(location.hash);
 }
 const repository = supabase ? offersRepository(supabase) : null;
 const noteRepository = supabase ? notesRepository(supabase) : null;
@@ -39,10 +30,29 @@ export function OffersWorkspace() {
   const [error, setError] = useState<string | null>(null);
   const [route, setRoute] = useState<Route>(routeFromHash);
   const [notice, setNotice] = useState("");
-  const [focusedStation, setFocusedStation] = useState<Station | null>(null);
+  const [focusedStation, setFocusedStation] = useState<Station | null>(() => {
+    const initial = routeFromHash();
+    return "stationId" in initial && initial.stationId
+      ? (getStation(initial.stationId) ?? null)
+      : null;
+  });
+  const [cameraTarget, setCameraTarget] = useState<CameraTarget>(() => ({
+    stationId: focusedStation?.id ?? null,
+    key: location.hash,
+  }));
+  const automaticChange = useRef(false);
+  const [highlightedOfferId, setHighlightedOfferId] = useState<string | null>(
+    null,
+  );
   const browseStation = useCallback((station: Station | null) => {
     setFocusedStation(station);
-    navigate({ kind: "list" });
+    const next: Route = { kind: "list", stationId: station?.id ?? null };
+    if (location.hash === routeHash(next))
+      setCameraTarget({
+        stationId: station?.id ?? null,
+        key: performance.now(),
+      });
+    navigate(next);
   }, []);
   const revision = useRef(0);
   const heading = useRef<HTMLDivElement>(null);
@@ -54,6 +64,15 @@ export function OffersWorkspace() {
       if (current === revision.current) {
         setOffers(found);
         setError(null);
+        const currentRoute = routeFromHash();
+        if ("id" in currentRoute) {
+          const target = found.find((offer) => offer.id === currentRoute.id);
+          if (target)
+            setCameraTarget({
+              stationId: target.stationId,
+              key: `offer:${target.id}:${target.stationId}`,
+            });
+        }
       }
     } catch {
       if (current === revision.current)
@@ -82,18 +101,31 @@ export function OffersWorkspace() {
       const next = routeFromHash();
       setRoute(next);
       setNotice("");
-      heading.current?.focus();
+      const stationId =
+        "stationId" in next
+          ? (next.stationId ?? null)
+          : (offers.find((offer) => "id" in next && offer.id === next.id)
+              ?.stationId ?? null);
+      if ("stationId" in next)
+        setFocusedStation(stationId ? (getStation(stationId) ?? null) : null);
+      if (automaticChange.current) automaticChange.current = false;
+      else
+        setCameraTarget({
+          stationId,
+          key: "id" in next ? `offer:${next.id}:${stationId}` : routeHash(next),
+        });
+      if (!document.activeElement?.closest("svg")) heading.current?.focus();
     };
     window.addEventListener("hashchange", change);
     return () => window.removeEventListener("hashchange", change);
-  }, []);
+  }, [offers]);
   const back = useCallback(() => {
-    navigate(
-      route.kind === "edit"
-        ? { kind: "detail", id: route.id }
-        : { kind: "list" },
-    );
-  }, [route]);
+    const stationId =
+      "id" in route
+        ? (offers.find((offer) => offer.id === route.id)?.stationId ?? null)
+        : (route.stationId ?? focusedStation?.id ?? null);
+    navigate(parentRoute(route, stationId));
+  }, [route, offers, focusedStation]);
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
       if (event.key === "Escape" && route.kind !== "list") {
@@ -118,6 +150,37 @@ export function OffersWorkspace() {
   const selected =
     "id" in route ? offers.find((offer) => offer.id === route.id) : null;
   const summaries = stationSummaries(offers);
+  const invalidStation =
+    (route.kind === "list" || route.kind === "add") &&
+    route.stationId &&
+    !getStation(route.stationId);
+  const automaticStation = useCallback(
+    (station: Station | null) => {
+      if (route.kind !== "list") return;
+      const next: Route = { kind: "list", stationId: station?.id ?? null };
+      if (location.hash === routeHash(next)) return;
+      automaticChange.current = true;
+      setFocusedStation(station);
+      navigate(next, true);
+    },
+    [route.kind],
+  );
+  const labelSides = new Map<string, "left" | "right">();
+  const focusId = selected?.stationId ?? focusedStation?.id;
+  if (focusId) {
+    const station = getStation(focusId);
+    if (station) {
+      const positions = offers
+        .filter((offer) => offer.stationId === focusId)
+        .flatMap((offer) => {
+          const point = offerPosition(offer);
+          return point ? [point] : [];
+        });
+      const left = positions.filter((point) => point.x < station.x).length;
+      const right = positions.length - left;
+      labelSides.set(focusId, left < right ? "left" : "right");
+    }
+  }
   const unassigned = offers.filter((offer) => offer.stationId === null);
   const content = (
     <div className="offer-panel-content" ref={heading} tabIndex={-1}>
@@ -137,6 +200,14 @@ export function OffersWorkspace() {
       )}
       {loading ? (
         <p role="status">Loading offers…</p>
+      ) : invalidStation ? (
+        <>
+          <h2>Station unavailable</h2>
+          <p>This station is not on the supported rail map.</p>
+          <button onClick={() => browseStation(null)}>
+            Back to all stations
+          </button>
+        </>
       ) : route.kind === "list" ? (
         <>
           {summaries.length > 0 && (
@@ -193,7 +264,11 @@ export function OffersWorkspace() {
           key={route.kind === "add" ? "new" : selected?.id}
           offer={route.kind === "edit" ? (selected ?? null) : null}
           repository={repository}
-          initialStationId={focusedStation?.id}
+          initialStationId={
+            route.kind === "add"
+              ? (route.stationId ?? focusedStation?.id)
+              : focusedStation?.id
+          }
           onSaved={saved}
           onCancel={back}
         />
@@ -249,17 +324,26 @@ export function OffersWorkspace() {
   return (
     <RailBrowser
       overview={content}
-      panelContent={route.kind === "list" ? undefined : content}
+      panelContent={
+        route.kind === "list" && !invalidStation ? undefined : content
+      }
       panelMode={route.kind === "list" ? undefined : "full"}
       onStationChange={browseStation}
+      onAutomaticStationChange={automaticStation}
+      navigationLocked={route.kind !== "list"}
+      cameraTarget={cameraTarget}
+      labelSides={labelSides}
       selectedStationId={selected?.stationId ?? focusedStation?.id ?? null}
       stationCounts={
         new Map(summaries.map((summary) => [summary.stationId, summary.count]))
       }
-      mapOverlay={(scale) => (
+      mapOverlay={(view) => (
         <OfferMapOverlay
           offers={offers}
-          scale={scale}
+          view={view}
+          highlightedOfferId={highlightedOfferId}
+          selectedOfferId={selected?.id ?? null}
+          onHighlight={setHighlightedOfferId}
           onOpen={(offer) => navigate({ kind: "detail", id: offer.id })}
         />
       )}
@@ -283,7 +367,9 @@ export function OffersWorkspace() {
             <StationOfferList
               station={station}
               offers={offers}
-              onAdd={() => navigate({ kind: "add" })}
+              onAdd={() => navigate({ kind: "add", stationId: station.id })}
+              highlightedOfferId={highlightedOfferId}
+              onHighlight={setHighlightedOfferId}
               onSelectStation={browseStation}
             />
           )}

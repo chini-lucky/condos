@@ -95,3 +95,16 @@ export function placeCallouts(
   }
   return placed;
 }
+export interface CameraTarget {
+  stationId: string | null;
+  key: string | number;
+}
+export interface MapView {
+  viewport: Viewport;
+  size: MapSize;
+  scale: number;
+  zoom: number;
+  focusedStationId: string | null;
+  nearestStationId: string | null;
+  blocked: readonly Rect[];
+}
