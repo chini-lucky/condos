@@ -136,6 +136,56 @@ test("reviewing a remotely deleted note preserves the attempted edit", async ({
   );
   await other.close();
 });
+test("focus refresh keeps an active draft after remote deletion until explicit cancellation", async ({
+  page,
+  browser,
+}) => {
+  await create(page);
+  await page.getByLabel("New note").fill("Focus deletion original");
+  await page.getByRole("button", { name: "Add note", exact: true }).click();
+  await expect(
+    page.getByText("Focus deletion original", { exact: true }),
+  ).toBeVisible();
+  const link = page.url();
+  const other = await browser.newContext();
+  const second = await other.newPage();
+  await login(second);
+  await second.goto(link);
+  await second.getByRole("button", { name: "Edit note", exact: true }).click();
+  await second.getByLabel("Edit note text").fill("Keep through focus refresh");
+  await page.getByRole("button", { name: "Delete note", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Confirm delete note", exact: true })
+    .click();
+  await expect(page.getByRole("heading", { name: "Notes (0)" })).toBeVisible();
+  const loaded = second.waitForResponse(
+    (response) =>
+      response.url().includes("/rest/v1/offer_notes?") &&
+      response.request().method() === "GET",
+  );
+  await second.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await loaded;
+  await expect(second.getByLabel("Edit note text")).toHaveValue(
+    "Keep through focus refresh",
+  );
+  await expect(second.getByRole("alert")).toContainText(
+    "deleted on another device",
+  );
+  await expect(
+    second.getByRole("button", { name: "Save note", exact: true }),
+  ).toBeDisabled();
+  await expect(
+    second.getByRole("heading", { name: "Notes (0)" }),
+  ).toBeVisible();
+  await second
+    .getByRole("button", { name: "Cancel edit", exact: true })
+    .click();
+  await expect(second.getByLabel("Edit note text")).toHaveCount(0);
+  await expect(
+    second.getByText("Focus deletion original", { exact: true }),
+  ).toHaveCount(0);
+  await other.close();
+});
 test.afterAll(async () => {
   const { createClient } = await import("@supabase/supabase-js");
   const { localConfig } = await import("../scripts/local-config.ts");
