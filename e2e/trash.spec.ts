@@ -78,7 +78,11 @@ test("confirmed Trash survives reload, hides station counts and pins, and restor
   await expect(
     page.getByRole("heading", { name: "Trash browser retained", exact: true }),
   ).toBeVisible();
-  await expect(page.getByText("Rejected", { exact: true })).toBeVisible();
+  await expect(
+    page
+      .getByRole("complementary", { name: "Offer details" })
+      .getByText("Rejected", { exact: true }),
+  ).toBeVisible();
   await expect(
     page.getByText("Remember this offer", { exact: true }),
   ).toBeVisible();
