@@ -63,3 +63,31 @@ test("real HEIC decodes without native support, preserves rotation/mirroring, st
     expect(result.last[first === "red" ? 2 : 0]).toBeGreaterThan(220);
   }
 });
+
+test("a browser without workers gets an actionable HEIC error without loading the codec", async ({
+  page,
+}) => {
+  const requests: string[] = [];
+  page.on("request", (request) => requests.push(request.url()));
+  await page.addInitScript(() => {
+    Object.defineProperty(globalThis, "Worker", {
+      value: undefined,
+      configurable: true,
+    });
+  });
+  await page.goto("./");
+  const bytes = [...(await readFile("tests/fixtures/heic/basic.heic"))];
+  const error = await page.evaluate(async (bytes) => {
+    const path = "/condos/src/photos/process.ts";
+    const { processPhoto } = await import(/* @vite-ignore */ path);
+    try {
+      await processPhoto(new File([new Uint8Array(bytes)], "phone.heic"));
+      return "accepted";
+    } catch (error) {
+      return error instanceof Error ? error.message : "failed";
+    }
+  }, bytes);
+  expect(error).toContain("browser");
+  expect(error).toContain("JPEG");
+  expect(requests.some((url) => url.includes("heic-to"))).toBe(false);
+});

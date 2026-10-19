@@ -26,6 +26,14 @@ export function isHeicContainer(header: Uint8Array, fileSize: number): boolean {
   return false;
 }
 export async function decodeHeic(file: File): Promise<ImageBitmap> {
+  if (
+    typeof Worker === "undefined" ||
+    typeof WebAssembly === "undefined" ||
+    typeof createImageBitmap === "undefined"
+  )
+    throw new Error(
+      "HEIC conversion is unavailable in this browser. Use a current browser or export this photo as JPEG.",
+    );
   try {
     const { heicTo } = await import("heic-to");
     // The maintained package decodes in its own Web Worker, including HEIF transforms.
