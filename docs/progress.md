@@ -10,9 +10,9 @@ Integration branch: `integration/condos-v1`. Baseline main: `cfca225`.
 | #4      | Integrated | `fe249f7` + run `39305725116` — hosted browser acceptance passed     |
 | #5      | Integrated | `2622721` — station assignment and offer pins; verification below    |
 | #6      | Integrated | `231f633` — optional rental facts and facilities; verification below |
-| #7      | Pending    | See native GitHub dependencies and tickets.md                        |
+| #7      | Integrated | `9575dce` — agent contacts and source links; verification below      |
 | #8      | Integrated | `b387f7d` — statuses and Bangkok viewing appointments                |
-| #9      | Partial    | `03b34e4` — notes integrated; focus-refresh draft gap below          |
+| #9      | Integrated | `03b34e4` + `c01d075` — notes and focus-refresh draft preservation   |
 | #10–#17 | Pending    | See native GitHub dependencies and tickets.md                        |
 
 Planning documents and implementation instructions are committed before ticket work begins. Issue completion will be recorded with merge commits and validation evidence; GitHub closes the work through the final PR.
@@ -63,13 +63,17 @@ Observed red/green database and browser tests cover numeric validation, nullable
 
 Merged `ticket/08-status-viewings` cleanly in `b387f7d`. Check/build passed, followed by two date/status database tests and two status browser journeys under the shared verification lock. Verified Bangkok conversion, booking/rescheduling/clearing, optional explanations, freely changed statuses, rejected-offer visibility, stale-write review and offline draft retention. Location RPC/form behavior is preserved. Future Trash must guard status mutations on trashed offers.
 
-## Ticket #9 provisional integration verification
+## Ticket #9 integration verification
 
 Merged `ticket/09-notes` in `03b34e4`, resolving the workspace import conflict by preserving both status components and the notes timeline. Check/build passed with both features composed. Two notes database tests and three notes browser journeys passed under the shared verification lock: CRUD/server timestamps, authorization/concurrency, offline draft recovery and explicit review after remote deletion.
 
-An unresolved draft-retention gap remains: focus refresh replaces the note list, so a remotely deleted note can unmount its active editor before the user saves or copies the draft. The explicit deleted-note review test does not exercise this focus-refresh path. Ticket #9 is not fully accepted until a regression demonstrates preservation through focus refresh and the behavior is fixed. Future Trash must also guard note mutations on trashed offers.
+The initially identified focus-refresh draft-retention gap was fixed and merged in `c01d075`. Check/build and two notes database tests passed. All four notes browser journeys passed under the shared verification lock, including focus refresh after another device deletes the actively edited note, retaining the draft until explicit cancellation. Future Trash must guard note mutations on trashed offers.
 
 Hosted acceptance documentation for #4 was merged in `2e4ed33`; no deployment or hosted mutation was performed during #8/#9 integration.
+
+## Ticket #7 integration verification
+
+Merged `ticket/07-agent-contacts` cleanly in `9575dce`, preserving atomic name/facts/location/contact saves and existing status/notes composition. Check/build, the contacts database boundary test and both contacts browser journeys passed under the shared verification lock on port 5293. Coverage includes per-offer persistence, trim/clear, protected concurrency, safe source/phone/LINE actions, real clipboard readback, clipboard denial and offline draft retention. No local reset or hosted changes occurred; migration `202610200007` must be included in the ordered fresh replay before release.
 
 ## Ticket #7 implementation verification
 
