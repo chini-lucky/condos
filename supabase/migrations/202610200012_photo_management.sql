@@ -44,3 +44,48 @@ end $$;
 revoke all on function public.get_offer_photos(uuid), public.lock_photo_offer(uuid,bigint), public.reorder_photos(uuid,bigint,uuid[]) from public;
 grant execute on function public.get_offer_photos(uuid), public.reorder_photos(uuid,bigint,uuid[]) to authenticated;
 notify pgrst, 'reload schema';
+
+-- A deliberate cover choice remains independent of order and later upload completion.
+alter table public.offers add column photo_cover_explicit boolean not null default false;
+create function public.choose_photo_cover(p_offer_id uuid, p_expected_revision bigint, p_photo_id uuid) returns jsonb
+language plpgsql security definer set search_path = '' as $$
+begin
+  perform public.lock_photo_offer(p_offer_id, p_expected_revision);
+  if not exists(select 1 from public.photo_assets where id = p_photo_id and offer_id = p_offer_id and state = 'ready') then
+    raise exception 'Choose a current photo from this offer';
+  end if;
+  update public.offers set cover_photo_id = p_photo_id, photo_cover_explicit = true, photo_revision = photo_revision + 1 where id = p_offer_id;
+  return public.get_offer_photos(p_offer_id);
+end $$;
+revoke all on function public.choose_photo_cover(uuid,bigint,uuid) from public;
+grant execute on function public.choose_photo_cover(uuid,bigint,uuid) to authenticated;
+create or replace function public.finalize_photo(p_id uuid, p_bytes integer, p_width integer, p_height integer)
+returns public.photo_assets language plpgsql security definer set search_path = '' as $$
+declare asset public.photo_assets; live boolean;
+begin
+  select * into asset from public.photo_assets where id = p_id;
+  if not found then return null; end if;
+  perform 1 from public.offers o where o.id = asset.offer_id and (to_jsonb(o)->>'trashed_at') is null for update;
+  live := found;
+  select * into asset from public.photo_assets where id = p_id for update;
+  if live and asset.state = 'ready' then return asset; end if;
+  if not live or asset.state <> 'uploading' or asset.expires_at <= now() then
+    update public.photo_assets set state = 'deleting' where id = p_id;
+    insert into public.photo_cleanup(object_key) values (asset.object_key)
+      on conflict (object_key) do update set completed_at = null, due_at = now();
+    return null;
+  end if;
+  if not exists (select 1 from storage.objects where bucket_id = 'offer-photos' and name = asset.object_key) then raise exception 'Photo bytes not stored'; end if;
+  update public.photo_assets set state = 'ready', byte_size = p_bytes, width = p_width, height = p_height where id = p_id returning * into asset;
+  -- Until a deliberate choice, an earlier completing selection can replace the
+  -- automatic cover. Reordering and later selections never reset an existing cover.
+  update public.offers o set photo_revision = photo_revision + 1, cover_photo_id = case
+    when exists(select 1 from public.photo_assets a where a.id = o.cover_photo_id and a.offer_id = asset.offer_id and a.state = 'ready')
+      and (o.photo_cover_explicit or (select a.position from public.photo_assets a where a.id = o.cover_photo_id) <= asset.position)
+      then o.cover_photo_id
+    else (select a.id from public.photo_assets a where a.offer_id = asset.offer_id and a.state = 'ready' order by a.position, a.id limit 1)
+    end where o.id = asset.offer_id;
+  return asset;
+end $$;
+
+notify pgrst, 'reload schema';

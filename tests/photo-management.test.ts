@@ -114,3 +114,61 @@ test("photo reorder persists independently of cover and rejects stale, incomplet
     await service.from("offers").delete().in("id", [id, other]);
   }
 });
+test("an explicitly chosen cover survives reorder and new uploads, including a previously reserved earlier photo", async () => {
+  const db = await admin();
+  const offer = await db.rpc("create_offer", { p_name: "Explicit cover" });
+  assert.equal(offer.error, null);
+  const id = offer.data.id;
+  try {
+    const earlier = await db.rpc("reserve_photos", {
+      p_offer_id: id,
+      p_count: 1,
+      p_request_id: randomUUID(),
+    });
+    assert.equal(earlier.error, null);
+    const added = await addPhotos(db, id, 2);
+    const snapshot = await db.rpc("get_offer_photos", { p_offer_id: id });
+    assert.equal(snapshot.error, null);
+    const cover = await db.rpc("choose_photo_cover", {
+      p_offer_id: id,
+      p_expected_revision: snapshot.data.revision,
+      p_photo_id: added[1].id,
+    });
+    assert.equal(cover.error, null);
+    assert.equal(cover.data.cover_id, added[1].id);
+    // Complete the lower-position reservation after the user deliberately chose another cover.
+    const bytes = await readFile(
+      new URL("./fixtures/photos/oriented-gps.jpg", import.meta.url),
+    );
+    const token = (await db.auth.getSession()).data.session?.access_token;
+    const uploaded = await fetch(`${config.url}/functions/v1/upload-photo`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey: config.anonKey,
+        "Content-Type": "image/jpeg",
+        "x-reservation-id": earlier.data[0].id,
+      },
+      body: bytes,
+    });
+    assert.equal(uploaded.status, 200);
+    await addPhotos(db, id, 1);
+    const fresh = await db.rpc("get_offer_photos", { p_offer_id: id });
+    assert.equal(fresh.data.cover_id, added[1].id);
+    const ids = fresh.data.photos.map((photo: { id: string }) => photo.id);
+    const order = await db.rpc("reorder_photos", {
+      p_offer_id: id,
+      p_expected_revision: fresh.data.revision,
+      p_ids: ids.reverse(),
+    });
+    assert.equal(order.error, null);
+    assert.equal(order.data.cover_id, added[1].id);
+    assert.equal(
+      (await db.from("offers").select("version").eq("id", id).single()).data
+        ?.version,
+      1,
+    );
+  } finally {
+    await service.from("offers").delete().eq("id", id);
+  }
+});
