@@ -59,8 +59,10 @@ test("two devices preserve a conflicting draft and explicitly review the latest 
   await second.goto(link);
   await second.getByRole("button", { name: "Edit offer" }).click();
   await second.getByLabel("Offer name").fill("My retained draft");
+  await second.getByLabel("Monthly rent (THB)").fill("24000");
   await page.getByRole("button", { name: "Edit offer" }).click();
   await page.getByLabel("Offer name").fill("Newer saved name");
+  await page.getByLabel("Monthly rent (THB)").fill("26000");
   await page.getByRole("button", { name: "Save offer" }).click();
   await expect(
     page.getByRole("heading", { name: "Newer saved name", exact: true }),
@@ -78,6 +80,10 @@ test("two devices preserve a conflicting draft and explicitly review the latest 
       "Latest saved name: Newer saved name. Your draft is unchanged.",
     ),
   ).toBeVisible();
+  await expect(
+    second.getByText("฿26,000 / month", { exact: true }),
+  ).toBeVisible();
+  await expect(second.getByLabel("Monthly rent (THB)")).toHaveValue("24000");
   await expect(second.getByLabel("Offer name")).toHaveValue(
     "My retained draft",
   );
