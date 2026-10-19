@@ -2,24 +2,24 @@
 
 Integration branch: `integration/condos-v1`. Baseline main: `cfca225`.
 
-| Issue   | State      | Evidence                                                             |
-| ------- | ---------- | -------------------------------------------------------------------- |
-| #1      | Integrated | `dffaeca` — admin sign-in; integration verification below            |
-| #2      | Integrated | `6084d44` — complete Bangkok rail map; verification below            |
-| #3      | Integrated | `732ee8e` — persistent offer management; verification below          |
-| #4      | Integrated | `fe249f7` + run `39305725116` — hosted browser acceptance passed     |
-| #5      | Integrated | `2622721` — station assignment and offer pins; verification below    |
-| #6      | Integrated | `231f633` — optional rental facts and facilities; verification below |
-| #7      | Integrated | `9575dce` — agent contacts and source links; verification below      |
-| #8      | Integrated | `b387f7d` — statuses and Bangkok viewing appointments                |
-| #9      | Integrated | `03b34e4` + `c01d075` — notes and focus-refresh draft preservation   |
-| #10     | Integrated | `0a3350b` — private photos, processing and durable cleanup           |
-| #11     | Integrated | `cc81f2f` — HEIC conversion and private uploads; verification below  |
-| #12     | Pending    | See native GitHub dependencies and tickets.md                        |
-| #13     | Integrated | `c780f55` — offer filters and comparison groups; verification below  |
-| #14     | Integrated | `72f60cb` — semantic map navigation and synchronized offers          |
-| #15     | Integrated | `68d7756` — recoverable Trash and restoration; verification below    |
-| #16–#17 | Pending    | See native GitHub dependencies and tickets.md                        |
+| Issue   | State      | Evidence                                                                   |
+| ------- | ---------- | -------------------------------------------------------------------------- |
+| #1      | Integrated | `dffaeca` — admin sign-in; integration verification below                  |
+| #2      | Integrated | `6084d44` — complete Bangkok rail map; verification below                  |
+| #3      | Integrated | `732ee8e` — persistent offer management; verification below                |
+| #4      | Integrated | `fe249f7` + run `39305725116` — hosted browser acceptance passed           |
+| #5      | Integrated | `2622721` — station assignment and offer pins; verification below          |
+| #6      | Integrated | `231f633` — optional rental facts and facilities; verification below       |
+| #7      | Integrated | `9575dce` — agent contacts and source links; verification below            |
+| #8      | Integrated | `b387f7d` — statuses and Bangkok viewing appointments                      |
+| #9      | Integrated | `03b34e4` + `c01d075` — notes and focus-refresh draft preservation         |
+| #10     | Integrated | `0a3350b` — private photos, processing and durable cleanup                 |
+| #11     | Integrated | `cc81f2f` — HEIC conversion and private uploads; verification below        |
+| #12     | Integrated | `c50ab62` — photo order, cover and individual deletion; verification below |
+| #13     | Integrated | `c780f55` — offer filters and comparison groups; verification below        |
+| #14     | Integrated | `72f60cb` — semantic map navigation and synchronized offers                |
+| #15     | Integrated | `68d7756` — recoverable Trash and restoration; verification below          |
+| #16–#17 | Pending    | See native GitHub dependencies and tickets.md                              |
 
 Planning documents and implementation instructions are committed before ticket work begins. Issue completion will be recorded with merge commits and validation evidence; GitHub closes the work through the final PR.
 
@@ -110,6 +110,12 @@ Photo covers and uploads remain composed. Matching station counts are separate f
 Merged `ticket/11-heic` cleanly in `cc81f2f`. Dependency install, check/build and all seven focused HEIC/baseline photo browser journeys passed under the shared verification lock on port 5293. Actual HEVC fixtures verify rotation/mirroring, metadata removal, JPEG conversion/private upload, mixed-success recovery, oversized/malformed rejection and actionable unsupported-worker behavior. Baseline JPEG/PNG/WebP processing and desktop/mobile upload recovery remain green.
 
 The codec is a separate lazy chunk (approximately 3.15 MB minified / 792 kB gzip); the build retains its chunk-size advisory. Formats, dependency license/source and browser scope are documented; physical mobile Safari has not been tested. Filters, navigation and Trash are preserved. No schema changes, resets or hosted mutations occurred.
+
+## Ticket #12 integration verification
+
+Merged `ticket/12-photo-management` cleanly in `c50ab62`. Check/build passed with existing chunk-size advisories. All five photo-management backend tests and all three desktop/mobile/conflict browser journeys passed under the shared verification lock on port 5293. Verified persistent reorder, explicit cover, new-upload ordering, confirmed deletion/fallback/empty state, revision and identity guards, Trash protection, delayed finalizer idempotence and retained offline/conflicting order drafts. HEIC processing and accepted-format controls remain intact.
+
+Permanent deletion must lock the parent first and check its expected offer version plus Trash state; the active-only photo lock helper is unsuitable. Preserve immutable asset tombstones and durable cleanup jobs after parent removal. Fresh migration order is `202610200010` → `202610200012` → `202610200015`. No Edge remount, resets or hosted mutations occurred.
 
 ## Ticket #7 implementation verification
 
