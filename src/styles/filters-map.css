@@ -63,7 +63,7 @@
   box-shadow: 0 3px 9px #161a171a;
   display: block;
   text-align: left;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .authenticated-app .offer-map-callout.is-highlighted .offer-callout-button {
@@ -132,4 +132,14 @@
   width: 4px;
   height: 4px;
   margin-right: 3px;
+}
+.offer-callout-button .offer-status-context {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 12px;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.offer-callout-button .offer-status-context p {
+  margin: 4px 0 0;
 }

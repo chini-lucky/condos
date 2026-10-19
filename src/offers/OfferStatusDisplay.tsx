@@ -1,5 +1,5 @@
 import type { Offer } from "./repository";
-import { formatAppointment } from "./appointments";
+import { OfferStatusContext } from "./OfferStatusContext";
 export function OfferStatusDisplay({
   offer,
   compact = false,
@@ -18,23 +18,7 @@ export function OfferStatusDisplay({
           {offer.status}
         </span>
       )}
-      {!compact && (
-        <>
-          {offer.status === "Pending" && offer.pendingExplanation && (
-            <p>{offer.pendingExplanation}</p>
-          )}
-          {offer.status === "Rejected" && offer.rejectionReason && (
-            <p>{offer.rejectionReason}</p>
-          )}
-          {(offer.viewingAt || offer.status === "Viewing") && (
-            <p className="viewing-box">
-              {offer.viewingAt
-                ? formatAppointment(offer.viewingAt)
-                : "Viewing time not arranged"}
-            </p>
-          )}
-        </>
-      )}
+      {!compact && <OfferStatusContext offer={offer} />}
     </div>
   );
 }
