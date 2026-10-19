@@ -12,6 +12,7 @@ export interface Offer extends OfferFacts, OfferLocation, OfferContacts {
   rejectionReason: string | null;
   viewingAt: string | null;
   version: number;
+  trashedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -115,6 +116,7 @@ function decode(value: unknown): Offer {
     stationId,
     walkingMetres,
     bearing,
+    trashedAt: nullableString("trashed_at"),
     agentName: nullableString("agent_name"),
     agentCompany: nullableString("agent_company"),
     agentPhone: nullableString("agent_phone"),
@@ -171,11 +173,14 @@ export function offersRepository(client: SupabaseClient) {
         );
       return result.data ? decode(result.data) : null;
     },
-    async list(): Promise<Offer[]> {
-      const result = await client
+    async list(scope: "active" | "trash" | "all" = "active"): Promise<Offer[]> {
+      let query = client
         .from("offers")
         .select("*")
         .order("created_at", { ascending: false });
+      if (scope === "active") query = query.is("trashed_at", null);
+      if (scope === "trash") query = query.not("trashed_at", "is", null);
+      const result = await query;
       if (result.error)
         throw new OfferFailure(
           "unavailable",
@@ -184,6 +189,12 @@ export function offersRepository(client: SupabaseClient) {
       const data: unknown = result.data;
       if (!Array.isArray(data)) throw new Error("Invalid offer list");
       return data.map(decode);
+    },
+    async trash(id: string, version: number): Promise<Offer> {
+      return changeTrash(client, "trash_offer", id, version);
+    },
+    async restore(id: string, version: number): Promise<Offer> {
+      return changeTrash(client, "restore_offer", id, version);
     },
     async create(name: string, facts: OfferDetails = {}): Promise<Offer> {
       const result = await client.rpc("create_offer_details", {
@@ -248,3 +259,23 @@ export function offersRepository(client: SupabaseClient) {
   };
 }
 export type OffersRepository = ReturnType<typeof offersRepository>;
+
+async function changeTrash(
+  client: SupabaseClient,
+  operation: "trash_offer" | "restore_offer",
+  id: string,
+  version: number,
+): Promise<Offer> {
+  const result = await client.rpc(operation, {
+    p_id: id,
+    p_expected_version: version,
+  });
+  if (result.error)
+    throw new OfferFailure(
+      result.error.code === "40001" ? "conflict" : "unavailable",
+      result.error.code === "40001"
+        ? "This offer changed on another device. Reload the latest offer before trying again."
+        : "Trash was not updated. Check your connection and try again.",
+    );
+  return decode(result.data);
+}

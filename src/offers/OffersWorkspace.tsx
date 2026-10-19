@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../auth";
 import { RailBrowser, LineBadges } from "../rail/RailBrowser";
+import { OfferTrashActions } from "./OfferTrashActions";
+import { TrashList, TrashedOffer } from "./TrashList";
 import { OfferAgentCard } from "./OfferAgentCard";
 import { OfferFactsSummary } from "./OfferFactsSummary";
 import { OfferForm } from "./OfferForm";
@@ -18,20 +20,26 @@ import { OfferPhotos, OfferCover } from "../photos/OfferPhotos";
 import { OfferNotes } from "../notes/OfferNotes";
 import { notesRepository } from "../notes/notesRepository";
 type Route =
-  { kind: "list" } | { kind: "add" } | { kind: "detail" | "edit"; id: string };
+  | { kind: "list" }
+  | { kind: "trash" }
+  | { kind: "add" }
+  | { kind: "detail" | "edit"; id: string };
 function routeFromHash(): Route {
   const params = new URLSearchParams(location.hash.slice(1));
+  if (params.has("trash")) return { kind: "trash" };
   const id = params.get("offer");
   if (id) return { kind: params.has("edit") ? "edit" : "detail", id };
   return { kind: params.has("add-offer") ? "add" : "list" };
 }
 function navigate(route: Route) {
   location.hash =
-    route.kind === "list"
-      ? "offers"
-      : route.kind === "add"
-        ? "add-offer"
-        : `offer=${encodeURIComponent(route.id)}${route.kind === "edit" ? "&edit" : ""}`;
+    route.kind === "trash"
+      ? "trash"
+      : route.kind === "list"
+        ? "offers"
+        : route.kind === "add"
+          ? "add-offer"
+          : `offer=${encodeURIComponent(route.id)}${route.kind === "edit" ? "&edit" : ""}`;
 }
 const repository = supabase ? offersRepository(supabase) : null;
 const noteRepository = supabase ? notesRepository(supabase) : null;
@@ -52,7 +60,7 @@ export function OffersWorkspace() {
     if (!repository) return;
     const current = ++revision.current;
     try {
-      const found = await repository.list();
+      const found = await repository.list("all");
       if (current === revision.current) {
         setOffers(found);
         setError(null);
@@ -119,12 +127,17 @@ export function OffersWorkspace() {
   }
   const selected =
     "id" in route ? offers.find((offer) => offer.id === route.id) : null;
-  const summaries = stationSummaries(offers);
-  const unassigned = offers.filter((offer) => offer.stationId === null);
+  const activeOffers = offers.filter((offer) => offer.trashedAt === null);
+  const trashedOffers = offers.filter((offer) => offer.trashedAt !== null);
+  const summaries = stationSummaries(activeOffers);
+  const unassigned = activeOffers.filter((offer) => offer.stationId === null);
   const content = (
     <div className="offer-panel-content" ref={heading} tabIndex={-1}>
       {route.kind !== "list" && <button onClick={back}>Back</button>}
       {notice && <p role="status">{notice}</p>}
+      {route.kind !== "trash" && (
+        <button onClick={() => navigate({ kind: "trash" })}>Trash</button>
+      )}
       {error && (
         <div role="alert">
           <p>{error}</p>
@@ -173,7 +186,7 @@ export function OffersWorkspace() {
           <button onClick={() => navigate({ kind: "add" })}>Add offer</button>
           {unassigned.length === 0 ? (
             <p>
-              {offers.length === 0
+              {activeOffers.length === 0
                 ? "No offers yet. Add your first rental offer."
                 : "No unassigned offers."}
             </p>
@@ -190,16 +203,37 @@ export function OffersWorkspace() {
             </ul>
           )}
         </>
+      ) : route.kind === "trash" && repository ? (
+        <TrashList
+          offers={trashedOffers}
+          repository={repository}
+          onRestored={saved}
+        />
+      ) : selected?.trashedAt && repository && route.kind !== "edit" ? (
+        <TrashedOffer
+          offer={selected}
+          repository={repository}
+          onRestored={saved}
+        />
       ) : repository &&
         (route.kind === "add" || (route.kind === "edit" && selected)) ? (
-        <OfferForm
-          key={route.kind === "add" ? "new" : selected?.id}
-          offer={route.kind === "edit" ? (selected ?? null) : null}
-          repository={repository}
-          initialStationId={focusedStation?.id}
-          onSaved={saved}
-          onCancel={back}
-        />
+        <>
+          {selected?.trashedAt && (
+            <p role="alert">
+              This offer is in Trash. Your draft is kept.{" "}
+              <a href={`#offer=${selected.id}`}>Open recovery options</a> to
+              restore it before saving.
+            </p>
+          )}
+          <OfferForm
+            key={route.kind === "add" ? "new" : selected?.id}
+            offer={route.kind === "edit" ? (selected ?? null) : null}
+            repository={repository}
+            initialStationId={focusedStation?.id}
+            onSaved={saved}
+            onCancel={back}
+          />
+        </>
       ) : selected ? (
         <>
           <h2>{selected.name}</h2>
@@ -232,6 +266,16 @@ export function OffersWorkspace() {
             Edit offer
           </button>
           <a href={`#offer=${selected.id}`}>Direct link to offer</a>
+          {repository && (
+            <OfferTrashActions
+              offer={selected}
+              repository={repository}
+              onChanged={(offer) => {
+                saved(offer);
+                setNotice("Offer moved to Trash.");
+              }}
+            />
+          )}
           {noteRepository && (
             <OfferNotes
               key={selected.id}
@@ -263,13 +307,14 @@ export function OffersWorkspace() {
       }
       mapOverlay={(scale) => (
         <OfferMapOverlay
-          offers={offers}
+          offers={activeOffers}
           scale={scale}
           onOpen={(offer) => navigate({ kind: "detail", id: offer.id })}
         />
       )}
       renderStation={(station) => (
         <>
+          <button onClick={() => navigate({ kind: "trash" })}>Trash</button>
           {error && (
             <div role="alert">
               <p>{error}</p>
@@ -287,7 +332,7 @@ export function OffersWorkspace() {
           ) : (
             <StationOfferList
               station={station}
-              offers={offers}
+              offers={activeOffers}
               onAdd={() => navigate({ kind: "add" })}
               onSelectStation={browseStation}
             />
