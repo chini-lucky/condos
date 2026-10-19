@@ -211,6 +211,7 @@ test("collapsing the desktop panel preserves the free camera scale and mobile st
     page.getByRole("heading", { name: "Thong Lo", exact: true }),
   ).toBeVisible();
   expect((await panel.boundingBox())?.height).toBeCloseTo(132, 0);
+  await page.screenshot({ path: test.info().outputPath("map-mobile.png") });
 });
 test.afterAll(async () => {
   const config = localConfig();

@@ -90,6 +90,7 @@ export function OfferMapOverlay({
                       y={station.y - (metres / 1000) * 27 - 4 * scale}
                       textAnchor="middle"
                       fontSize={11 * scale}
+                      strokeWidth={3 * scale}
                       className="walking-ring-label"
                     >
                       {metres / 80} min · {metres} m
