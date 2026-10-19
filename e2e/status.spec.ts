@@ -40,9 +40,10 @@ test("admin books, reschedules and clears Bangkok viewings, with optional status
   await page.getByRole("button", { name: "Save status and viewing" }).click();
   await expect(page.getByText("Too far", { exact: true })).toBeVisible();
   await expect(
-    page.getByText("Viewing time not arranged", { exact: true }),
-  ).toBeVisible();
+    page.getByText("2 Mar 2027, 14:15 (Bangkok)", { exact: true }),
+  ).toHaveCount(0);
   await page.getByRole("button", { name: "Change status or viewing" }).click();
+  await expect(page.getByLabel("Viewing time (Bangkok)")).toHaveValue("");
   await page.getByLabel("Offer status").selectOption("Pending");
   await page.getByLabel("Waiting on").fill("Agent reply");
   await page.getByRole("button", { name: "Save status and viewing" }).click();

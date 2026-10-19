@@ -3,17 +3,21 @@ import { formatAppointment } from "./appointments";
 export function OfferStatusDisplay({
   offer,
   compact = false,
+  detailsOnly = false,
 }: {
   offer: Offer;
   compact?: boolean;
+  detailsOnly?: boolean;
 }) {
   return (
     <div className="offer-status-display">
-      <span
-        className={`offer-status-label offer-status-${offer.status.toLowerCase()}`}
-      >
-        {offer.status}
-      </span>
+      {!detailsOnly && (
+        <span
+          className={`offer-status-label offer-status-${offer.status.toLowerCase()}`}
+        >
+          {offer.status}
+        </span>
+      )}
       {!compact && (
         <>
           {offer.status === "Pending" && offer.pendingExplanation && (
@@ -22,11 +26,13 @@ export function OfferStatusDisplay({
           {offer.status === "Rejected" && offer.rejectionReason && (
             <p>{offer.rejectionReason}</p>
           )}
-          <p>
-            {offer.viewingAt
-              ? formatAppointment(offer.viewingAt)
-              : "Viewing time not arranged"}
-          </p>
+          {(offer.viewingAt || offer.status === "Viewing") && (
+            <p className="viewing-box">
+              {offer.viewingAt
+                ? formatAppointment(offer.viewingAt)
+                : "Viewing time not arranged"}
+            </p>
+          )}
         </>
       )}
     </div>
