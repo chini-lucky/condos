@@ -1,8 +1,9 @@
+import { preflightResponse } from "../_shared/cors.ts";
 import { runPhotoCleanup } from "../_shared/cleanup.ts";
-import { adminClient, cors, response, serviceClient } from "../_shared/http.ts";
+import { adminClient, response, serviceClient } from "../_shared/http.ts";
 Deno.serve(async (request) => {
-  if (request.method === "OPTIONS")
-    return new Response(null, { headers: cors });
+  const preflight = preflightResponse(request);
+  if (preflight) return preflight;
   if (request.method !== "POST") return response({ error: "Use POST" }, 405);
   const expected = Deno.env.get("PHOTO_CLEANUP_SECRET");
   const actual = request.headers.get("x-cleanup-secret") ?? "";
