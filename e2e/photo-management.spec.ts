@@ -106,6 +106,41 @@ for (const viewport of [
           Boolean((await cover.getAttribute("src"))?.includes(ids[1])),
         )
         .toBe(true);
+      const beforeRemote = (
+        await db.rpc("get_offer_photos", { p_offer_id: id })
+      ).data;
+      expect(
+        (
+          await db.rpc("choose_photo_cover", {
+            p_offer_id: id,
+            p_expected_revision: beforeRemote.revision,
+            p_photo_id: ids[2],
+          })
+        ).error,
+      ).toBeNull();
+      await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+      await expect
+        .poll(async () =>
+          Boolean((await cover.getAttribute("src"))?.includes(ids[2])),
+        )
+        .toBe(true);
+      const remote = (await db.rpc("get_offer_photos", { p_offer_id: id }))
+        .data;
+      expect(
+        (
+          await db.rpc("choose_photo_cover", {
+            p_offer_id: id,
+            p_expected_revision: remote.revision,
+            p_photo_id: ids[1],
+          })
+        ).error,
+      ).toBeNull();
+      await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+      await expect
+        .poll(async () =>
+          Boolean((await cover.getAttribute("src"))?.includes(ids[1])),
+        )
+        .toBe(true);
       await page
         .getByRole("link", { name: "Photo organization browser", exact: true })
         .click();
@@ -173,3 +208,115 @@ for (const viewport of [
     }
   });
 }
+
+test("a conflicting device and offline save retain the proposed order until explicit review or retry", async ({
+  page,
+  browser,
+}) => {
+  const { db, id, ids } = await fixture(),
+    service = createClient(config.url, config.serviceKey, options);
+  const context = await browser.newContext(),
+    second = await context.newPage();
+  try {
+    for (const target of [page, second]) {
+      await target.goto(`./#offer=${id}`);
+      await target.getByLabel("Username").fill("chini-lucky");
+      await target
+        .getByLabel("Password", { exact: true })
+        .fill("Disposable-local-test-password-9!");
+      await target
+        .getByRole("button", { name: "Sign in", exact: true })
+        .click();
+      await target.getByText("Manage photos", { exact: true }).click();
+    }
+    await second
+      .getByRole("button", { name: "Move photo 2 earlier", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "Move photo 3 earlier", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "Save photo order", exact: true })
+      .click();
+    await expect(
+      page.getByText("Photo order saved.", { exact: true }),
+    ).toBeVisible();
+    await second
+      .getByRole("button", { name: "Save photo order", exact: true })
+      .click();
+    await expect(
+      second.getByRole("alert").filter({ hasText: "Photos changed" }),
+    ).toBeVisible();
+    expect(
+      (await db.rpc("get_offer_photos", { p_offer_id: id })).data.photos.map(
+        (photo: { id: string }) => photo.id,
+      ),
+    ).toEqual([ids[0], ids[2], ids[1]]);
+    await second
+      .getByRole("button", { name: "Review latest photos", exact: true })
+      .click();
+    await expect(
+      second.getByText(
+        "Latest photos loaded. Your order is kept; save to apply it.",
+        { exact: true },
+      ),
+    ).toBeVisible();
+    await second
+      .getByRole("button", { name: "Save photo order", exact: true })
+      .click();
+    await expect(
+      second.getByText("Photo order saved.", { exact: true }),
+    ).toBeVisible();
+    expect(
+      (await db.rpc("get_offer_photos", { p_offer_id: id })).data.photos.map(
+        (photo: { id: string }) => photo.id,
+      ),
+    ).toEqual([ids[1], ids[0], ids[2]]);
+    await second
+      .getByRole("button", { name: "Move photo 3 earlier", exact: true })
+      .click();
+    await second.route("**/rest/v1/rpc/reorder_photos", (route) =>
+      route.abort("internetdisconnected"),
+    );
+    await second
+      .getByRole("button", { name: "Save photo order", exact: true })
+      .click();
+    await expect(
+      second
+        .getByRole("alert")
+        .filter({ hasText: "Photo changes were not saved" }),
+    ).toBeVisible();
+    await expect(
+      second.getByRole("button", { name: "Save photo order", exact: true }),
+    ).toBeVisible();
+    await second.unroute("**/rest/v1/rpc/reorder_photos");
+    await second
+      .getByRole("button", { name: "Save photo order", exact: true })
+      .click();
+    await expect(
+      second.getByText("Photo order saved.", { exact: true }),
+    ).toBeVisible();
+    expect(
+      (await db.rpc("get_offer_photos", { p_offer_id: id })).data.photos.map(
+        (photo: { id: string }) => photo.id,
+      ),
+    ).toEqual([ids[1], ids[2], ids[0]]);
+    await second
+      .getByRole("group", { name: "Photo 3", exact: true })
+      .dragTo(second.getByRole("group", { name: "Photo 1", exact: true }));
+    await second
+      .getByRole("button", { name: "Save photo order", exact: true })
+      .click();
+    await expect(
+      second.getByText("Photo order saved.", { exact: true }),
+    ).toBeVisible();
+    expect(
+      (await db.rpc("get_offer_photos", { p_offer_id: id })).data.photos.map(
+        (photo: { id: string }) => photo.id,
+      ),
+    ).toEqual([ids[0], ids[1], ids[2]]);
+  } finally {
+    await context.close();
+    await service.from("offers").delete().eq("id", id);
+  }
+});

@@ -343,24 +343,36 @@ export function OfferCover({
   const [retry, setRetry] = useState(0);
   useEffect(() => {
     let active = true;
-    if (repository)
-      void repository
-        .snapshot(offerId)
-        .then((collection) => {
-          if (active)
-            setState({
-              kind: "ready",
-              photo:
-                collection.photos.find(
-                  (photo) => photo.id === collection.coverId,
-                ) ?? null,
-            });
-        })
-        .catch(() => {
-          if (active) setState({ kind: "error" });
-        });
+    let revision = 0;
+    const load = () => {
+      const request = ++revision;
+      if (repository)
+        void repository
+          .snapshot(offerId)
+          .then((collection) => {
+            if (active && request === revision)
+              setState({
+                kind: "ready",
+                photo:
+                  collection.photos.find(
+                    (photo) => photo.id === collection.coverId,
+                  ) ?? null,
+              });
+          })
+          .catch(() => {
+            if (active && request === revision) setState({ kind: "error" });
+          });
+    };
+    const onVisible = () => {
+      if (document.visibilityState === "visible") load();
+    };
+    load();
+    window.addEventListener("focus", load);
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       active = false;
+      window.removeEventListener("focus", load);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, [offerId, retry]);
   return (
