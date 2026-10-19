@@ -86,3 +86,13 @@ test("frontend configuration accepts the exact Condos URL and rejects privileged
     validatePublicConfig("https://sthwmiesffowystewspf.supabase.co", ""),
   );
 });
+
+import { validateLocalUrl } from "../scripts/local-config.ts";
+test("disposable test tooling rejects hosted API targets", () => {
+  assert.doesNotThrow(() => validateLocalUrl("http://127.0.0.1:56421"));
+  assert.throws(() =>
+    validateLocalUrl("https://sthwmiesffowystewspf.supabase.co"),
+  );
+  assert.throws(() => validateLocalUrl("http://127.0.0.1:55421"));
+  assert.throws(() => validateLocalUrl("https://127.0.0.1.evil.example:56421"));
+});
