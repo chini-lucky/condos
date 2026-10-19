@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../auth";
 import { RailBrowser, LineBadges } from "../rail/RailBrowser";
+import { OfferAgentCard } from "./OfferAgentCard";
 import { OfferFactsSummary } from "./OfferFactsSummary";
 import { OfferForm } from "./OfferForm";
 import { getStation } from "../rail/network";
@@ -220,6 +221,7 @@ export function OffersWorkspace() {
               : `Direction: ${selected.bearing}° clockwise from north`}
           </p>
           <OfferFactsSummary offer={selected} />
+          <OfferAgentCard key={`agent-${selected.id}`} offer={selected} />
 
           <p>Added {formatDate(selected.createdAt)}</p>
           <p>Updated {formatDate(selected.updatedAt)}</p>

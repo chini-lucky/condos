@@ -1,3 +1,6 @@
+import { OfferContactFields } from "./OfferContactFields";
+import { OfferAgentCard } from "./OfferAgentCard";
+import { contactsDraft, parseContacts } from "./contacts";
 import { useState } from "react";
 import { OfferFactsSummary } from "./OfferFactsSummary";
 import { OfferFactsFields } from "./OfferFactsFields";
@@ -23,6 +26,7 @@ export function OfferForm({
   onCancel: () => void;
   initialStationId?: string | undefined;
 }) {
+  const [contacts, setContacts] = useState(() => contactsDraft(offer));
   const [facts, setFacts] = useState(() => factsDraft(offer));
   const [name, setName] = useState(offer?.name ?? "");
   const [location, setLocation] = useState(() =>
@@ -44,7 +48,11 @@ export function OfferForm({
     setConflict(false);
     setBusy(true);
     try {
-      const details = { ...parseFacts(facts), ...parseLocation(location) };
+      const details = {
+        ...parseFacts(facts),
+        ...parseLocation(location),
+        ...parseContacts(contacts),
+      };
       const saved =
         offer && version !== undefined
           ? await repository.rename(offer.id, name, version, details)
@@ -109,6 +117,7 @@ export function OfferForm({
       <p>Only the name is required. You can add more information later.</p>
       <OfferFactsFields value={facts} onChange={setFacts} />
       <OfferFacilities value={facts} onChange={setFacts} />
+      <OfferContactFields value={contacts} onChange={setContacts} />
       {error && <p role="alert">{error}</p>}
       {conflict && (
         <button
@@ -127,6 +136,7 @@ export function OfferForm({
             Latest saved name: {latest.name}. Your draft is unchanged.
           </p>
           <OfferFactsSummary offer={latest} />
+          <OfferAgentCard offer={latest} />
         </section>
       )}
       <div className="offer-actions">

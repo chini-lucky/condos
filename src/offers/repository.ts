@@ -1,9 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { OfferContacts } from "./contacts";
 import type { OfferFacts } from "./facts";
 import type { OfferLocation } from "./location";
 export interface OfferDetails
-  extends Partial<OfferFacts>, Partial<OfferLocation> {}
-export interface Offer extends OfferFacts, OfferLocation {
+  extends Partial<OfferFacts>, Partial<OfferLocation>, Partial<OfferContacts> {}
+export interface Offer extends OfferFacts, OfferLocation, OfferContacts {
   id: string;
   name: string;
   status: "Pending" | "Available" | "Viewing" | "Rejected";
@@ -59,6 +60,11 @@ function decode(value: unknown): Offer {
         bearing >= 360))
   )
     throw new Error("Invalid offer response");
+  const nullableString = (key: string): string | null => {
+    const value = field(key);
+    if (value === null || typeof value === "string") return value;
+    throw new Error("Invalid offer contact");
+  };
   const nullableNumber = (key: string): number | null => {
     const value = field(key);
     if (value === null || (typeof value === "number" && Number.isFinite(value)))
@@ -109,6 +115,11 @@ function decode(value: unknown): Offer {
     stationId,
     walkingMetres,
     bearing,
+    agentName: nullableString("agent_name"),
+    agentCompany: nullableString("agent_company"),
+    agentPhone: nullableString("agent_phone"),
+    agentLine: nullableString("agent_line"),
+    sourceUrl: nullableString("source_url"),
     propertyType,
     extraFacilities,
     rent: nullableNumber("rent"),
@@ -127,6 +138,11 @@ function detailsPatch(facts: OfferDetails) {
       station_id: facts.stationId,
       walking_metres: facts.walkingMetres,
       bearing: facts.bearing,
+      agent_name: facts.agentName,
+      agent_company: facts.agentCompany,
+      agent_phone: facts.agentPhone,
+      agent_line: facts.agentLine,
+      source_url: facts.sourceUrl,
       rent: facts.rent,
       property_type: facts.propertyType,
       size_sqm: facts.sizeSqm,
