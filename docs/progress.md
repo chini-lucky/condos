@@ -20,7 +20,7 @@ Integration branch: `integration/condos-v1`. Baseline main: `cfca225`.
 | #14   | Integrated | `72f60cb` — semantic map navigation and synchronized offers                |
 | #15   | Integrated | `68d7756` — recoverable Trash and restoration; verification below          |
 | #16   | Integrated | `682e33a` — permanent deletion and durable cleanup receipts                |
-| #17   | Pending    | See native GitHub dependencies and tickets.md                              |
+| #17   | Partial    | `9af6917` — final UI integrated; reviews and release verification pending  |
 
 Planning documents and implementation instructions are committed before ticket work begins. Issue completion will be recorded with merge commits and validation evidence; GitHub closes the work through the final PR.
 
@@ -127,6 +127,14 @@ Merged selector-only follow-up in `59044da` after CI exposed ambiguous global as
 Merged `ticket/16-permanent-deletion` cleanly in `682e33a`. Check/build passed with existing chunk-size advisories. All three permanent-deletion backend tests and both corresponding browser journeys passed under the shared verification lock on port 5293. Verified current-version Trash-only deletion, note cascade, restore/delete races, receipt authorization/idempotence, lost-response retry, exact Storage cleanup after failures/leases/late writes, unrelated photo retention, confirmation/cancellation and persisted cleanup visibility.
 
 Immutable asset tombstones and durable cleanup rows survive parent deletion. Receipt-scoped retry uses the existing worker; no Edge changes or second cleanup engine were introduced. No resets, hosted mutations, main merge or issue closure occurred.
+
+## Ticket #17 UI integration verification
+
+Merged `ticket/17-final-app` cleanly in `9af6917`. Check/build passed with existing chunk-size advisories. Four filter/map domain tests and all seven focused application/filter/map browser journeys passed under the shared verification lock on port 5293. Verified desktop/phone keyboard gallery and visible upload failures, filter/list/map consistency, semantic camera behavior, navigation parents and responsive panel geometry after the final presentation changes.
+
+The implementer reports a prior complete 44-test Node suite and 45-journey browser suite passing on this candidate; merger verification was focused on changed presentation boundaries. Reference comparisons and nine desktop/phone screenshots are recorded in `/tmp/condos-implementation/ticket17-ui.md` and `/tmp/condos-implementation/final-ui`. The dossier, cards and overview are separate React components; existing persistence/private-photo/lifecycle behavior remains composed.
+
+Only the UI portion of #17 is integrated. Independent Standards/Spec reviews, resolution of actionable findings and final controlled release/hosted verification remain pending. No schema changes, resets or deployment occurred during this merge. Ticket #17 is not complete.
 
 ## Ticket #7 implementation verification
 
