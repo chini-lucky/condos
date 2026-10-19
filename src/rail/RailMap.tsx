@@ -65,6 +65,9 @@ export function RailMap({
     view.width >= 850,
     interchanges.flat(),
     labelSides,
+    [...(stationOccupancy ?? stationCounts ?? new Map<string, number>())]
+      .filter(([, count]) => count > 0)
+      .map(([id]) => id),
   );
 
   useEffect(() => {
@@ -459,7 +462,12 @@ export function RailMap({
                   textAnchor={label.anchor}
                   fontSize={label.fontSize}
                   strokeWidth={3 * scale}
-                  className={active ? "rail-label selected" : "rail-label"}
+                  className={
+                    active ||
+                    (stationOccupancy ?? stationCounts)?.get(station.id)
+                      ? "rail-label selected"
+                      : "rail-label"
+                  }
                 >
                   {station.name}
                 </text>

@@ -385,3 +385,14 @@ svg:focus-visible,
   background: #e9ece6;
   box-shadow: inset 3px 0 #161a17;
 }
+@media (max-width: 959px) {
+  .station-open .rail-panel-content > .rail-badges {
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+  .station-open .rail-panel-content > h1 {
+    display: inline;
+    vertical-align: middle;
+    margin: 0;
+  }
+}

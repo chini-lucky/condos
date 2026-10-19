@@ -33,7 +33,7 @@ export function OfferMapOverlay({
   const stationIds = new Set(
     offers.flatMap((offer) => (offer.stationId ? [offer.stationId] : [])),
   );
-  const box = { width: Math.min(220, view.size.width - 24), height: 140 };
+  const box = { width: Math.min(220, view.size.width - 24), height: 160 };
   const calloutOffers = positioned.filter(
     (item) => item.offer.stationId === focusId,
   );
