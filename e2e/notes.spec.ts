@@ -55,6 +55,55 @@ test("notes timeline supports persistent composer, inline editing and confirmed 
     .click();
   await expect(page.getByRole("heading", { name: "Notes (0)" })).toBeVisible();
 });
+test("failed note writes retain drafts and concurrent edits require review", async ({
+  page,
+  context,
+  browser,
+}) => {
+  await create(page);
+  await page.getByLabel("New note").fill("Offline draft");
+  await context.setOffline(true);
+  await page.getByRole("button", { name: "Add note", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText("not saved");
+  await expect(page.getByLabel("New note")).toHaveValue("Offline draft");
+  await context.setOffline(false);
+  await page.getByRole("button", { name: "Add note", exact: true }).click();
+  await expect(page.getByText("Offline draft", { exact: true })).toBeVisible();
+  const link = page.url();
+  const other = await browser.newContext();
+  const second = await other.newPage();
+  await login(second);
+  await second.goto(link);
+  await second.getByRole("button", { name: "Edit note", exact: true }).click();
+  await second.getByLabel("Edit note text").fill("My conflicting draft");
+  await page.getByRole("button", { name: "Edit note", exact: true }).click();
+  await page.getByLabel("Edit note text").fill("Newer saved note");
+  await page.getByRole("button", { name: "Save note", exact: true }).click();
+  await expect(
+    page.getByText("Newer saved note", { exact: true }),
+  ).toBeVisible();
+  await second.getByRole("button", { name: "Save note", exact: true }).click();
+  await expect(second.getByRole("alert")).toContainText(
+    "changed on another device",
+  );
+  await expect(second.getByLabel("Edit note text")).toHaveValue(
+    "My conflicting draft",
+  );
+  await second.getByRole("button", { name: "Review latest notes" }).click();
+  await expect(
+    second.getByText(
+      "Latest saved note: Newer saved note. Your draft is unchanged.",
+    ),
+  ).toBeVisible();
+  await second
+    .getByRole("button", { name: "Use latest version to retry" })
+    .click();
+  await second.getByRole("button", { name: "Save note", exact: true }).click();
+  await expect(
+    second.getByText("My conflicting draft", { exact: true }),
+  ).toBeVisible();
+  await other.close();
+});
 test.afterAll(async () => {
   const { createClient } = await import("@supabase/supabase-js");
   const { localConfig } = await import("../scripts/local-config.ts");
