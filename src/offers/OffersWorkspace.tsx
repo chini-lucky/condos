@@ -14,6 +14,8 @@ import { stationSummaries } from "./location";
 import { offersRepository } from "./repository";
 import type { Offer } from "./repository";
 import "./offers.css";
+import { OfferStatusDisplay } from "./OfferStatusDisplay";
+import { OfferStatusEditor } from "./OfferStatusEditor";
 type Route =
   { kind: "list" } | { kind: "add" } | { kind: "detail" | "edit"; id: string };
 function routeFromHash(): Route {
@@ -178,7 +180,7 @@ export function OffersWorkspace() {
               {unassigned.map((offer) => (
                 <li key={offer.id}>
                   <a href={`#offer=${offer.id}`}>{offer.name}</a>
-                  <span>{offer.status}</span>
+                  <OfferStatusDisplay offer={offer} />
                 </li>
               ))}
             </ul>
@@ -197,7 +199,14 @@ export function OffersWorkspace() {
       ) : selected ? (
         <>
           <h2>{selected.name}</h2>
-          <p>{selected.status}</p>
+          <OfferStatusDisplay offer={selected} />
+          {repository && (
+            <OfferStatusEditor
+              offer={selected}
+              repository={repository}
+              onSaved={saved}
+            />
+          )}
           <p>
             {selected.stationId
               ? `Station: ${getStation(selected.stationId)?.name ?? selected.stationId}`

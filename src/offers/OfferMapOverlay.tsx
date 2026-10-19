@@ -1,3 +1,4 @@
+import { formatAppointment } from "./appointments";
 import type { Offer } from "./repository";
 import { getStation } from "../rail/network";
 import { offerPosition, walkingMinutes } from "./location";
@@ -48,7 +49,16 @@ export function OfferMapOverlay({
             >
               <title>
                 {offer.name} · {offer.walkingMetres} m · estimated{" "}
-                {walkingMinutes(offer.walkingMetres)} min walk
+                {walkingMinutes(offer.walkingMetres)} min walk · {offer.status}
+                {offer.status === "Pending" && offer.pendingExplanation
+                  ? ` · ${offer.pendingExplanation}`
+                  : ""}
+                {offer.status === "Rejected" && offer.rejectionReason
+                  ? ` · ${offer.rejectionReason}`
+                  : ""}
+                {offer.viewingAt
+                  ? ` · ${formatAppointment(offer.viewingAt)}`
+                  : ""}
               </title>
               <circle
                 cx={position.x}
