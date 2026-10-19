@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { signIn, supabase } from "./auth";
 import "./app.css";
+import { OffersWorkspace } from "./offers/OffersWorkspace";
 export function App() {
   const [state, setState] = useState<"loading" | "signed-out" | "signed-in">(
     "loading",
@@ -92,7 +93,7 @@ export function App() {
           </button>
         </header>
         {error && <p role="alert">{error}</p>}
-        <p>Your private rental shortlist is ready.</p>
+        <OffersWorkspace />
       </main>
     );
   return (

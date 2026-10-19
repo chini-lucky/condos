@@ -1,0 +1,118 @@
+.offers-workspace {
+  position: relative;
+  height: calc(100dvh - 100px);
+  min-height: 400px;
+  isolation: isolate;
+}
+.offers-map {
+  position: absolute;
+  inset: 0;
+  background: #e8ece2;
+}
+.map-placeholder {
+  text-align: center;
+  padding: 3rem;
+}
+.offers-panel {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 390px;
+  max-width: 100%;
+  background: #fffef9;
+  box-shadow: 3px 0 16px #253c2720;
+  overflow: auto;
+  z-index: 2;
+}
+.offer-panel-content {
+  padding: 1.25rem;
+}
+.offer-panel-content:focus {
+  outline: none;
+}
+.offer-list {
+  list-style: none;
+  padding: 0;
+}
+.offer-list li {
+  padding: 1rem 0;
+  border-bottom: 1px solid #d9dfd4;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.offer-list a {
+  color: #274f40;
+  font-weight: 600;
+}
+.offer-list span {
+  font-size: 0.85rem;
+}
+.offer-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+.panel-toggle {
+  position: absolute;
+  left: 400px;
+  top: 1rem;
+  z-index: 3;
+}
+.offers-panel.collapsed {
+  display: none;
+}
+.sheet-handle,
+.sheet-controls {
+  display: none;
+}
+@media (max-width: 959px) {
+  .offers-panel {
+    position: fixed;
+    inset: auto 0 0;
+    width: 100%;
+    border-radius: 18px 18px 0 0;
+    max-height: 100dvh;
+  }
+  .sheet-peek {
+    height: 214px;
+  }
+  .sheet-half {
+    height: 50dvh;
+  }
+  .sheet-full {
+    height: 100dvh;
+  }
+  .sheet-handle {
+    display: grid;
+    place-items: center;
+    height: 30px;
+    touch-action: none;
+    cursor: ns-resize;
+  }
+  .sheet-handle span {
+    height: 4px;
+    width: 40px;
+    border-radius: 4px;
+    background: #9ba99b;
+  }
+  .sheet-controls {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding: 0 0.75rem;
+  }
+  .sheet-controls button {
+    font-size: 0.75rem;
+    padding: 0.35rem;
+  }
+  .panel-toggle {
+    display: none;
+  }
+  .offer-panel-content {
+    padding-top: 0.5rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .offers-panel {
+    scroll-behavior: auto;
+  }
+}
