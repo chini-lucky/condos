@@ -111,3 +111,21 @@ end $$;
 revoke all on function public.remove_photo(uuid,bigint,uuid) from public;
 grant execute on function public.remove_photo(uuid,bigint,uuid) to authenticated;
 notify pgrst, 'reload schema';
+
+create or replace function public.cancel_photos(p_ids uuid[]) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  if not public.is_admin() then raise insufficient_privilege; end if;
+  -- Match the offer-first lock order used by finalization and offer deletion.
+  perform 1 from public.offers where id in (select offer_id from public.photo_assets where id = any(p_ids)) order by id for update;
+  if exists(select 1 from public.offers o where o.id in (select a.offer_id from public.photo_assets a where a.id = any(p_ids))
+    and (to_jsonb(o)->>'trashed_at') is not null) then
+    raise exception 'Offer is in Trash. Restore it before changing photos.' using errcode = '40001';
+  end if;
+  with cancelled as (
+    update public.photo_assets set state = 'deleting' where id = any(p_ids) and state = 'uploading' returning object_key
+  ) insert into public.photo_cleanup(object_key) select object_key from cancelled
+    on conflict (object_key) do update set completed_at = null, due_at = now();
+end $$;
+
+notify pgrst, 'reload schema';

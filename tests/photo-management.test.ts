@@ -308,3 +308,133 @@ test("deleting a cover selects the first surviving photo, queues cleanup atomica
     await service.from("offers").delete().eq("id", id);
   }
 });
+test("photo mutations enforce identity, offer ownership and revisions, and reject every user command after Trash", async () => {
+  const db = await admin(),
+    id = await createPhotos(db, 2),
+    other = await createPhotos(db, 1);
+  try {
+    const initial = (await db.rpc("get_offer_photos", { p_offer_id: id })).data;
+    const ids = initial.photos.map((photo: { id: string }) => photo.id);
+    const foreign = (await db.rpc("get_offer_photos", { p_offer_id: other }))
+      .data.photos[0].id;
+    for (const command of ["choose_photo_cover", "remove_photo"]) {
+      assert.ok(
+        (
+          await db.rpc(command, {
+            p_offer_id: id,
+            p_expected_revision: initial.revision,
+            p_photo_id: foreign,
+          })
+        ).error,
+      );
+    }
+    const anon = createClient(config.url, config.anonKey, options),
+      outsider = await admin("outsider@condos.invalid");
+    for (const denied of [anon, outsider]) {
+      for (const command of ["choose_photo_cover", "remove_photo"])
+        assert.ok(
+          (
+            await denied.rpc(command, {
+              p_offer_id: id,
+              p_expected_revision: initial.revision,
+              p_photo_id: ids[0],
+            })
+          ).error,
+        );
+      assert.ok(
+        (
+          await denied.rpc("reorder_photos", {
+            p_offer_id: id,
+            p_expected_revision: initial.revision,
+            p_ids: ids,
+          })
+        ).error,
+      );
+      assert.ok(
+        (
+          await denied.rpc("lock_photo_offer", {
+            p_offer_id: id,
+            p_expected_revision: initial.revision,
+          })
+        ).error,
+      );
+    }
+    assert.equal(
+      (await outsider.rpc("get_offer_photos", { p_offer_id: id })).data,
+      null,
+    );
+    const second = await admin();
+    const concurrent = await Promise.all([
+      db.rpc("choose_photo_cover", {
+        p_offer_id: id,
+        p_expected_revision: initial.revision,
+        p_photo_id: ids[0],
+      }),
+      second.rpc("remove_photo", {
+        p_offer_id: id,
+        p_expected_revision: initial.revision,
+        p_photo_id: ids[1],
+      }),
+    ]);
+    assert.equal(concurrent.filter((result) => !result.error).length, 1);
+    assert.equal(
+      concurrent.find((result) => result.error)?.error?.code,
+      "40001",
+    );
+    const fresh = (await db.rpc("get_offer_photos", { p_offer_id: id })).data;
+    assert.equal(fresh.revision, initial.revision + 1);
+    assert.equal(
+      (
+        await db.rpc("remove_photo", {
+          p_offer_id: id,
+          p_expected_revision: initial.revision,
+          p_photo_id: ids[0],
+        })
+      ).error?.code,
+      "40001",
+    );
+    const offer = (
+      await db.from("offers").select("version").eq("id", id).single()
+    ).data;
+    assert.equal(
+      (
+        await db.rpc("trash_offer", {
+          p_id: id,
+          p_expected_version: offer?.version,
+        })
+      ).error,
+      null,
+    );
+    for (const command of ["choose_photo_cover", "remove_photo"])
+      assert.equal(
+        (
+          await db.rpc(command, {
+            p_offer_id: id,
+            p_expected_revision: fresh.revision,
+            p_photo_id: ids[0],
+          })
+        ).error?.code,
+        "40001",
+      );
+    assert.equal(
+      (
+        await db.rpc("reorder_photos", {
+          p_offer_id: id,
+          p_expected_revision: fresh.revision,
+          p_ids: fresh.photos.map((photo: { id: string }) => photo.id),
+        })
+      ).error?.code,
+      "40001",
+    );
+    assert.equal(
+      (await db.rpc("cancel_photos", { p_ids: ids })).error?.code,
+      "40001",
+    );
+    assert.deepEqual(
+      (await db.rpc("get_offer_photos", { p_offer_id: id })).data,
+      fresh,
+    );
+  } finally {
+    await service.from("offers").delete().in("id", [id, other]);
+  }
+});
