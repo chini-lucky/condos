@@ -2,14 +2,17 @@
 
 Integration branch: `integration/condos-v1`. Baseline main: `cfca225`.
 
-| Issue  | State      | Evidence                                                          |
-| ------ | ---------- | ----------------------------------------------------------------- |
-| #1     | Integrated | `dffaeca` — admin sign-in; integration verification below         |
-| #2     | Integrated | `6084d44` — complete Bangkok rail map; verification below         |
-| #3     | Integrated | `732ee8e` — persistent offer management; verification below       |
-| #4     | Partial    | `fe249f7` — hosted backend verified; Pages acceptance pending     |
-| #5     | Integrated | `2622721` — station assignment and offer pins; verification below |
-| #6–#17 | Pending    | See native GitHub dependencies and tickets.md                     |
+| Issue   | State      | Evidence                                                          |
+| ------- | ---------- | ----------------------------------------------------------------- |
+| #1      | Integrated | `dffaeca` — admin sign-in; integration verification below         |
+| #2      | Integrated | `6084d44` — complete Bangkok rail map; verification below         |
+| #3      | Integrated | `732ee8e` — persistent offer management; verification below       |
+| #4      | Integrated | `fe249f7` + run `39305725116` — hosted browser acceptance passed  |
+| #5      | Integrated | `2622721` — station assignment and offer pins; verification below |
+| #6–#7   | Pending    | See native GitHub dependencies and tickets.md                     |
+| #8      | Integrated | `b387f7d` — statuses and Bangkok viewing appointments             |
+| #9      | Partial    | `03b34e4` — notes integrated; focus-refresh draft gap below       |
+| #10–#17 | Pending    | See native GitHub dependencies and tickets.md                     |
 
 Planning documents and implementation instructions are committed before ticket work begins. Issue completion will be recorded with merge commits and validation evidence; GitHub closes the work through the final PR.
 
@@ -31,11 +34,13 @@ Merged `ticket/03-offers` without conflicts in `732ee8e`. Integration passed `np
 
 The typed offers repository, shared OfferForm and OffersWorkspace composition are integrated for later features. Tests used the existing local Condos migrations through `202610190005`; no stack reset or deployment occurred. Optional offer facts and feature-specific editing remain later tickets. The GitHub issue remains open for closure through the final PR.
 
-## Ticket #4 provisional integration verification
+## Ticket #4 integration and hosted verification
 
 Merged `ticket/04-production` without conflicts in `fe249f7`. Integration passed `npm run check`, `npm run build`, and all three deployment-policy/public-configuration/local-target boundary tests. No local database changes or resets were made during this verification.
 
-The deployment implementer verified the dedicated hosted Condos project in Singapore, admin authentication, disabled registration, migrations through `202610190005`, private access and real create/read/rename smoke. Workflow code and secret configuration are integrated. **Hosted backend verified; Pages acceptance pending.** The orchestrator must pin the exact integration SHA, dispatch the guarded workflow, then verify the released frontend through the real hosted browser smoke. Ticket #4 is not fully complete; no deployment was dispatched by the merger.
+The deployment implementer verified the dedicated hosted Condos project in Singapore, admin authentication, disabled registration, migrations through `202610190005`, private access and real create/read/rename smoke. Workflow code and secret configuration are integrated. The orchestrator deployed exact integration SHA `19192e326e1c73d9af955a14717df0abc113929d` in [run 39305725116](https://github.com/chini-lucky/condos/actions/runs/39305725116). All five jobs passed: source authorization, local CI, frontend build, hosted backend deployment and Pages publication.
+
+On 2026-10-20 (Bangkok), the real hosted browser smoke at https://chini-lucky.github.io/condos/ passed admin sign-in, name-only creation, direct-link reload with persisted data, renaming and logout. The same operator script verified anonymous offer access is denied and public registration is disabled. It loaded the existing private password in memory, recorded no credential-bearing traces or screenshots, and removed only its uniquely named smoke fixtures through trusted cleanup. No main merge or issue closure occurred. Ticket #4 acceptance is complete; newer feature migrations remain undeployed until a later controlled release.
 
 ## Ticket #5 integration verification
 
@@ -50,3 +55,15 @@ Location persistence/reassignment/clearing, real pin activation, station lists/c
 The implementation branch merges integration through `03b34e4`, including station assignment, status management and notes. Optional rental facts preserve unknown values, studio zero and basement floors; facilities distinguish unknown/present/absent, and named extra facilities are trimmed, deduplicated and removable. Shared add/edit controls and summaries are composed as separate components. Saving name, location and facts uses one expected-version backend mutation; stale-edit review shows the latest saved facts without discarding the draft.
 
 Observed red/green database and browser tests cover numeric validation, nullable round trips and clearing, all facility states, duplicate extras, card/detail summaries and concurrent draft preservation. An additional integration regression creates location and rental facts together and verifies that clearing rental facts preserves station/distance/direction. `npm run check`, `npm run build`, all 20 Node boundary/domain tests and 12 affected Chromium journeys (location, facts, offers, status and notes) pass. Local verification used the shared lock and browser port 5289; no stack reset or hosted changes occurred. Migration `202610200006` extends the typed mutations introduced by `202610200005`; both must execute in order on a fresh environment. GitHub closure remains the final PR's responsibility.
+
+## Ticket #8 integration verification
+
+Merged `ticket/08-status-viewings` cleanly in `b387f7d`. Check/build passed, followed by two date/status database tests and two status browser journeys under the shared verification lock. Verified Bangkok conversion, booking/rescheduling/clearing, optional explanations, freely changed statuses, rejected-offer visibility, stale-write review and offline draft retention. Location RPC/form behavior is preserved. Future Trash must guard status mutations on trashed offers.
+
+## Ticket #9 provisional integration verification
+
+Merged `ticket/09-notes` in `03b34e4`, resolving the workspace import conflict by preserving both status components and the notes timeline. Check/build passed with both features composed. Two notes database tests and three notes browser journeys passed under the shared verification lock: CRUD/server timestamps, authorization/concurrency, offline draft recovery and explicit review after remote deletion.
+
+An unresolved draft-retention gap remains: focus refresh replaces the note list, so a remotely deleted note can unmount its active editor before the user saves or copies the draft. The explicit deleted-note review test does not exercise this focus-refresh path. Ticket #9 is not fully accepted until a regression demonstrates preservation through focus refresh and the behavior is fixed. Future Trash must also guard note mutations on trashed offers.
+
+Hosted acceptance documentation for #4 was merged in `2e4ed33`; no deployment or hosted mutation was performed during #8/#9 integration.
