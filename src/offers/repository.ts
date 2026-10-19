@@ -43,6 +43,19 @@ function decode(value: unknown): Offer {
 }
 export function offersRepository(client: SupabaseClient) {
   return {
+    async get(id: string): Promise<Offer | null> {
+      const result = await client
+        .from("offers")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
+      if (result.error)
+        throw new OfferFailure(
+          "unavailable",
+          "Unable to load the latest offer. Please try again.",
+        );
+      return result.data ? decode(result.data) : null;
+    },
     async list(): Promise<Offer[]> {
       const result = await client
         .from("offers")

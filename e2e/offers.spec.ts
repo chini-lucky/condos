@@ -40,3 +40,50 @@ test("create a name-only offer, reopen its direct link, rename it, and navigate 
     page.getByRole("heading", { name: "Renamed browser offer", exact: true }),
   ).toBeVisible();
 });
+
+test("two devices preserve a conflicting draft and explicitly review the latest saved offer before retrying", async ({
+  page,
+  browser,
+}) => {
+  await login(page);
+  await page.getByRole("button", { name: "Add offer", exact: true }).click();
+  await page.getByLabel("Offer name").fill("Conflict original");
+  await page.getByRole("button", { name: "Save offer" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Conflict original", exact: true }),
+  ).toBeVisible();
+  const link = page.url();
+  const other = await browser.newContext();
+  const second = await other.newPage();
+  await login(second);
+  await second.goto(link);
+  await second.getByRole("button", { name: "Edit offer" }).click();
+  await second.getByLabel("Offer name").fill("My retained draft");
+  await page.getByRole("button", { name: "Edit offer" }).click();
+  await page.getByLabel("Offer name").fill("Newer saved name");
+  await page.getByRole("button", { name: "Save offer" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Newer saved name", exact: true }),
+  ).toBeVisible();
+  await second.getByRole("button", { name: "Save offer" }).click();
+  await expect(second.getByRole("alert")).toContainText(
+    "changed on another device",
+  );
+  await expect(second.getByLabel("Offer name")).toHaveValue(
+    "My retained draft",
+  );
+  await second.getByRole("button", { name: "Review latest offer" }).click();
+  await expect(
+    second.getByText(
+      "Latest saved name: Newer saved name. Your draft is unchanged.",
+    ),
+  ).toBeVisible();
+  await expect(second.getByLabel("Offer name")).toHaveValue(
+    "My retained draft",
+  );
+  await second.getByRole("button", { name: "Save offer" }).click();
+  await expect(
+    second.getByRole("heading", { name: "My retained draft", exact: true }),
+  ).toBeVisible();
+  await other.close();
+});

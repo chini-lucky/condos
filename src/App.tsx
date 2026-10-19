@@ -80,7 +80,7 @@ export function App() {
     );
   if (state === "signed-in")
     return (
-      <main>
+      <div className="authenticated-app">
         <header className="app-header">
           <h1>Condos</h1>
           <button
@@ -94,7 +94,7 @@ export function App() {
         </header>
         {error && <p role="alert">{error}</p>}
         <OffersWorkspace />
-      </main>
+      </div>
     );
   return (
     <main className="auth-shell">
