@@ -4,6 +4,21 @@ export interface OfferLocation {
   walkingMetres: number | null;
   bearing: number | null;
 }
+export interface LocationDraft {
+  stationId: string;
+  walkingMetres: string;
+  bearing: string;
+}
+export function locationDraft(
+  offer: OfferLocation | null,
+  initialStationId?: string,
+): LocationDraft {
+  return {
+    stationId: offer ? (offer.stationId ?? "") : (initialStationId ?? ""),
+    walkingMetres: offer?.walkingMetres?.toString() ?? "",
+    bearing: offer?.bearing?.toString() ?? "",
+  };
+}
 export interface LocatedOffer extends OfferLocation {
   rent?: number | null;
 }

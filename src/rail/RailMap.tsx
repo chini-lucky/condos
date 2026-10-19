@@ -258,7 +258,6 @@ export function RailMap({
             />
           ) : null;
         })}
-        {typeof children === "function" ? children(scale) : children}
         {stations.map((station) => {
           const active = selectedStationId === station.id;
           const count = stationCounts?.get(station.id) ?? 0;
@@ -336,6 +335,7 @@ export function RailMap({
             </g>
           );
         })}
+        {typeof children === "function" ? children(scale) : children}
       </svg>
       <p id="map-keyboard-help" className="sr-only">
         Arrow keys pan. Plus and minus zoom. Home resets. Tab to a station and

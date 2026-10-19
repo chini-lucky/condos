@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../auth";
-import { RailBrowser } from "../rail/RailBrowser";
+import { RailBrowser, LineBadges } from "../rail/RailBrowser";
 import { OfferForm } from "./OfferForm";
 import { getStation } from "../rail/network";
 import type { Station } from "../rail/network";
@@ -149,6 +149,7 @@ export function OffersWorkspace() {
                         aria-label={`Browse ${station.name}`}
                         onClick={() => browseStation(station)}
                       >
+                        <LineBadges station={station} />
                         <strong>{station.name}</strong>
                         <span>
                           {summary.count}{" "}
@@ -244,18 +245,32 @@ export function OffersWorkspace() {
           onOpen={(offer) => navigate({ kind: "detail", id: offer.id })}
         />
       )}
-      renderStation={(station) =>
-        loading ? (
-          <p role="status">Loading offers…</p>
-        ) : (
-          <StationOfferList
-            station={station}
-            offers={offers}
-            onAdd={() => navigate({ kind: "add" })}
-            onSelectStation={browseStation}
-          />
-        )
-      }
+      renderStation={(station) => (
+        <>
+          {error && (
+            <div role="alert">
+              <p>{error}</p>
+              <button
+                onClick={() => {
+                  void refresh();
+                }}
+              >
+                Retry loading offers
+              </button>
+            </div>
+          )}
+          {loading ? (
+            <p role="status">Loading offers…</p>
+          ) : (
+            <StationOfferList
+              station={station}
+              offers={offers}
+              onAdd={() => navigate({ kind: "add" })}
+              onSelectStation={browseStation}
+            />
+          )}
+        </>
+      )}
     />
   );
 }

@@ -6,6 +6,7 @@ import {
   offersByDistance,
   stationSummaries,
   nearestStationWithOffers,
+  locationDraft,
 } from "../src/offers/location.ts";
 const location = { stationId: "E6", walkingMetres: 1000, bearing: 90 };
 test("only complete location facts produce a schematic pin; supplied walking metres produce an estimate", () => {
@@ -57,4 +58,14 @@ test("station counts include incomplete positioning, unknown distances sort last
   ]);
   assert.equal(nearestStationWithOffers("E5", offers)?.id, "E6");
   assert.equal(nearestStationWithOffers("E6", offers), null);
+});
+
+test("editing an unassigned offer preserves its unknown station even while browsing another station", () => {
+  assert.deepEqual(
+    locationDraft(
+      { stationId: null, walkingMetres: null, bearing: null },
+      "E6",
+    ),
+    { stationId: "", walkingMetres: "", bearing: "" },
+  );
 });

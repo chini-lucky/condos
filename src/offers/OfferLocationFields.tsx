@@ -1,20 +1,7 @@
 import { lines, getStation } from "../rail/network";
 import type { OfferLocation } from "./location";
-export interface LocationDraft {
-  stationId: string;
-  walkingMetres: string;
-  bearing: string;
-}
-export function locationDraft(
-  offer: OfferLocation | null,
-  initialStationId?: string,
-): LocationDraft {
-  return {
-    stationId: offer?.stationId ?? initialStationId ?? "",
-    walkingMetres: offer?.walkingMetres?.toString() ?? "",
-    bearing: offer?.bearing?.toString() ?? "",
-  };
-}
+import type { LocationDraft } from "./location";
+export { locationDraft } from "./location";
 export function parseLocation(draft: LocationDraft): OfferLocation {
   const walkingMetres =
     draft.walkingMetres.trim() === "" ? null : Number(draft.walkingMetres);

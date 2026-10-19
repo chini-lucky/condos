@@ -52,6 +52,22 @@ test("assign, position, reassign and clear offers while station lists and pins a
       exact: true,
     }),
   ).toHaveCount(1);
+  await page.getByRole("button", { name: "Back", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Browse Thong Lo", exact: true })
+    .click();
+  await page
+    .getByRole("button", {
+      name: "Open Station positioned fixture",
+      exact: true,
+    })
+    .click();
+  await expect(
+    page.getByRole("heading", {
+      name: "Station positioned fixture",
+      exact: true,
+    }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Edit offer", exact: true }).click();
   await page.getByLabel("Station", { exact: true }).selectOption("N5");
   await page.getByRole("button", { name: "Save offer" }).click();
