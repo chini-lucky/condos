@@ -41,6 +41,20 @@ test("create, inspect and clear optional facts and facilities without fabricatin
   await expect(
     page.getByText("? Pool: Unknown", { exact: true }),
   ).toBeVisible();
+  const detailLink = page.url();
+  await page.getByRole("button", { name: "Back", exact: true }).click();
+  const card = page
+    .getByRole("listitem")
+    .filter({
+      has: page.getByRole("link", {
+        name: "Facts browser fixture",
+        exact: true,
+      }),
+    });
+  await expect(
+    card.getByText("✓ Washer: Present", { exact: true }),
+  ).toBeVisible();
+  await page.goto(detailLink);
   await page.reload();
   await page.getByRole("button", { name: "Edit offer", exact: true }).click();
   await expect(page.getByLabel("Beds (0 for studio)")).toHaveValue("0");

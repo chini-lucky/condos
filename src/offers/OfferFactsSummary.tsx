@@ -1,11 +1,5 @@
 import { facilityNames, type OfferFacts } from "./facts";
-export function OfferFactsSummary({
-  offer,
-  compact = false,
-}: {
-  offer: OfferFacts;
-  compact?: boolean;
-}) {
+export function OfferFactsSummary({ offer }: { offer: OfferFacts }) {
   return (
     <div className="offer-facts">
       <p>
@@ -30,28 +24,26 @@ export function OfferFactsSummary({
         {" · "}
         {offer.floor === null ? "Floor unknown" : `Floor ${offer.floor}`}
       </p>
-      {!compact && (
-        <>
-          <ul className="facility-summary">
-            {facilityNames.map((key) => (
-              <li key={key}>
-                {offer[key] === null ? "?" : offer[key] ? "✓" : "✕"}{" "}
-                {key.charAt(0).toUpperCase() + key.slice(1)}:{" "}
-                {offer[key] === null
-                  ? "Unknown"
-                  : offer[key]
-                    ? "Present"
-                    : "Absent"}
-              </li>
-            ))}
-          </ul>
-          <ul className="facility-chips">
-            {offer.extraFacilities.map((name) => (
-              <li key={name}>{name}</li>
-            ))}
-          </ul>
-        </>
-      )}
+      <>
+        <ul className="facility-summary">
+          {facilityNames.map((key) => (
+            <li key={key}>
+              {offer[key] === null ? "?" : offer[key] ? "✓" : "✕"}{" "}
+              {key.charAt(0).toUpperCase() + key.slice(1)}:{" "}
+              {offer[key] === null
+                ? "Unknown"
+                : offer[key]
+                  ? "Present"
+                  : "Absent"}
+            </li>
+          ))}
+        </ul>
+        <ul className="facility-chips">
+          {offer.extraFacilities.map((name) => (
+            <li key={name}>{name}</li>
+          ))}
+        </ul>
+      </>
     </div>
   );
 }

@@ -129,7 +129,7 @@ export function OffersWorkspace() {
                 <li key={offer.id}>
                   <a href={`#offer=${offer.id}`}>{offer.name}</a>
                   <span>{offer.status}</span>
-                  <OfferFactsSummary offer={offer} compact />
+                  <OfferFactsSummary offer={offer} />
                 </li>
               ))}
             </ul>
