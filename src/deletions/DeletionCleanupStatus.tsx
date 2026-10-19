@@ -20,10 +20,10 @@ export function DeletionCleanupStatus({
           setReceipts(rows);
           setLoading(false);
           setError("");
-          if (rows.some((row) => row.pending > 0))
-            timer = setTimeout(() => {
-              void load();
-            }, 10000);
+          // A late upload can reopen a completed tombstone's cleanup job.
+          timer = setTimeout(() => {
+            void load();
+          }, 10000);
         }
       } catch {
         if (active) {

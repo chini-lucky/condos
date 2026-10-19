@@ -303,3 +303,44 @@ test("permanent deletion cleans exact real Storage keys after failures, expired 
     await runPhotoCleanup(service);
   }
 });
+
+test("competing restore and permanent delete have exactly one winner, and deletion receipts cannot be forged", async () => {
+  const db = await admin();
+  const created = await db.rpc("create_offer", {
+    p_name: "Permanent deletion restore race",
+  });
+  assert.equal(created.error, null);
+  const id = created.data.id;
+  try {
+    const trash = await db.rpc("trash_offer", {
+      p_id: id,
+      p_expected_version: 1,
+    });
+    assert.equal(trash.error, null);
+    const args = { p_id: id, p_expected_version: trash.data.version };
+    const [deleted, restored] = await Promise.all([
+      db.rpc("permanently_delete_offer", args),
+      db.rpc("restore_offer", args),
+    ]);
+    assert.equal(
+      Number(deleted.error === null) + Number(restored.error === null),
+      1,
+    );
+    assert.equal((deleted.error ?? restored.error)?.code, "40001");
+    const remaining = await db.from("offers").select("trashed_at").eq("id", id);
+    assert.equal(remaining.data?.length, deleted.error === null ? 0 : 1);
+    assert.ok(
+      (
+        await db
+          .from("offer_deletions")
+          .insert({ offer_id: randomUUID(), name: "Forged receipt" })
+      ).error,
+    );
+    const outsider = await admin("outsider@condos.invalid");
+    assert.ok(
+      (await outsider.rpc("retry_offer_deletion_cleanup", { p_id: id })).error,
+    );
+  } finally {
+    await service.from("offers").delete().eq("id", id);
+  }
+});
