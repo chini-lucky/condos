@@ -8,11 +8,8 @@ import { OfferFacilities } from "./OfferFacilities";
 import { factsDraft, parseFacts } from "./facts";
 import type { Offer, OffersRepository } from "./repository";
 import { OfferFailure } from "./repository";
-import {
-  OfferLocationFields,
-  locationDraft,
-  parseLocation,
-} from "./OfferLocationFields";
+import { OfferLocationFields } from "./OfferLocationFields";
+import { locationDraft, parseLocation } from "./location";
 export function OfferForm({
   offer,
   repository,
