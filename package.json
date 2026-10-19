@@ -13,7 +13,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "node --test tests/*.test.ts",
+    "test": "node --test --test-concurrency=1 tests/*.test.ts",
     "test:e2e": "playwright test",
     "local:env": "node scripts/configure-local.ts",
     "check": "npm run typecheck && npm run lint && npm run format:check"
