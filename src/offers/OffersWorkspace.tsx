@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../auth";
 import { RailBrowser } from "../rail/RailBrowser";
+import { OfferFactsSummary } from "./OfferFactsSummary";
 import { OfferForm } from "./OfferForm";
 import { offersRepository } from "./repository";
 import type { Offer } from "./repository";
@@ -128,6 +129,7 @@ export function OffersWorkspace() {
                 <li key={offer.id}>
                   <a href={`#offer=${offer.id}`}>{offer.name}</a>
                   <span>{offer.status}</span>
+                  <OfferFactsSummary offer={offer} compact />
                 </li>
               ))}
             </ul>
@@ -147,7 +149,7 @@ export function OffersWorkspace() {
           <h2>{selected.name}</h2>
           <p>{selected.status}</p>
           <p>Station not assigned</p>
-          <p>Rent not recorded</p>
+          <OfferFactsSummary offer={selected} />
           <p>Added {formatDate(selected.createdAt)}</p>
           <p>Updated {formatDate(selected.updatedAt)}</p>
           <button onClick={() => navigate({ kind: "edit", id: selected.id })}>

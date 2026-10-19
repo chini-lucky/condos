@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-export interface Offer {
+import type { OfferFacts } from "./facts";
+export interface Offer extends OfferFacts {
   id: string;
   name: string;
   status: "Pending" | "Available" | "Viewing" | "Rejected";
@@ -39,7 +40,66 @@ function decode(value: unknown): Offer {
     typeof updatedAt !== "string"
   )
     throw new Error("Invalid offer response");
-  return { id, name, status, version, createdAt, updatedAt };
+  const nullableNumber = (key: string): number | null => {
+    const value = field(key);
+    if (value === null || (typeof value === "number" && Number.isFinite(value)))
+      return value;
+    throw new Error("Invalid numeric offer fact");
+  };
+  const nullableBoolean = (key: string): boolean | null => {
+    const value = field(key);
+    if (value === null || typeof value === "boolean") return value;
+    throw new Error("Invalid offer facility");
+  };
+  const propertyType = field("property_type");
+  const extraFacilities = field("extra_facilities");
+  if (
+    propertyType !== null &&
+    propertyType !== "condominium" &&
+    propertyType !== "townhouse"
+  )
+    throw new Error("Invalid property type");
+  if (
+    !Array.isArray(extraFacilities) ||
+    !extraFacilities.every(
+      (value): value is string => typeof value === "string",
+    )
+  )
+    throw new Error("Invalid extra facilities");
+  return {
+    id,
+    name,
+    status,
+    version,
+    createdAt,
+    updatedAt,
+    propertyType,
+    extraFacilities,
+    rent: nullableNumber("rent"),
+    sizeSqm: nullableNumber("size_sqm"),
+    beds: nullableNumber("beds"),
+    floor: nullableNumber("floor"),
+    washer: nullableBoolean("washer"),
+    garden: nullableBoolean("garden"),
+    pool: nullableBoolean("pool"),
+    microwave: nullableBoolean("microwave"),
+  };
+}
+function factsPatch(facts: Partial<OfferFacts>) {
+  return Object.fromEntries(
+    Object.entries({
+      rent: facts.rent,
+      property_type: facts.propertyType,
+      size_sqm: facts.sizeSqm,
+      beds: facts.beds,
+      floor: facts.floor,
+      washer: facts.washer,
+      garden: facts.garden,
+      pool: facts.pool,
+      microwave: facts.microwave,
+      extra_facilities: facts.extraFacilities,
+    }).filter(([, value]) => value !== undefined),
+  );
 }
 export function offersRepository(client: SupabaseClient) {
   return {
@@ -70,8 +130,14 @@ export function offersRepository(client: SupabaseClient) {
       if (!Array.isArray(data)) throw new Error("Invalid offer list");
       return data.map(decode);
     },
-    async create(name: string): Promise<Offer> {
-      const result = await client.rpc("create_offer", { p_name: name });
+    async create(
+      name: string,
+      facts: Partial<OfferFacts> = {},
+    ): Promise<Offer> {
+      const result = await client.rpc("create_offer_details", {
+        p_name: name,
+        p_patch: factsPatch(facts),
+      });
       if (result.error)
         throw new OfferFailure(
           "unavailable",
@@ -79,8 +145,14 @@ export function offersRepository(client: SupabaseClient) {
         );
       return decode(result.data);
     },
-    async rename(id: string, name: string, version: number): Promise<Offer> {
-      const result = await client.rpc("rename_offer", {
+    async rename(
+      id: string,
+      name: string,
+      version: number,
+      facts: Partial<OfferFacts> = {},
+    ): Promise<Offer> {
+      const result = await client.rpc("save_offer", {
+        p_patch: factsPatch(facts),
         p_id: id,
         p_name: name,
         p_expected_version: version,

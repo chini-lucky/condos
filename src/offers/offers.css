@@ -20,3 +20,60 @@
   display: flex;
   gap: 0.5rem;
 }
+.offer-panel-content fieldset {
+  margin: 1rem 0;
+  border: 1px solid #d9dfd4;
+  border-radius: 8px;
+  padding: 0.75rem;
+  min-width: 0;
+}
+.offer-panel-content select {
+  width: 100%;
+  padding: 0.65rem;
+  font: inherit;
+  border: 1px solid #a6b4aa;
+  border-radius: 6px;
+  background: white;
+}
+.facility-chips,
+.facility-summary {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0;
+}
+.facility-chips li {
+  background: #e8ede5;
+  border-radius: 1rem;
+  padding: 0.25rem 0.65rem;
+}
+.facility-chips button {
+  padding: 0 0.3rem;
+  margin-left: 0.3rem;
+}
+.facility-summary li {
+  font-size: 0.85rem;
+}
+.offer-facts {
+  font-size: 0.9rem;
+}
+.offer-list li {
+  flex-wrap: wrap;
+}
+.offer-list .offer-facts {
+  flex-basis: 100%;
+}
+.offer-panel-content form label {
+  display: block;
+  margin: 0.75rem 0;
+}
+.offer-panel-content form input {
+  display: block;
+  width: 100%;
+  font: inherit;
+  padding: 0.65rem;
+  border: 1px solid #a6b4aa;
+  border-radius: 6px;
+  margin-top: 0.3rem;
+}

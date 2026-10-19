@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { OfferFactsFields } from "./OfferFactsFields";
+import { OfferFacilities } from "./OfferFacilities";
+import { factsDraft, parseFacts } from "./facts";
 import type { Offer, OffersRepository } from "./repository";
 import { OfferFailure } from "./repository";
 export function OfferForm({
@@ -12,6 +15,7 @@ export function OfferForm({
   onSaved: (offer: Offer) => void;
   onCancel: () => void;
 }) {
+  const [facts, setFacts] = useState(() => factsDraft(offer));
   const [name, setName] = useState(offer?.name ?? "");
   const [version, setVersion] = useState(offer?.version);
   const [conflict, setConflict] = useState(false);
@@ -29,10 +33,11 @@ export function OfferForm({
     setConflict(false);
     setBusy(true);
     try {
+      const details = parseFacts(facts);
       const saved =
         offer && version !== undefined
-          ? await repository.rename(offer.id, name, version)
-          : await repository.create(name);
+          ? await repository.rename(offer.id, name, version, details)
+          : await repository.create(name, details);
       onSaved(saved);
     } catch (failure) {
       setConflict(
@@ -41,7 +46,9 @@ export function OfferForm({
       setError(
         failure instanceof OfferFailure
           ? failure.message
-          : "Offer was not saved. Please try again.",
+          : failure instanceof Error
+            ? failure.message
+            : "Offer was not saved. Please try again.",
       );
     } finally {
       setBusy(false);
@@ -88,6 +95,8 @@ export function OfferForm({
         />
       </label>
       <p>Only the name is required. You can add more information later.</p>
+      <OfferFactsFields value={facts} onChange={setFacts} />
+      <OfferFacilities value={facts} onChange={setFacts} />
       {error && <p role="alert">{error}</p>}
       {conflict && (
         <button
