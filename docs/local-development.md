@@ -27,3 +27,9 @@ The browser uses Supabase's persisted, auto-refreshed sessions and subscribes to
 ## Dependencies
 
 Supabase's official JavaScript SDK supplies Auth and PostgREST access. Playwright tests real browser journeys; Node's built-in test runner tests domain and database interfaces. ESLint, typescript-eslint and React Hooks lint enforce TypeScript/React correctness, and Prettier provides consistent formatting. These tools are scoped to their concrete runtime/checking needs.
+
+## Photos and local Edge functions
+
+Photos require the local Edge endpoints as well as the database/Storage. After migrations and the disposable admin setup, run `node scripts/configure-local-photos.ts` under the shared verification lock. This writes the disposable worker environment to owner-only `/tmp/condos-photo-functions.env`, stores matching local Vault values, and disables the scheduled job while ordinary tests manipulate fixtures. Serve with `supabase functions serve --no-verify-jwt --env-file /tmp/condos-photo-functions.env`, then `node scripts/wait-local-functions.ts`. Keep this process running for photo integration/browser checks. The endpoints authenticate requests themselves; bypassing gateway JWT verification does not grant access.
+
+`flock /tmp/condos-verification.lock node scripts/verify-local-photo-scheduler.ts` temporarily enables the actual one-minute pg_cron/pg_net job, writes a cancelled-upload fixture, waits at most 70 seconds for physical removal without a browser request, and disables the job afterward. Never run this local tooling against a hosted project. CI starts the endpoints, runs the ordinary tests, then separately verifies the scheduler.

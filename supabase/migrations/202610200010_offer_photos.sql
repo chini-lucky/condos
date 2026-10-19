@@ -159,3 +159,18 @@ revoke all on function public.reserve_photos(uuid,integer,uuid), public.cancel_p
 grant execute on function public.reserve_photos(uuid,integer,uuid), public.cancel_photos(uuid[]), public.photo_upload_target(uuid) to authenticated;
 revoke all on function public.finalize_photo(uuid,integer,integer,integer), public.claim_photo_cleanup(integer), public.finish_photo_cleanup(text,uuid,text), public.enqueue_detached_photo() from public, anon, authenticated;
 grant execute on function public.finalize_photo(uuid,integer,integer,integer), public.claim_photo_cleanup(integer), public.finish_photo_cleanup(text,uuid,text) to service_role;
+
+-- The job is inert until trusted deployment provisions both Vault values.
+-- Never embed the worker secret in migration text or cron.job command text.
+create extension if not exists pg_cron with schema pg_catalog;
+create extension if not exists pg_net with schema extensions;
+select cron.schedule('condos-photo-cleanup', '* * * * *', $job$
+  select net.http_post(
+    url := (select decrypted_secret from vault.decrypted_secrets where name = 'condos_photo_cleanup_url'),
+    headers := jsonb_build_object('Content-Type', 'application/json', 'x-cleanup-secret',
+      (select decrypted_secret from vault.decrypted_secrets where name = 'condos_photo_cleanup_secret')),
+    body := '{}'::jsonb,
+    timeout_milliseconds := 10000
+  ) where exists (select 1 from vault.decrypted_secrets where name = 'condos_photo_cleanup_url')
+      and exists (select 1 from vault.decrypted_secrets where name = 'condos_photo_cleanup_secret');
+$job$);
