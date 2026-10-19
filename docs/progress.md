@@ -2,14 +2,17 @@
 
 Integration branch: `integration/condos-v1`. Baseline main: `cfca225`.
 
-| Issue  | State      | Evidence                                                          |
-| ------ | ---------- | ----------------------------------------------------------------- |
-| #1     | Integrated | `dffaeca` — admin sign-in; integration verification below         |
-| #2     | Integrated | `6084d44` — complete Bangkok rail map; verification below         |
-| #3     | Integrated | `732ee8e` — persistent offer management; verification below       |
-| #4     | Integrated | `fe249f7` + run `39305725116` — hosted browser acceptance passed  |
-| #5     | Integrated | `2622721` — station assignment and offer pins; verification below |
-| #6–#17 | Pending    | See native GitHub dependencies and tickets.md                     |
+| Issue   | State      | Evidence                                                          |
+| ------- | ---------- | ----------------------------------------------------------------- |
+| #1      | Integrated | `dffaeca` — admin sign-in; integration verification below         |
+| #2      | Integrated | `6084d44` — complete Bangkok rail map; verification below         |
+| #3      | Integrated | `732ee8e` — persistent offer management; verification below       |
+| #4      | Integrated | `fe249f7` + run `39305725116` — hosted browser acceptance passed  |
+| #5      | Integrated | `2622721` — station assignment and offer pins; verification below |
+| #6–#7   | Pending    | See native GitHub dependencies and tickets.md                     |
+| #8      | Integrated | `b387f7d` — statuses and Bangkok viewing appointments             |
+| #9      | Partial    | `03b34e4` — notes integrated; focus-refresh draft gap below       |
+| #10–#17 | Pending    | See native GitHub dependencies and tickets.md                     |
 
 Planning documents and implementation instructions are committed before ticket work begins. Issue completion will be recorded with merge commits and validation evidence; GitHub closes the work through the final PR.
 
@@ -46,3 +49,15 @@ Merged `ticket/05-station-offers` without conflicts in `2622721`. Integration pa
 The existing offer suite creates fixed-name fixtures and deletes those names during cleanup, so concurrent copies can delete another run's active offer. This is a concrete local test-isolation risk; the exact interfering request in the first failure was not captured. Shared local verification now uses `flock /tmp/condos-verification.lock`, documented in the implementation workflow; CI has its own isolated stack.
 
 Location persistence/reassignment/clearing, real pin activation, station lists/counts, unknown positioning and nearest-station browsing are verified. Shared APIs use explicit typed patches through `create_offer_details` and `save_offer`, with additive RailBrowser station/count/overlay controls. No reset, hosted migration push or deployment occurred. Ticket #6 must reconcile its form/repository extensions against this integration tip; deeper map behavior remains #14.
+
+## Ticket #8 integration verification
+
+Merged `ticket/08-status-viewings` cleanly in `b387f7d`. Check/build passed, followed by two date/status database tests and two status browser journeys under the shared verification lock. Verified Bangkok conversion, booking/rescheduling/clearing, optional explanations, freely changed statuses, rejected-offer visibility, stale-write review and offline draft retention. Location RPC/form behavior is preserved. Future Trash must guard status mutations on trashed offers.
+
+## Ticket #9 provisional integration verification
+
+Merged `ticket/09-notes` in `03b34e4`, resolving the workspace import conflict by preserving both status components and the notes timeline. Check/build passed with both features composed. Two notes database tests and three notes browser journeys passed under the shared verification lock: CRUD/server timestamps, authorization/concurrency, offline draft recovery and explicit review after remote deletion.
+
+An unresolved draft-retention gap remains: focus refresh replaces the note list, so a remotely deleted note can unmount its active editor before the user saves or copies the draft. The explicit deleted-note review test does not exercise this focus-refresh path. Ticket #9 is not fully accepted until a regression demonstrates preservation through focus refresh and the behavior is fixed. Future Trash must also guard note mutations on trashed offers.
+
+Hosted acceptance documentation for #4 was merged in `2e4ed33`; no deployment or hosted mutation was performed during #8/#9 integration.
