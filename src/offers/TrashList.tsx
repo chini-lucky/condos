@@ -1,3 +1,6 @@
+import { PermanentDeleteAction } from "../deletions/PermanentDeleteAction";
+import { DeletionCleanupStatus } from "../deletions/DeletionCleanupStatus";
+import type { DeletionsRepository } from "../deletions/repository";
 import { OfferTrashActions } from "./OfferTrashActions";
 import { OfferStatusDisplay } from "./OfferStatusDisplay";
 import type { Offer, OffersRepository } from "./repository";
@@ -5,10 +8,14 @@ export function TrashList({
   offers,
   repository,
   onRestored,
+  deletionRepository,
+  onDeleted,
 }: {
   offers: readonly Offer[];
   repository: OffersRepository;
   onRestored: (offer: Offer) => void;
+  deletionRepository: DeletionsRepository;
+  onDeleted: (id: string) => void;
 }) {
   return (
     <section>
@@ -30,10 +37,16 @@ export function TrashList({
                 repository={repository}
                 onChanged={onRestored}
               />
+              <PermanentDeleteAction
+                offer={offer}
+                repository={deletionRepository}
+                onDeleted={onDeleted}
+              />
             </li>
           ))}
         </ul>
       )}
+      <DeletionCleanupStatus repository={deletionRepository} />
     </section>
   );
 }
@@ -41,10 +54,14 @@ export function TrashedOffer({
   offer,
   repository,
   onRestored,
+  deletionRepository,
+  onDeleted,
 }: {
   offer: Offer;
   repository: OffersRepository;
   onRestored: (offer: Offer) => void;
+  deletionRepository: DeletionsRepository;
+  onDeleted: (id: string) => void;
 }) {
   return (
     <section>
@@ -59,6 +76,11 @@ export function TrashedOffer({
         offer={offer}
         repository={repository}
         onChanged={onRestored}
+      />
+      <PermanentDeleteAction
+        offer={offer}
+        repository={deletionRepository}
+        onDeleted={onDeleted}
       />
       <a href="#trash">View Trash</a>
     </section>

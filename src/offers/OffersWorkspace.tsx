@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { deletionsRepository } from "../deletions/repository";
 import { supabase } from "../auth";
 import { RailBrowser, LineBadges } from "../rail/RailBrowser";
 import { OfferTrashActions } from "./OfferTrashActions";
@@ -35,6 +36,7 @@ function routeFromHash(): Route {
   return parseRoute(location.hash);
 }
 const repository = supabase ? offersRepository(supabase) : null;
+const deletionRepository = supabase ? deletionsRepository(supabase) : null;
 const noteRepository = supabase ? notesRepository(supabase) : null;
 export function OffersWorkspace() {
   const [filters, setFilters] = useState(defaultFilters);
@@ -162,6 +164,13 @@ export function OffersWorkspace() {
     navigate({ kind: "detail", id: offer.id });
     setNotice("Offer saved.");
   }
+  function permanentlyDeleted(id: string) {
+    setOffers((current) => current.filter((offer) => offer.id !== id));
+    navigate({ kind: "trash" });
+    setNotice(
+      "Offer permanently deleted. Photo cleanup status is shown below.",
+    );
+  }
   const selected =
     "id" in route ? offers.find((offer) => offer.id === route.id) : null;
   const activeOffers = offers.filter((offer) => offer.trashedAt === null);
@@ -287,17 +296,24 @@ export function OffersWorkspace() {
             />
           )}
         </>
-      ) : route.kind === "trash" && repository ? (
+      ) : route.kind === "trash" && repository && deletionRepository ? (
         <TrashList
           offers={trashedOffers}
           repository={repository}
           onRestored={saved}
+          deletionRepository={deletionRepository}
+          onDeleted={permanentlyDeleted}
         />
-      ) : selected?.trashedAt && repository && route.kind !== "edit" ? (
+      ) : selected?.trashedAt &&
+        repository &&
+        deletionRepository &&
+        route.kind !== "edit" ? (
         <TrashedOffer
           offer={selected}
           repository={repository}
           onRestored={saved}
+          deletionRepository={deletionRepository}
+          onDeleted={permanentlyDeleted}
         />
       ) : repository &&
         (route.kind === "add" || (route.kind === "edit" && selected)) ? (
