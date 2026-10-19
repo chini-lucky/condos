@@ -7,7 +7,7 @@ Integration branch: `integration/condos-v1`. Baseline main: `cfca225`.
 | #1     | Integrated | `dffaeca` — admin sign-in; integration verification below         |
 | #2     | Integrated | `6084d44` — complete Bangkok rail map; verification below         |
 | #3     | Integrated | `732ee8e` — persistent offer management; verification below       |
-| #4     | Partial    | `fe249f7` — hosted backend verified; Pages acceptance pending     |
+| #4     | Integrated | `fe249f7` + run `39305725116` — hosted browser acceptance passed  |
 | #5     | Integrated | `2622721` — station assignment and offer pins; verification below |
 | #6–#17 | Pending    | See native GitHub dependencies and tickets.md                     |
 
@@ -31,11 +31,13 @@ Merged `ticket/03-offers` without conflicts in `732ee8e`. Integration passed `np
 
 The typed offers repository, shared OfferForm and OffersWorkspace composition are integrated for later features. Tests used the existing local Condos migrations through `202610190005`; no stack reset or deployment occurred. Optional offer facts and feature-specific editing remain later tickets. The GitHub issue remains open for closure through the final PR.
 
-## Ticket #4 provisional integration verification
+## Ticket #4 integration and hosted verification
 
 Merged `ticket/04-production` without conflicts in `fe249f7`. Integration passed `npm run check`, `npm run build`, and all three deployment-policy/public-configuration/local-target boundary tests. No local database changes or resets were made during this verification.
 
-The deployment implementer verified the dedicated hosted Condos project in Singapore, admin authentication, disabled registration, migrations through `202610190005`, private access and real create/read/rename smoke. Workflow code and secret configuration are integrated. **Hosted backend verified; Pages acceptance pending.** The orchestrator must pin the exact integration SHA, dispatch the guarded workflow, then verify the released frontend through the real hosted browser smoke. Ticket #4 is not fully complete; no deployment was dispatched by the merger.
+The deployment implementer verified the dedicated hosted Condos project in Singapore, admin authentication, disabled registration, migrations through `202610190005`, private access and real create/read/rename smoke. Workflow code and secret configuration are integrated. The orchestrator deployed exact integration SHA `19192e326e1c73d9af955a14717df0abc113929d` in [run 39305725116](https://github.com/chini-lucky/condos/actions/runs/39305725116). All five jobs passed: source authorization, local CI, frontend build, hosted backend deployment and Pages publication.
+
+On 2026-10-20 (Bangkok), the real hosted browser smoke at https://chini-lucky.github.io/condos/ passed admin sign-in, name-only creation, direct-link reload with persisted data, renaming and logout. The same operator script verified anonymous offer access is denied and public registration is disabled. It loaded the existing private password in memory, recorded no credential-bearing traces or screenshots, and removed only its uniquely named smoke fixtures through trusted cleanup. No main merge or issue closure occurred. Ticket #4 acceptance is complete; newer feature migrations remain undeployed until a later controlled release.
 
 ## Ticket #5 integration verification
 

@@ -37,3 +37,9 @@ Production contains no seeded prototype offers, fabricated agents or sample imag
 A failed authorization/check/build makes no hosted changes. Backend failure prevents Pages publication; completed migrations or config steps may already be applied. Inspect the failing phase in a trusted environment, fix through a new compatible migration/configuration change and rerun the same controlled pipeline. Do not reset the production database, edit migration history or replay local test setup. Admin provisioning is separate and is not retried by release automation.
 
 If Pages publication fails after the backend succeeds, the old frontend remains while backend changes persist. Fix Pages and rerun after verifying the backend remains backward compatible. To restore a previous frontend, rebuild the known compatible commit through an explicitly authorized release; do not blindly roll back schema or delete real offers. Rotate compromised deployment credentials through Supabase and replace GitHub environment secrets without committing them.
+
+## Verified initial release
+
+On 2026-10-20 (Bangkok), [deployment run 39305725116](https://github.com/chini-lucky/condos/actions/runs/39305725116) successfully released exact integration commit `19192e326e1c73d9af955a14717df0abc113929d`. Source authorization, local CI, build, backend and Pages jobs all succeeded. Production schema at this initial release includes migrations through `202610190005` only.
+
+The hosted Chromium smoke passed sign-in, name-only offer creation, persisted direct-link reload, edit and logout. Real anonymous denial and disabled public registration also passed. The original admin credential stayed in memory, no credential traces/screenshots were recorded, and the uniquely named smoke offers were removed by scoped trusted cleanup. Later features require a separately controlled release; this record verifies the initial authentication/offer slice.
