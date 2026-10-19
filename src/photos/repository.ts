@@ -6,6 +6,48 @@ export interface Photo {
   position: number;
   state: "uploading" | "ready" | "deleting";
 }
+export interface PhotoCollection {
+  photos: Photo[];
+  revision: number;
+  coverId: string | null;
+}
+export class PhotoFailure extends Error {
+  constructor(
+    public readonly kind: "conflict" | "unavailable",
+    message: string,
+  ) {
+    super(message);
+  }
+}
+function decodeCollection(value: unknown): PhotoCollection {
+  if (typeof value !== "object" || value === null)
+    throw new Error("Photos are unavailable.");
+  const field = (key: string): unknown =>
+    Object.getOwnPropertyDescriptor(value, key)?.value;
+  const revision = field("revision"),
+    coverId = field("cover_id");
+  if (
+    typeof revision !== "number" ||
+    !Number.isSafeInteger(revision) ||
+    revision < 1 ||
+    (coverId !== null && typeof coverId !== "string")
+  )
+    throw new Error("Invalid photo collection");
+  return { photos: decodeList(field("photos")), revision, coverId };
+}
+function mutationResult(
+  data: unknown,
+  error: { code: string } | null,
+): PhotoCollection {
+  if (error)
+    throw new PhotoFailure(
+      error.code === "40001" ? "conflict" : "unavailable",
+      error.code === "40001"
+        ? "Photos changed on another device or this offer is unavailable. Your order is kept. Review the latest photos before retrying."
+        : "Photo changes were not saved. Check your connection and retry.",
+    );
+  return decodeCollection(data);
+}
 function decode(value: unknown): Photo {
   if (typeof value !== "object" || value === null)
     throw new Error("Invalid photo response");
@@ -33,6 +75,38 @@ function decodeList(value: unknown): Photo[] {
 }
 export function photosRepository(client: SupabaseClient) {
   return {
+    async snapshot(offerId: string) {
+      const result = await client.rpc("get_offer_photos", {
+        p_offer_id: offerId,
+      });
+      if (result.error)
+        throw new Error("Photos could not be loaded. Please retry.");
+      return decodeCollection(result.data);
+    },
+    async reorder(offerId: string, revision: number, ids: string[]) {
+      const result = await client.rpc("reorder_photos", {
+        p_offer_id: offerId,
+        p_expected_revision: revision,
+        p_ids: ids,
+      });
+      return mutationResult(result.data, result.error);
+    },
+    async chooseCover(offerId: string, revision: number, photoId: string) {
+      const result = await client.rpc("choose_photo_cover", {
+        p_offer_id: offerId,
+        p_expected_revision: revision,
+        p_photo_id: photoId,
+      });
+      return mutationResult(result.data, result.error);
+    },
+    async remove(offerId: string, revision: number, photoId: string) {
+      const result = await client.rpc("remove_photo", {
+        p_offer_id: offerId,
+        p_expected_revision: revision,
+        p_photo_id: photoId,
+      });
+      return mutationResult(result.data, result.error);
+    },
     async list(offerId: string) {
       const result = await client
         .from("photo_assets")

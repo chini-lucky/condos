@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../auth";
 import { maximumPhotoBytes, processPhoto } from "./process";
 import { photosRepository } from "./repository";
-import type { Photo } from "./repository";
+import type { Photo, PhotoCollection } from "./repository";
+import { PhotoOrganizer } from "./PhotoOrganizer";
 import { PhotoImage } from "./PhotoImage";
 import "./photos.css";
 const repository = supabase ? photosRepository(supabase) : null;
@@ -14,7 +15,8 @@ type Selection = {
   photoId?: string;
 };
 export function OfferPhotos({ offerId }: { offerId: string }) {
-  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [collection, setCollection] = useState<PhotoCollection | null>(null);
+  const photos = collection?.photos ?? [];
   const [index, setIndex] = useState(0);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -28,7 +30,7 @@ export function OfferPhotos({ offerId }: { offerId: string }) {
   const refresh = useCallback(async () => {
     if (!repository) return;
     try {
-      setPhotos(await repository.list(offerId));
+      setCollection(await repository.snapshot(offerId));
     } catch (error) {
       setError(error instanceof Error ? error.message : "Photos unavailable");
     } finally {
@@ -180,7 +182,33 @@ export function OfferPhotos({ offerId }: { offerId: string }) {
           </div>
         </div>
       ) : (
-        <div className="photo-placeholder">No photos yet</div>
+        <div className="photo-placeholder">
+          {collection ? "No photos yet" : "Photos unavailable"}
+        </div>
+      )}
+      {collection && repository && (
+        <PhotoOrganizer
+          offerId={offerId}
+          collection={collection}
+          repository={repository}
+          uploading={busy}
+          onChanged={(next) => {
+            const selectedId = current?.id;
+            const found = next.photos.findIndex(
+              (photo) => photo.id === selectedId,
+            );
+            setIndex(
+              found >= 0
+                ? found
+                : Math.min(index, Math.max(0, next.photos.length - 1)),
+            );
+            setCollection(next);
+            void repository
+              .cleanupStatus()
+              .then(setCleanup)
+              .catch(() => {});
+          }}
+        />
       )}
       {error && (
         <div role="alert">
@@ -316,17 +344,36 @@ export function OfferCover({
   const [retry, setRetry] = useState(0);
   useEffect(() => {
     let active = true;
-    if (repository)
-      void repository
-        .list(offerId)
-        .then((photos) => {
-          if (active) setState({ kind: "ready", photo: photos[0] ?? null });
-        })
-        .catch(() => {
-          if (active) setState({ kind: "error" });
-        });
+    let revision = 0;
+    const load = () => {
+      const request = ++revision;
+      if (repository)
+        void repository
+          .snapshot(offerId)
+          .then((collection) => {
+            if (active && request === revision)
+              setState({
+                kind: "ready",
+                photo:
+                  collection.photos.find(
+                    (photo) => photo.id === collection.coverId,
+                  ) ?? null,
+              });
+          })
+          .catch(() => {
+            if (active && request === revision) setState({ kind: "error" });
+          });
+    };
+    const onVisible = () => {
+      if (document.visibilityState === "visible") load();
+    };
+    load();
+    window.addEventListener("focus", load);
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       active = false;
+      window.removeEventListener("focus", load);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, [offerId, retry]);
   return (
