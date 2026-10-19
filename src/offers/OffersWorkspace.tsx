@@ -1,7 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../auth";
-import { RailBrowser } from "../rail/RailBrowser";
+import { RailBrowser, LineBadges } from "../rail/RailBrowser";
 import { OfferForm } from "./OfferForm";
+import { getStation } from "../rail/network";
+import type { Station } from "../rail/network";
+import {
+  StationOfferList,
+  walkingDescription,
+  rentDescription,
+} from "./StationOfferList";
+import { OfferMapOverlay } from "./OfferMapOverlay";
+import { stationSummaries } from "./location";
 import { offersRepository } from "./repository";
 import type { Offer } from "./repository";
 import "./offers.css";
@@ -28,6 +37,11 @@ export function OffersWorkspace() {
   const [error, setError] = useState<string | null>(null);
   const [route, setRoute] = useState<Route>(routeFromHash);
   const [notice, setNotice] = useState("");
+  const [focusedStation, setFocusedStation] = useState<Station | null>(null);
+  const browseStation = useCallback((station: Station | null) => {
+    setFocusedStation(station);
+    navigate({ kind: "list" });
+  }, []);
   const revision = useRef(0);
   const heading = useRef<HTMLDivElement>(null);
   const refresh = useCallback(async () => {
@@ -89,6 +103,9 @@ export function OffersWorkspace() {
     return () => window.removeEventListener("keydown", key);
   }, [back, route.kind]);
   function saved(offer: Offer) {
+    setFocusedStation(
+      offer.stationId ? (getStation(offer.stationId) ?? null) : null,
+    );
     setOffers((current) => [
       offer,
       ...current.filter((item) => item.id !== offer.id),
@@ -98,6 +115,8 @@ export function OffersWorkspace() {
   }
   const selected =
     "id" in route ? offers.find((offer) => offer.id === route.id) : null;
+  const summaries = stationSummaries(offers);
+  const unassigned = offers.filter((offer) => offer.stationId === null);
   const content = (
     <div className="offer-panel-content" ref={heading} tabIndex={-1}>
       {route.kind !== "list" && <button onClick={back}>Back</button>}
@@ -118,13 +137,45 @@ export function OffersWorkspace() {
         <p role="status">Loading offers…</p>
       ) : route.kind === "list" ? (
         <>
+          {summaries.length > 0 && (
+            <section aria-label="Stations with offers">
+              <h2>Stations with offers</h2>
+              <ul className="station-summary-list">
+                {summaries.map((summary) => {
+                  const station = getStation(summary.stationId);
+                  return station ? (
+                    <li key={station.id}>
+                      <button
+                        aria-label={`Browse ${station.name}`}
+                        onClick={() => browseStation(station)}
+                      >
+                        <LineBadges station={station} />
+                        <strong>{station.name}</strong>
+                        <span>
+                          {summary.count}{" "}
+                          {summary.count === 1 ? "offer" : "offers"}
+                          {summary.lowestRent === null
+                            ? ""
+                            : ` · from ฿${summary.lowestRent.toLocaleString("en-GB")}`}
+                        </span>
+                      </button>
+                    </li>
+                  ) : null;
+                })}
+              </ul>
+            </section>
+          )}
           <h2>Unassigned</h2>
           <button onClick={() => navigate({ kind: "add" })}>Add offer</button>
-          {offers.length === 0 ? (
-            <p>No offers yet. Add your first rental offer.</p>
+          {unassigned.length === 0 ? (
+            <p>
+              {offers.length === 0
+                ? "No offers yet. Add your first rental offer."
+                : "No unassigned offers."}
+            </p>
           ) : (
             <ul className="offer-list">
-              {offers.map((offer) => (
+              {unassigned.map((offer) => (
                 <li key={offer.id}>
                   <a href={`#offer=${offer.id}`}>{offer.name}</a>
                   <span>{offer.status}</span>
@@ -139,6 +190,7 @@ export function OffersWorkspace() {
           key={route.kind === "add" ? "new" : selected?.id}
           offer={route.kind === "edit" ? (selected ?? null) : null}
           repository={repository}
+          initialStationId={focusedStation?.id}
           onSaved={saved}
           onCancel={back}
         />
@@ -146,8 +198,18 @@ export function OffersWorkspace() {
         <>
           <h2>{selected.name}</h2>
           <p>{selected.status}</p>
-          <p>Station not assigned</p>
-          <p>Rent not recorded</p>
+          <p>
+            {selected.stationId
+              ? `Station: ${getStation(selected.stationId)?.name ?? selected.stationId}`
+              : "Station not assigned"}
+          </p>
+          <p>{walkingDescription(selected)}</p>
+          <p>
+            {selected.bearing === null
+              ? "Direction unknown"
+              : `Direction: ${selected.bearing}° clockwise from north`}
+          </p>
+          <p>{rentDescription(selected)}</p>
           <p>Added {formatDate(selected.createdAt)}</p>
           <p>Updated {formatDate(selected.updatedAt)}</p>
           <button onClick={() => navigate({ kind: "edit", id: selected.id })}>
@@ -171,7 +233,44 @@ export function OffersWorkspace() {
       overview={content}
       panelContent={route.kind === "list" ? undefined : content}
       panelMode={route.kind === "list" ? undefined : "full"}
-      onStationChange={() => navigate({ kind: "list" })}
+      onStationChange={browseStation}
+      selectedStationId={selected?.stationId ?? focusedStation?.id ?? null}
+      stationCounts={
+        new Map(summaries.map((summary) => [summary.stationId, summary.count]))
+      }
+      mapOverlay={(scale) => (
+        <OfferMapOverlay
+          offers={offers}
+          scale={scale}
+          onOpen={(offer) => navigate({ kind: "detail", id: offer.id })}
+        />
+      )}
+      renderStation={(station) => (
+        <>
+          {error && (
+            <div role="alert">
+              <p>{error}</p>
+              <button
+                onClick={() => {
+                  void refresh();
+                }}
+              >
+                Retry loading offers
+              </button>
+            </div>
+          )}
+          {loading ? (
+            <p role="status">Loading offers…</p>
+          ) : (
+            <StationOfferList
+              station={station}
+              offers={offers}
+              onAdd={() => navigate({ kind: "add" })}
+              onSelectStation={browseStation}
+            />
+          )}
+        </>
+      )}
     />
   );
 }
