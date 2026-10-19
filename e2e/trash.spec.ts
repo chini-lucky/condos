@@ -96,3 +96,70 @@ test.afterAll(async () => {
     .delete()
     .eq("name", "Trash browser retained");
 });
+
+test("a stale open form keeps its draft but cannot resurrect Trash, even after reviewing the newest version", async ({
+  page,
+  browser,
+}) => {
+  await login(page);
+  await page.getByRole("button", { name: "Add offer", exact: true }).click();
+  await page.getByLabel("Offer name").fill("Trash stale draft");
+  await page.getByRole("button", { name: "Save offer" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Trash stale draft", exact: true }),
+  ).toBeVisible();
+  const link = page.url();
+  const other = await browser.newContext();
+  const second = await other.newPage();
+  await login(second);
+  await second.goto(link);
+  await second.getByRole("button", { name: "Edit offer", exact: true }).click();
+  await second.getByLabel("Offer name").fill("My retained trash draft");
+  await page
+    .getByRole("button", { name: "Move to Trash", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Confirm move to Trash" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Offer is in Trash" }),
+  ).toBeVisible();
+  await second.getByRole("button", { name: "Save offer", exact: true }).click();
+  await expect(second.getByRole("alert")).toContainText(
+    "changed on another device",
+  );
+  await expect(second.getByLabel("Offer name")).toHaveValue(
+    "My retained trash draft",
+  );
+  await second.getByRole("button", { name: "Review latest offer" }).click();
+  await second.getByRole("button", { name: "Save offer", exact: true }).click();
+  await expect(second.getByRole("alert")).toContainText(
+    "changed on another device",
+  );
+  await expect(second.getByLabel("Offer name")).toHaveValue(
+    "My retained trash draft",
+  );
+  const refreshed = second.waitForResponse(
+    (r) =>
+      r.url().includes("/rest/v1/offers?") && r.request().method() === "GET",
+  );
+  await second.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await refreshed;
+  await expect(second.getByLabel("Offer name")).toHaveValue(
+    "My retained trash draft",
+  );
+  await expect(
+    second.getByRole("link", { name: "Open recovery options" }),
+  ).toBeVisible();
+  await second.getByRole("link", { name: "Open recovery options" }).click();
+  await second
+    .getByRole("button", { name: "Restore offer", exact: true })
+    .click();
+  await expect(
+    second.getByRole("heading", { name: "Trash stale draft", exact: true }),
+  ).toBeVisible();
+  await other.close();
+  const c = localConfig();
+  await createClient(c.url, c.serviceKey)
+    .from("offers")
+    .delete()
+    .eq("name", "Trash stale draft");
+});
