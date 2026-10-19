@@ -1,6 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { OfferFacts } from "./facts";
-export interface Offer extends OfferFacts {
+import type { OfferLocation } from "./location";
+export interface OfferDetails
+  extends Partial<OfferFacts>, Partial<OfferLocation> {}
+export interface Offer extends OfferFacts, OfferLocation {
   id: string;
   name: string;
   status: "Pending" | "Available" | "Viewing" | "Rejected";
@@ -26,7 +29,10 @@ function decode(value: unknown): Offer {
     status = field("status"),
     version = field("version"),
     createdAt = field("created_at"),
-    updatedAt = field("updated_at");
+    updatedAt = field("updated_at"),
+    stationId = field("station_id"),
+    walkingMetres = field("walking_metres"),
+    bearing = field("bearing");
   if (
     typeof id !== "string" ||
     typeof name !== "string" ||
@@ -37,7 +43,17 @@ function decode(value: unknown): Offer {
     typeof version !== "number" ||
     !Number.isSafeInteger(version) ||
     typeof createdAt !== "string" ||
-    typeof updatedAt !== "string"
+    typeof updatedAt !== "string" ||
+    (stationId !== null && typeof stationId !== "string") ||
+    (walkingMetres !== null &&
+      (typeof walkingMetres !== "number" ||
+        !Number.isFinite(walkingMetres) ||
+        walkingMetres < 0)) ||
+    (bearing !== null &&
+      (typeof bearing !== "number" ||
+        !Number.isFinite(bearing) ||
+        bearing < 0 ||
+        bearing >= 360))
   )
     throw new Error("Invalid offer response");
   const nullableNumber = (key: string): number | null => {
@@ -73,6 +89,9 @@ function decode(value: unknown): Offer {
     version,
     createdAt,
     updatedAt,
+    stationId,
+    walkingMetres,
+    bearing,
     propertyType,
     extraFacilities,
     rent: nullableNumber("rent"),
@@ -85,9 +104,12 @@ function decode(value: unknown): Offer {
     microwave: nullableBoolean("microwave"),
   };
 }
-function factsPatch(facts: Partial<OfferFacts>) {
+function detailsPatch(facts: OfferDetails) {
   return Object.fromEntries(
     Object.entries({
+      station_id: facts.stationId,
+      walking_metres: facts.walkingMetres,
+      bearing: facts.bearing,
       rent: facts.rent,
       property_type: facts.propertyType,
       size_sqm: facts.sizeSqm,
@@ -130,13 +152,10 @@ export function offersRepository(client: SupabaseClient) {
       if (!Array.isArray(data)) throw new Error("Invalid offer list");
       return data.map(decode);
     },
-    async create(
-      name: string,
-      facts: Partial<OfferFacts> = {},
-    ): Promise<Offer> {
+    async create(name: string, facts: OfferDetails = {}): Promise<Offer> {
       const result = await client.rpc("create_offer_details", {
         p_name: name,
-        p_patch: factsPatch(facts),
+        p_patch: detailsPatch(facts),
       });
       if (result.error)
         throw new OfferFailure(
@@ -149,10 +168,10 @@ export function offersRepository(client: SupabaseClient) {
       id: string,
       name: string,
       version: number,
-      facts: Partial<OfferFacts> = {},
+      facts: OfferDetails = {},
     ): Promise<Offer> {
       const result = await client.rpc("save_offer", {
-        p_patch: factsPatch(facts),
+        p_patch: detailsPatch(facts),
         p_id: id,
         p_name: name,
         p_expected_version: version,

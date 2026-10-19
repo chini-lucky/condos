@@ -5,19 +5,29 @@ import { OfferFacilities } from "./OfferFacilities";
 import { factsDraft, parseFacts } from "./facts";
 import type { Offer, OffersRepository } from "./repository";
 import { OfferFailure } from "./repository";
+import {
+  OfferLocationFields,
+  locationDraft,
+  parseLocation,
+} from "./OfferLocationFields";
 export function OfferForm({
   offer,
   repository,
   onSaved,
   onCancel,
+  initialStationId,
 }: {
   offer: Offer | null;
   repository: OffersRepository;
   onSaved: (offer: Offer) => void;
   onCancel: () => void;
+  initialStationId?: string | undefined;
 }) {
   const [facts, setFacts] = useState(() => factsDraft(offer));
   const [name, setName] = useState(offer?.name ?? "");
+  const [location, setLocation] = useState(() =>
+    locationDraft(offer, initialStationId),
+  );
   const [version, setVersion] = useState(offer?.version);
   const [conflict, setConflict] = useState(false);
   const [latest, setLatest] = useState<Offer | null>(null);
@@ -34,7 +44,7 @@ export function OfferForm({
     setConflict(false);
     setBusy(true);
     try {
-      const details = parseFacts(facts);
+      const details = { ...parseFacts(facts), ...parseLocation(location) };
       const saved =
         offer && version !== undefined
           ? await repository.rename(offer.id, name, version, details)
@@ -95,6 +105,7 @@ export function OfferForm({
           onChange={(event) => setName(event.target.value)}
         />
       </label>
+      <OfferLocationFields value={location} onChange={setLocation} />
       <p>Only the name is required. You can add more information later.</p>
       <OfferFactsFields value={facts} onChange={setFacts} />
       <OfferFacilities value={facts} onChange={setFacts} />

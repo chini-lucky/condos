@@ -77,3 +77,65 @@
   border-radius: 6px;
   margin-top: 0.3rem;
 }
+
+.offer-location-fields {
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid #d6dad3;
+  border-radius: 10px;
+}
+.offer-location-fields label {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0.9rem 0;
+  font-size: 0.9rem;
+}
+.offer-location-fields input,
+.offer-location-fields select {
+  font: inherit;
+  width: 100%;
+  padding: 0.65rem;
+  border: 1px solid #d6dad3;
+  border-radius: 7px;
+}
+.offer-location-fields p {
+  font-size: 0.8rem;
+  color: #5c6560;
+}
+.station-summary-list,
+.station-offer-list {
+  list-style: none;
+  padding: 0;
+}
+.station-summary-list button {
+  width: 100%;
+  text-align: left;
+  display: grid;
+  gap: 0.45rem;
+  background: #f3f4f0;
+  border: 1px solid #d6dad3;
+  color: #161a17;
+  padding: 1rem;
+  margin: 0.6rem 0;
+  border-radius: 10px;
+}
+.station-summary-list span {
+  font-size: 0.8rem;
+  color: #5c6560;
+}
+.station-offer-list > li {
+  padding: 1rem 0;
+  border-bottom: 1px solid #d6dad3;
+}
+.station-offer-list a {
+  color: #161a17;
+  font-weight: 600;
+}
+.station-offer-list p {
+  color: #5c6560;
+  font-size: 0.85rem;
+  margin: 0.5rem 0;
+}
+.station-offer-list span {
+  font-size: 0.8rem;
+}

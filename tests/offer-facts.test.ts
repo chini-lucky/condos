@@ -15,12 +15,16 @@ test("optional facts preserve unknowns and studio zero, clear atomically, and re
     ).error,
     null,
   );
-  const created = await db.rpc("create_offer", {
+  const created = await db.rpc("create_offer_details", {
     p_name: "Facts boundary fixture",
+    p_patch: { station_id: "E6", walking_metres: 800, bearing: 90 },
   });
   assert.equal(created.error, null);
   const id = created.data.id;
   try {
+    assert.equal(created.data.rent, null);
+    assert.equal(created.data.beds, null);
+    assert.equal(created.data.washer, null);
     const facts = {
       rent: 25000,
       property_type: "condominium",
@@ -100,6 +104,9 @@ test("optional facts preserve unknowns and studio zero, clear atomically, and re
       );
     const unknown = await db.from("offers").select("*").eq("id", id).single();
     assert.equal(unknown.data?.beds, null);
+    assert.equal(unknown.data?.station_id, "E6");
+    assert.equal(unknown.data?.walking_metres, 800);
+    assert.equal(unknown.data?.bearing, 90);
     const anonymous = createClient(config.url, config.anonKey, options);
     assert.ok(
       (

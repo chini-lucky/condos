@@ -10,6 +10,9 @@ test("create, inspect and clear optional facts and facilities without fabricatin
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await page.getByRole("button", { name: "Add offer", exact: true }).click();
   await page.getByLabel("Offer name").fill("Facts browser fixture");
+  await page.getByLabel("Station", { exact: true }).selectOption("E6");
+  await page.getByLabel("Walking distance (metres)").fill("800");
+  await page.getByLabel("Direction (degrees clockwise from north)").fill("90");
   await page.getByLabel("Monthly rent (THB)").fill("25000");
   await page.getByLabel("Property type").selectOption("condominium");
   await page.getByLabel("Size (m²)").fill("31.5");
@@ -56,6 +59,7 @@ test("create, inspect and clear optional facts and facilities without fabricatin
   await page.reload();
   await page.getByRole("button", { name: "Edit offer", exact: true }).click();
   await expect(page.getByLabel("Beds (0 for studio)")).toHaveValue("0");
+  await expect(page.getByLabel("Station", { exact: true })).toHaveValue("E6");
   for (const label of [
     "Monthly rent (THB)",
     "Size (m²)",
@@ -78,6 +82,12 @@ test("create, inspect and clear optional facts and facilities without fabricatin
   ).toBeVisible();
   await expect(page.getByText(/Beds unknown/)).toBeVisible();
   await expect(page.getByText("Balcony", { exact: true })).toHaveCount(0);
+  await expect(
+    page.getByText("Station: Thong Lo", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("800 m · estimated 10 min walk", { exact: true }),
+  ).toBeVisible();
 });
 test.afterAll(async () => {
   const { createClient } = await import("@supabase/supabase-js");
