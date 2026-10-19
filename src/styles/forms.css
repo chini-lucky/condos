@@ -1,0 +1,166 @@
+.offer-panel-content form h2 {
+  font-size: 24px;
+  letter-spacing: -0.04em;
+}
+
+.offer-panel-content form fieldset {
+  border: 0;
+  padding: 0;
+  margin: 22px 0;
+}
+
+.offer-panel-content form legend {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.offer-panel-content form label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  margin: 12px 0;
+}
+
+.offer-panel-content
+  form
+  input:not([type="checkbox"]):not([type="range"]):not([type="file"]),
+.offer-panel-content form select,
+.offer-panel-content form textarea {
+  border: 0;
+  background: var(--wash);
+  border-radius: 13px;
+  padding: 12px 14px;
+  width: 100%;
+  color: var(--ink);
+  font:
+    500 14px "Instrument Sans",
+    sans-serif;
+}
+
+.offer-panel-content form input:focus-visible,
+.offer-panel-content form select:focus-visible,
+.offer-panel-content form textarea:focus-visible {
+  outline: 2px solid #161a17;
+  outline-offset: 2px;
+}
+
+.offer-panel-content form p {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.offer-notes form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 8px;
+}
+
+.offer-notes form label {
+  min-width: 0;
+  flex: 1 1 180px;
+  margin: 0;
+  font-size: 10px;
+}
+
+.offer-notes form textarea {
+  min-height: 44px;
+  margin-bottom: 0;
+}
+
+.offer-notes form button {
+  margin-bottom: 0;
+  flex: none;
+}
+
+.offer-panel-content form .property-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 16px;
+}
+
+.offer-panel-content form .property-choices label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 10px 11px;
+  background: var(--wash);
+  border-radius: 20px;
+  margin: 0;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.property-choices svg {
+  width: 15px;
+  height: 15px;
+}
+
+.property-choices input {
+  position: absolute;
+  opacity: 0;
+  width: 1px !important;
+  height: 1px;
+}
+
+.offer-panel-content form .property-choices label:has(input:checked) {
+  background: var(--ink);
+  color: white;
+}
+
+.property-choices label:focus-within {
+  outline: 3px solid #7a6bcb;
+  outline-offset: 2px;
+}
+
+.facts-fields-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.facts-fields-grid label:first-child {
+  grid-column: 1/-1;
+}
+
+.offer-panel-content form .facts-fields-grid label {
+  margin: 0;
+  font-size: 10px;
+}
+
+.offer-panel-content form .facts-fields-grid input {
+  padding: 12px 10px;
+}
+
+.facility-fields-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.offer-panel-content form .facility-fields-grid label {
+  margin: 0;
+}
+.unavailable-drafts {
+  padding: 12px;
+  border: 1px solid #ebc6c2;
+  border-radius: 12px;
+  background: #fbedec;
+  margin-bottom: 16px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.unavailable-drafts button {
+  font-size: 11px;
+  margin: 6px 0 0;
+}
+.unavailable-drafts a {
+  display: block;
+  color: inherit;
+}

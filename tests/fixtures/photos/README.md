@@ -1,0 +1,3 @@
+Fixtures generated for this repository with Pillow 10.2.0 (solid red/blue pixels and transparency, no third-party image rights). `oriented-gps.jpg` has EXIF orientation 6 and synthetic GPS N13°45′ E100°30′, not a photographed location. Stored output must have no EXIF. `transparent.png` is 2400×1200; `landscape.webp` is 40×20; `oversized.jpg` is 1601×10. Generation recipe is intentionally simple solid rectangles so independent pixel/dimension assertions are meaningful.
+
+`bounded-noise.jpg` is deterministic seeded RGB noise (`random.Random(10).randbytes(1600*1600*3)`, Pillow JPEG quality 90), used to exercise the full 1600×1600 decoder/encoder resource bound with a roughly 2 MB input.

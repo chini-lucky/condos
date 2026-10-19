@@ -1,0 +1,145 @@
+.map-chrome {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 16px 16px 0 0;
+}
+
+.map-chrome .offer-filters {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.account-actions {
+  flex: none;
+  padding-top: 9px;
+}
+
+.account-actions .sign-out {
+  white-space: nowrap;
+}
+
+.overview-filter-blurb {
+  margin: -6px 0 14px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.filter-heading {
+  font-weight: 650;
+  font-size: 13px;
+  margin-right: 2px;
+}
+
+.filter-rent-title {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 9px;
+}
+
+.filter-rent input {
+  accent-color: var(--ink);
+}
+
+.offer-filters fieldset {
+  gap: 8px 12px;
+}
+
+.filter-toggles label {
+  height: 30px;
+  font-size: 12px;
+  padding-inline: 9px;
+}
+
+.authenticated-app .offer-callout-button {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding: 10px;
+  border: 1px solid transparent;
+  border-radius: 13px;
+  background: white;
+  box-shadow: 0 3px 9px #161a171a;
+  display: block;
+  text-align: left;
+  overflow: visible;
+}
+
+.authenticated-app .offer-map-callout.is-highlighted .offer-callout-button {
+  border-color: var(--ink);
+}
+
+.offer-callout-button > strong {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  padding-right: 48px;
+  font-size: 11px;
+  line-height: 1.2;
+  min-height: 26px;
+}
+
+.offer-callout-button > .callout-distance {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+  margin: 2px 0 5px;
+  white-space: nowrap;
+}
+
+.offer-callout-button > .offer-price {
+  position: absolute;
+  top: 10px;
+  right: 9px;
+  font-size: 11px;
+  margin: 0;
+}
+
+.offer-callout-button > .offer-price small {
+  font-size: 8px;
+}
+
+.callout-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 4px;
+}
+
+.callout-bottom .facility-indicators {
+  gap: 3px;
+}
+
+.callout-bottom .facility-indicators li {
+  width: 15px;
+  height: 15px;
+  border: 0;
+}
+
+.callout-bottom .facility-indicators svg {
+  width: 11px;
+  height: 11px;
+}
+
+.callout-bottom .offer-status-label {
+  padding: 2px 5px;
+  font-size: 8px;
+}
+
+.callout-bottom .offer-status-label::before {
+  width: 4px;
+  height: 4px;
+  margin-right: 3px;
+}
+.offer-callout-button .offer-status-context {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 12px;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.offer-callout-button .offer-status-context p {
+  margin: 4px 0 0;
+}

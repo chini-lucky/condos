@@ -1,0 +1,34 @@
+name: check
+on:
+  workflow_call:
+  pull_request:
+  push:
+    branches: [main, integration/condos-v1]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 24
+          cache: npm
+      - uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
+        with:
+          version: 2.121.0
+      - run: npm ci
+      - run: npm run check
+      - run: supabase start > /tmp/condos-start.log 2>&1
+      - run: npm run local:env
+      - run: node scripts/configure-local-photos.ts
+      - run: supabase functions serve --no-verify-jwt --env-file /tmp/condos-photo-functions.env > /tmp/condos-functions.log 2>&1 &
+      - run: node scripts/wait-local-functions.ts
+      - run: npm test
+      - run: node scripts/verify-local-photo-scheduler.ts
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - run: npm run build
+      - if: always()
+        run: supabase stop > /tmp/condos-stop.log 2>&1
